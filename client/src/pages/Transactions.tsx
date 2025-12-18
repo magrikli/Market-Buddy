@@ -1,0 +1,270 @@
+import { Button } from "@/components/ui/button";
+import { Calendar } from "@/components/ui/calendar";
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
+import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from "@/components/ui/form";
+import { Input } from "@/components/ui/input";
+import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { useStore } from "@/lib/store";
+import { cn } from "@/lib/utils";
+import { zodResolver } from "@hookform/resolvers/zod";
+import { format } from "date-fns";
+import { CalendarIcon, Loader2, Save } from "lucide-react";
+import { useState } from "react";
+import { useForm } from "react-hook-form";
+import { z } from "zod";
+import { toast } from "sonner";
+import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
+
+const formSchema = z.object({
+  type: z.enum(["department_expense", "project_expense", "project_revenue"]),
+  date: z.date(),
+  amount: z.string().min(1, "Tutar giriniz"),
+  description: z.string().min(3, "Açıklama giriniz"),
+  departmentId: z.string().optional(),
+  projectId: z.string().optional(),
+  itemId: z.string().optional(), // In real app, this would be cost item ID
+});
+
+export default function Transactions() {
+  const { departments, projects, addTransaction } = useStore();
+  const [loading, setLoading] = useState(false);
+
+  const form = useForm<z.infer<typeof formSchema>>({
+    resolver: zodResolver(formSchema),
+    defaultValues: {
+      type: "department_expense",
+      description: "",
+      amount: "",
+    },
+  });
+
+  const watchType = form.watch("type");
+
+  function onSubmit(values: z.infer<typeof formSchema>) {
+    setLoading(true);
+    // Simulate API call
+    setTimeout(() => {
+      console.log(values);
+      toast.success("Kayıt başarıyla eklendi", {
+        description: `${values.description} - ${values.amount} €`
+      });
+      form.reset();
+      setLoading(false);
+    }, 1000);
+  }
+
+  // Mock transaction history
+  const history = [
+    { id: 1, date: '2025-01-15', desc: 'AWS Ocak Faturası', amount: 1200, type: 'Gider', category: 'IT - Altyapı' },
+    { id: 2, date: '2025-01-20', desc: 'Ofis Malzemeleri', amount: 450, type: 'Gider', category: 'İK - Ofis' },
+    { id: 3, date: '2025-02-01', desc: 'Danışmanlık Ödemesi', amount: 5000, type: 'Gider', category: 'Proje A - Faz 1' },
+  ];
+
+  return (
+    <div className="space-y-6 animate-in fade-in slide-in-from-bottom-4 duration-500">
+      <div>
+        <h1 className="text-3xl font-bold tracking-tight text-foreground">Harcama ve Gelir Girişi</h1>
+        <p className="text-muted-foreground mt-1">Gerçekleşen finansal hareketleri sisteme kaydedin.</p>
+      </div>
+
+      <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+        {/* Entry Form */}
+        <Card className="lg:col-span-1 shadow-md h-fit">
+          <CardHeader className="bg-muted/30 pb-4">
+            <CardTitle className="text-lg">Yeni Kayıt</CardTitle>
+            <CardDescription>Harcama veya gelir ekleyin</CardDescription>
+          </CardHeader>
+          <CardContent className="pt-6">
+            <Form {...form}>
+              <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-4">
+                <FormField
+                  control={form.control}
+                  name="type"
+                  render={({ field }) => (
+                    <FormItem>
+                      <FormLabel>İşlem Türü</FormLabel>
+                      <Select onValueChange={field.onChange} defaultValue={field.value}>
+                        <FormControl>
+                          <SelectTrigger>
+                            <SelectValue placeholder="Tür seçin" />
+                          </SelectTrigger>
+                        </FormControl>
+                        <SelectContent>
+                          <SelectItem value="department_expense">Departman Harcaması</SelectItem>
+                          <SelectItem value="project_expense">Proje Harcaması</SelectItem>
+                          <SelectItem value="project_revenue">Proje Geliri</SelectItem>
+                        </SelectContent>
+                      </Select>
+                      <FormMessage />
+                    </FormItem>
+                  )}
+                />
+
+                <FormField
+                  control={form.control}
+                  name="date"
+                  render={({ field }) => (
+                    <FormItem className="flex flex-col">
+                      <FormLabel>Tarih</FormLabel>
+                      <Popover>
+                        <PopoverTrigger asChild>
+                          <FormControl>
+                            <Button
+                              variant={"outline"}
+                              className={cn(
+                                "w-full pl-3 text-left font-normal",
+                                !field.value && "text-muted-foreground"
+                              )}
+                            >
+                              {field.value ? (
+                                format(field.value, "PPP")
+                              ) : (
+                                <span>Tarih seçin</span>
+                              )}
+                              <CalendarIcon className="ml-auto h-4 w-4 opacity-50" />
+                            </Button>
+                          </FormControl>
+                        </PopoverTrigger>
+                        <PopoverContent className="w-auto p-0" align="start">
+                          <Calendar
+                            mode="single"
+                            selected={field.value}
+                            onSelect={field.onChange}
+                            disabled={(date) =>
+                              date > new Date() || date < new Date("1900-01-01")
+                            }
+                            initialFocus
+                          />
+                        </PopoverContent>
+                      </Popover>
+                      <FormMessage />
+                    </FormItem>
+                  )}
+                />
+
+                {watchType === 'department_expense' ? (
+                   <FormField
+                    control={form.control}
+                    name="departmentId"
+                    render={({ field }) => (
+                        <FormItem>
+                        <FormLabel>Departman</FormLabel>
+                        <Select onValueChange={field.onChange} defaultValue={field.value}>
+                            <FormControl>
+                            <SelectTrigger>
+                                <SelectValue placeholder="Departman seçin" />
+                            </SelectTrigger>
+                            </FormControl>
+                            <SelectContent>
+                                {departments.map(d => (
+                                    <SelectItem key={d.id} value={d.id}>{d.name}</SelectItem>
+                                ))}
+                            </SelectContent>
+                        </Select>
+                        <FormMessage />
+                        </FormItem>
+                    )}
+                    />
+                ) : (
+                    <FormField
+                    control={form.control}
+                    name="projectId"
+                    render={({ field }) => (
+                        <FormItem>
+                        <FormLabel>Proje</FormLabel>
+                        <Select onValueChange={field.onChange} defaultValue={field.value}>
+                            <FormControl>
+                            <SelectTrigger>
+                                <SelectValue placeholder="Proje seçin" />
+                            </SelectTrigger>
+                            </FormControl>
+                            <SelectContent>
+                                {projects.map(p => (
+                                    <SelectItem key={p.id} value={p.id}>{p.name}</SelectItem>
+                                ))}
+                            </SelectContent>
+                        </Select>
+                        <FormMessage />
+                        </FormItem>
+                    )}
+                    />
+                )}
+
+                <FormField
+                  control={form.control}
+                  name="amount"
+                  render={({ field }) => (
+                    <FormItem>
+                      <FormLabel>Tutar (€)</FormLabel>
+                      <FormControl>
+                        <Input type="number" placeholder="0.00" {...field} />
+                      </FormControl>
+                      <FormMessage />
+                    </FormItem>
+                  )}
+                />
+
+                <FormField
+                  control={form.control}
+                  name="description"
+                  render={({ field }) => (
+                    <FormItem>
+                      <FormLabel>Açıklama</FormLabel>
+                      <FormControl>
+                        <Input placeholder="Örn: Sunucu lisans ödemesi" {...field} />
+                      </FormControl>
+                      <FormMessage />
+                    </FormItem>
+                  )}
+                />
+
+                <Button type="submit" className="w-full" disabled={loading}>
+                  {loading && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
+                  Kaydet
+                </Button>
+              </form>
+            </Form>
+          </CardContent>
+        </Card>
+
+        {/* History Table */}
+        <Card className="lg:col-span-2 shadow-md">
+            <CardHeader>
+                <CardTitle>Son İşlemler</CardTitle>
+                <CardDescription>Sisteme girilen son harcama ve gelirler</CardDescription>
+            </CardHeader>
+            <CardContent>
+                <Table>
+                    <TableHeader>
+                        <TableRow>
+                            <TableHead>Tarih</TableHead>
+                            <TableHead>Kategori</TableHead>
+                            <TableHead>Açıklama</TableHead>
+                            <TableHead className="text-right">Tutar</TableHead>
+                        </TableRow>
+                    </TableHeader>
+                    <TableBody>
+                        {history.map((item) => (
+                            <TableRow key={item.id}>
+                                <TableCell className="font-medium text-muted-foreground text-xs">{item.date}</TableCell>
+                                <TableCell>
+                                    <div className="flex flex-col">
+                                        <span className="text-sm font-medium">{item.category}</span>
+                                        <span className="text-[10px] text-muted-foreground uppercase">{item.type}</span>
+                                    </div>
+                                </TableCell>
+                                <TableCell>{item.desc}</TableCell>
+                                <TableCell className="text-right font-mono font-medium">
+                                    - € {new Intl.NumberFormat('tr-TR').format(item.amount)}
+                                </TableCell>
+                            </TableRow>
+                        ))}
+                    </TableBody>
+                </Table>
+            </CardContent>
+        </Card>
+      </div>
+    </div>
+  );
+}
