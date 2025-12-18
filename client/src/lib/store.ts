@@ -216,100 +216,21 @@ const mockUsers: User[] = [
 
 interface AppState {
   currentUser: User | null;
-  departments: Department[];
-  projects: Project[];
-  users: User[];
   currentYear: number;
   
   // Actions
-  login: (username: string) => boolean;
+  setUser: (user: User | null) => void;
   logout: () => void;
   setYear: (year: number) => void;
-  updateCostItem: (type: 'department' | 'project', parentId: string, groupId: string, itemId: string, values: BudgetMonthValues) => void;
-  approveItem: (type: 'department' | 'project', parentId: string, groupId: string, itemId: string) => void;
-  reviseItem: (type: 'department' | 'project', parentId: string, groupId: string, itemId: string) => void;
-  addTransaction: (type: 'expense' | 'revenue', amount: number, date: Date, description: string, relatedId: string) => void;
 }
 
-export const useStore = create<AppState>((set, get) => ({
+export const useStore = create<AppState>((set) => ({
   currentUser: null,
-  departments: mockDepartments,
-  projects: mockProjects,
-  users: mockUsers,
   currentYear: 2025,
 
-  login: (username) => {
-    const user = get().users.find((u) => u.username === username);
-    if (user) {
-      set({ currentUser: user });
-      return true;
-    }
-    return false;
-  },
+  setUser: (user) => set({ currentUser: user }),
 
   logout: () => set({ currentUser: null }),
   
   setYear: (year) => set({ currentYear: year }),
-
-  updateCostItem: (type, parentId, groupId, itemId, values) => {
-    // This is a simplified deep update. In a real app, this would be an API call.
-    // Logic for updating department vs project items would go here.
-    // For prototype, we just console log the intent to show it's wired up.
-    console.log('Update Item:', { type, parentId, groupId, itemId, values });
-    
-    // Rudimentary state update for Department items (example)
-    if (type === 'department') {
-        set((state) => ({
-            departments: state.departments.map(dep => {
-                if (dep.id !== parentId) return dep;
-                return {
-                    ...dep,
-                    costGroups: dep.costGroups.map(group => {
-                        if (group.id !== groupId) return group;
-                        return {
-                            ...group,
-                            items: group.items.map(item => {
-                                if (item.id !== itemId) return item;
-                                return { ...item, values };
-                            })
-                        }
-                    })
-                }
-            })
-        }))
-    }
-  },
-
-  approveItem: (type, parentId, groupId, itemId) => {
-     console.log('Approve Item:', { type, parentId, groupId, itemId });
-     if (type === 'department') {
-        set((state) => ({
-            departments: state.departments.map(dep => {
-                if (dep.id !== parentId) return dep;
-                return {
-                    ...dep,
-                    costGroups: dep.costGroups.map(group => {
-                        if (group.id !== groupId) return group;
-                        return {
-                            ...group,
-                            items: group.items.map(item => {
-                                if (item.id !== itemId) return item;
-                                return { ...item, status: 'approved' };
-                            })
-                        }
-                    })
-                }
-            })
-        }))
-    }
-  },
-  
-  reviseItem: (type, parentId, groupId, itemId) => {
-      console.log('Revise Item:', { type, parentId, groupId, itemId });
-      // Logic to create a new revision (clone item, increment rev, set status to draft)
-  },
-
-  addTransaction: (type, amount, date, description, relatedId) => {
-      console.log('New Transaction:', { type, amount, date, description, relatedId });
-  }
 }));

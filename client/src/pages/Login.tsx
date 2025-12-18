@@ -5,31 +5,28 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { useLogin } from "@/lib/queries";
 import { Loader2 } from "lucide-react";
 
 export default function Login() {
-  const [username, setUsername] = useState("admin"); // Default for demo
-  const [loading, setLoading] = useState(false);
+  const [username, setUsername] = useState("admin");
+  const [password, setPassword] = useState("admin123");
   const [error, setError] = useState("");
-  const { login } = useStore();
+  const { setUser } = useStore();
   const [_, setLocation] = useLocation();
+  const loginMutation = useLogin();
 
-  const handleLogin = (e: React.FormEvent) => {
+  const handleLogin = async (e: React.FormEvent) => {
     e.preventDefault();
-    setLoading(true);
     setError("");
 
-    // Simulate network delay
-    setTimeout(() => {
-      const success = login(username);
-      if (success) {
-        setLocation("/");
-      } else {
-        setError("Kullanıcı adı bulunamadı. (Demo: 'admin' veya 'it_manager' deneyin)");
-        setLoading(false);
-      }
-    }, 800);
+    try {
+      const result = await loginMutation.mutateAsync({ username, password });
+      setUser(result.user);
+      setLocation("/");
+    } catch (err: any) {
+      setError(err.message || "Giriş başarısız. Lütfen bilgilerinizi kontrol edin.");
+    }
   };
 
   return (
@@ -74,11 +71,9 @@ export default function Login() {
                 id="password"
                 type="password"
                 placeholder="••••••••"
-                value="password" // Mock password
-                readOnly
-                className="bg-muted text-muted-foreground cursor-not-allowed"
+                value={password}
+                onChange={(e) => setPassword(e.target.value)}
               />
-              <p className="text-[10px] text-muted-foreground text-right">Demo modu: Şifre gerekmez</p>
             </div>
             
             {error && (
@@ -87,8 +82,8 @@ export default function Login() {
                 </div>
             )}
 
-            <Button type="submit" className="w-full" disabled={loading}>
-              {loading ? (
+            <Button type="submit" className="w-full" disabled={loginMutation.isPending}>
+              {loginMutation.isPending ? (
                 <>
                   <Loader2 className="mr-2 h-4 w-4 animate-spin" />
                   Giriş Yapılıyor...
@@ -110,10 +105,10 @@ export default function Login() {
             </div>
 
             <div className="grid grid-cols-2 gap-2">
-                <Button variant="outline" type="button" onClick={() => setUsername("admin")} className="text-xs">
+                <Button variant="outline" type="button" onClick={() => { setUsername("admin"); setPassword("admin123"); }} className="text-xs">
                     Admin
                 </Button>
-                <Button variant="outline" type="button" onClick={() => setUsername("it_manager")} className="text-xs">
+                <Button variant="outline" type="button" onClick={() => { setUsername("it_manager"); setPassword("user123"); }} className="text-xs">
                     IT Manager
                 </Button>
             </div>

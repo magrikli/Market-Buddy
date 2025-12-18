@@ -1,0 +1,166 @@
+import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
+import * as api from './api';
+import type { User } from './store';
+
+// Query keys
+export const queryKeys = {
+  user: ['user'] as const,
+  departments: (year: number) => ['departments', year] as const,
+  projects: (year: number) => ['projects', year] as const,
+  transactions: (limit?: number) => ['transactions', limit] as const,
+};
+
+// === AUTH ===
+
+export function useLogin() {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: ({ username, password }: { username: string; password: string }) =>
+      api.login(username, password),
+    onSuccess: (data) => {
+      queryClient.setQueryData(queryKeys.user, data.user);
+    },
+  });
+}
+
+// === DEPARTMENTS ===
+
+export function useDepartments(year: number = 2025) {
+  return useQuery({
+    queryKey: queryKeys.departments(year),
+    queryFn: () => api.getDepartments(year),
+  });
+}
+
+export function useCreateDepartment() {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: (name: string) => api.createDepartment(name),
+    onSuccess: (_, variables) => {
+      queryClient.invalidateQueries({ queryKey: queryKeys.departments(2025) });
+    },
+  });
+}
+
+export function useCreateCostGroup() {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: (data: { name: string; departmentId: string }) => api.createCostGroup(data),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: queryKeys.departments(2025) });
+    },
+  });
+}
+
+// === PROJECTS ===
+
+export function useProjects(year: number = 2025) {
+  return useQuery({
+    queryKey: queryKeys.projects(year),
+    queryFn: () => api.getProjects(year),
+  });
+}
+
+export function useCreateProject() {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: (name: string) => api.createProject(name),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: queryKeys.projects(2025) });
+    },
+  });
+}
+
+export function useCreateProjectPhase() {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: (data: { name: string; projectId: string }) => api.createProjectPhase(data),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: queryKeys.projects(2025) });
+    },
+  });
+}
+
+// === BUDGET ITEMS ===
+
+export function useCreateBudgetItem() {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: (data: {
+      name: string;
+      type: 'cost' | 'revenue';
+      costGroupId?: string;
+      projectPhaseId?: string;
+      monthlyValues?: any;
+      year?: number;
+    }) => api.createBudgetItem(data),
+    onSuccess: (_, variables) => {
+      if (variables.costGroupId) {
+        queryClient.invalidateQueries({ queryKey: queryKeys.departments(variables.year || 2025) });
+      }
+      if (variables.projectPhaseId) {
+        queryClient.invalidateQueries({ queryKey: queryKeys.projects(variables.year || 2025) });
+      }
+    },
+  });
+}
+
+export function useUpdateBudgetItem() {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: ({ id, data }: { id: string; data: { monthlyValues?: any; status?: string } }) =>
+      api.updateBudgetItem(id, data),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: queryKeys.departments(2025) });
+      queryClient.invalidateQueries({ queryKey: queryKeys.projects(2025) });
+    },
+  });
+}
+
+export function useApproveBudgetItem() {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: (id: string) => api.approveBudgetItem(id),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: queryKeys.departments(2025) });
+      queryClient.invalidateQueries({ queryKey: queryKeys.projects(2025) });
+    },
+  });
+}
+
+export function useReviseBudgetItem() {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: ({ id, editorName }: { id: string; editorName: string }) =>
+      api.reviseBudgetItem(id, editorName),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: queryKeys.departments(2025) });
+      queryClient.invalidateQueries({ queryKey: queryKeys.projects(2025) });
+    },
+  });
+}
+
+// === TRANSACTIONS ===
+
+export function useTransactions(limit?: number) {
+  return useQuery({
+    queryKey: queryKeys.transactions(limit),
+    queryFn: () => api.getTransactions(limit),
+  });
+}
+
+export function useCreateTransaction() {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: (data: {
+      type: 'expense' | 'revenue';
+      amount: number;
+      description: string;
+      date: string;
+      budgetItemId?: string;
+    }) => api.createTransaction(data),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: queryKeys.transactions() });
+    },
+  });
+}

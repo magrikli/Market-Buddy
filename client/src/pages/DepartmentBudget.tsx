@@ -1,17 +1,24 @@
 import { useStore } from "@/lib/store";
+import { useDepartments, useCreateDepartment, useCreateCostGroup, useUpdateBudgetItem, useReviseBudgetItem, useApproveBudgetItem } from "@/lib/queries";
 import { BudgetTable } from "@/components/budget/BudgetTable";
 import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from "@/components/ui/accordion";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { PlusCircle, Download, Upload, Filter } from "lucide-react";
+import { PlusCircle, Download, Filter, Loader2 } from "lucide-react";
 import { useState } from "react";
 import { AddEntityDialog } from "@/components/budget/AddEntityDialogs";
 import { toast } from "sonner";
+import type { BudgetMonthValues } from "@/lib/store";
 
 export default function DepartmentBudget() {
-  const { departments, currentYear, setYear, updateCostItem, approveItem, reviseItem, currentUser } = useStore();
-  const [selectedDeptId, setSelectedDeptId] = useState<string | null>(null);
+  const { currentYear, setYear, currentUser } = useStore();
+  const { data: departments = [], isLoading } = useDepartments(currentYear);
+  const createDepartmentMutation = useCreateDepartment();
+  const createCostGroupMutation = useCreateCostGroup();
+  const updateBudgetItemMutation = useUpdateBudgetItem();
+  const reviseBudgetItemMutation = useReviseBudgetItem();
+  const approveBudgetItemMutation = useApproveBudgetItem();
   
   // Dialog States
   const [isNewDeptOpen, setIsNewDeptOpen] = useState(false);
@@ -22,14 +29,53 @@ export default function DepartmentBudget() {
     return new Intl.NumberFormat('tr-TR', { minimumFractionDigits: 0 }).format(amount);
   };
   
-  const handleAddDepartment = (name: string) => {
-      // In a real app, this would call a store action
+  const handleAddDepartment = async (name: string) => {
+    try {
+      await createDepartmentMutation.mutateAsync(name);
       toast.success("Departman eklendi", { description: name });
-      // Mock update to UI could be added here if store had addDepartment action
+      setIsNewDeptOpen(false);
+    } catch (error: any) {
+      toast.error("Hata", { description: error.message });
+    }
   };
 
-  const handleAddGroup = (name: string) => {
-      toast.success("Maliyet grubu eklendi", { description: `${activeDeptForGroup ? 'Departman' : ''} -> ${name}` });
+  const handleAddGroup = async (name: string) => {
+    if (!activeDeptForGroup) return;
+    try {
+      await createCostGroupMutation.mutateAsync({ name, departmentId: activeDeptForGroup });
+      toast.success("Maliyet grubu eklendi", { description: name });
+      setIsNewGroupOpen(false);
+      setActiveDeptForGroup(null);
+    } catch (error: any) {
+      toast.error("Hata", { description: error.message });
+    }
+  };
+
+  const handleUpdateItem = async (itemId: string, values: BudgetMonthValues) => {
+    try {
+      await updateBudgetItemMutation.mutateAsync({ id: itemId, data: { monthlyValues: values } });
+      toast.success("Güncellendi");
+    } catch (error: any) {
+      toast.error("Hata", { description: error.message });
+    }
+  };
+
+  const handleReviseItem = async (itemId: string) => {
+    try {
+      await reviseBudgetItemMutation.mutateAsync({ id: itemId, editorName: currentUser?.name || 'Unknown' });
+      toast.success("Revizyon oluşturuldu");
+    } catch (error: any) {
+      toast.error("Hata", { description: error.message });
+    }
+  };
+
+  const handleApproveItem = async (itemId: string) => {
+    try {
+      await approveBudgetItemMutation.mutateAsync(itemId);
+      toast.success("Onaylandı");
+    } catch (error: any) {
+      toast.error("Hata", { description: error.message });
+    }
   };
 
   const years = [2024, 2025, 2026];
@@ -114,7 +160,11 @@ export default function DepartmentBudget() {
       {/* Main Content */}
       <Card className="shadow-md border-border/50">
         <CardContent className="p-0">
-          {visibleDepartments.length === 0 ? (
+          {isLoading ? (
+            <div className="p-12 flex items-center justify-center">
+              <Loader2 className="h-8 w-8 animate-spin text-primary" />
+            </div>
+          ) : visibleDepartments.length === 0 ? (
              <div className="p-12 text-center text-muted-foreground">
                 <p>Görüntülenecek departman bulunamadı.</p>
              </div>
@@ -150,9 +200,9 @@ export default function DepartmentBudget() {
                                                 <BudgetTable 
                                                     items={group.items}
                                                     isAdmin={currentUser?.role === 'admin'}
-                                                    onSave={(itemId, values) => updateCostItem('department', dept.id, group.id, itemId, values)}
-                                                    onRevise={(itemId) => reviseItem('department', dept.id, group.id, itemId)}
-                                                    onApprove={(itemId) => approveItem('department', dept.id, group.id, itemId)}
+                                                    onSave={handleUpdateItem}
+                                                    onRevise={handleReviseItem}
+                                                    onApprove={handleApproveItem}
                                                 />
                                             </div>
                                         );

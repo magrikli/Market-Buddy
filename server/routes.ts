@@ -1,16 +1,385 @@
-import type { Express } from "express";
+import type { Express, Request, Response } from "express";
 import { createServer, type Server } from "http";
 import { storage } from "./storage";
+import { 
+  insertUserSchema, insertDepartmentSchema, insertCostGroupSchema, 
+  insertProjectSchema, insertProjectPhaseSchema, insertBudgetItemSchema, 
+  insertTransactionSchema, insertBudgetRevisionSchema 
+} from "@shared/schema";
+import { z } from "zod";
+import bcrypt from "bcrypt";
 
-export async function registerRoutes(
-  httpServer: Server,
-  app: Express
-): Promise<Server> {
-  // put application routes here
-  // prefix all routes with /api
+export async function registerRoutes(server: Server, app: Express): Promise<Server> {
+  // ===== AUTHENTICATION =====
+  
+  app.post("/api/auth/login", async (req: Request, res: Response) => {
+    try {
+      const { username, password } = req.body;
+      
+      const user = await storage.getUserByUsername(username);
+      if (!user) {
+        return res.status(401).json({ message: "Invalid credentials" });
+      }
 
-  // use storage to perform CRUD operations on the storage interface
-  // e.g. storage.insertUser(user) or storage.getUserByUsername(username)
+      const valid = await bcrypt.compare(password, user.password);
+      if (!valid) {
+        return res.status(401).json({ message: "Invalid credentials" });
+      }
 
-  return httpServer;
+      // Get user assignments
+      const departmentIds = await storage.getUserDepartments(user.id);
+      const projectIds = await storage.getUserProjects(user.id);
+
+      return res.json({
+        user: {
+          id: user.id,
+          username: user.username,
+          name: user.name,
+          role: user.role,
+          assignedDepartmentIds: departmentIds,
+          assignedProjectIds: projectIds,
+        }
+      });
+    } catch (error) {
+      console.error('Login error:', error);
+      return res.status(500).json({ message: "Server error" });
+    }
+  });
+
+  app.post("/api/auth/register", async (req: Request, res: Response) => {
+    try {
+      const data = insertUserSchema.parse(req.body);
+      
+      // Check if user exists
+      const existing = await storage.getUserByUsername(data.username);
+      if (existing) {
+        return res.status(409).json({ message: "Username already exists" });
+      }
+
+      // Hash password
+      const hashedPassword = await bcrypt.hash(data.password, 10);
+      
+      const user = await storage.createUser({
+        ...data,
+        password: hashedPassword,
+      });
+
+      return res.status(201).json({ 
+        user: { 
+          id: user.id, 
+          username: user.username, 
+          name: user.name, 
+          role: user.role 
+        } 
+      });
+    } catch (error) {
+      if (error instanceof z.ZodError) {
+        return res.status(400).json({ message: "Validation error", errors: error.errors });
+      }
+      console.error('Registration error:', error);
+      return res.status(500).json({ message: "Server error" });
+    }
+  });
+
+  // ===== DEPARTMENTS =====
+  
+  app.get("/api/departments", async (req: Request, res: Response) => {
+    try {
+      const year = parseInt(req.query.year as string) || 2025;
+      const departments = await storage.getAllDepartments();
+      
+      // Fetch related data for each department
+      const fullDepartments = await Promise.all(
+        departments.map(async (dept) => {
+          const groups = await storage.getCostGroupsByDepartment(dept.id);
+          
+          const costGroups = await Promise.all(
+            groups.map(async (group) => {
+              const items = await storage.getBudgetItemsByCostGroup(group.id, year);
+              const revisions = await Promise.all(
+                items.map(item => storage.getRevisionsByBudgetItem(item.id))
+              );
+              
+              return {
+                id: group.id,
+                name: group.name,
+                items: items.map((item, idx) => ({
+                  id: item.id,
+                  name: item.name,
+                  values: item.monthlyValues,
+                  status: item.status,
+                  revision: item.currentRevision,
+                  lastUpdated: item.updatedAt.toISOString(),
+                  history: revisions[idx].map(rev => ({
+                    revision: rev.revisionNumber,
+                    date: rev.createdAt.toISOString(),
+                    values: rev.monthlyValues,
+                    editor: rev.editorName,
+                  })),
+                })),
+              };
+            })
+          );
+
+          return {
+            id: dept.id,
+            name: dept.name,
+            costGroups,
+          };
+        })
+      );
+
+      return res.json(fullDepartments);
+    } catch (error) {
+      console.error('Get departments error:', error);
+      return res.status(500).json({ message: "Server error" });
+    }
+  });
+
+  app.post("/api/departments", async (req: Request, res: Response) => {
+    try {
+      const data = insertDepartmentSchema.parse(req.body);
+      const department = await storage.createDepartment(data);
+      return res.status(201).json(department);
+    } catch (error) {
+      if (error instanceof z.ZodError) {
+        return res.status(400).json({ message: "Validation error", errors: error.errors });
+      }
+      return res.status(500).json({ message: "Server error" });
+    }
+  });
+
+  app.post("/api/cost-groups", async (req: Request, res: Response) => {
+    try {
+      const data = insertCostGroupSchema.parse(req.body);
+      const group = await storage.createCostGroup(data);
+      return res.status(201).json(group);
+    } catch (error) {
+      if (error instanceof z.ZodError) {
+        return res.status(400).json({ message: "Validation error", errors: error.errors });
+      }
+      return res.status(500).json({ message: "Server error" });
+    }
+  });
+
+  // ===== PROJECTS =====
+  
+  app.get("/api/projects", async (req: Request, res: Response) => {
+    try {
+      const year = parseInt(req.query.year as string) || 2025;
+      const projects = await storage.getAllProjects();
+      
+      const fullProjects = await Promise.all(
+        projects.map(async (proj) => {
+          const phases = await storage.getPhasesByProject(proj.id);
+          
+          const fullPhases = await Promise.all(
+            phases.map(async (phase) => {
+              const allItems = await storage.getBudgetItemsByProjectPhase(phase.id, year);
+              const costItems = allItems.filter(item => item.type === 'cost');
+              const revenueItems = allItems.filter(item => item.type === 'revenue');
+              
+              const costRevisions = await Promise.all(
+                costItems.map(item => storage.getRevisionsByBudgetItem(item.id))
+              );
+              const revenueRevisions = await Promise.all(
+                revenueItems.map(item => storage.getRevisionsByBudgetItem(item.id))
+              );
+
+              return {
+                id: phase.id,
+                name: phase.name,
+                costItems: costItems.map((item, idx) => ({
+                  id: item.id,
+                  name: item.name,
+                  values: item.monthlyValues,
+                  status: item.status,
+                  revision: item.currentRevision,
+                  lastUpdated: item.updatedAt.toISOString(),
+                  history: costRevisions[idx].map(rev => ({
+                    revision: rev.revisionNumber,
+                    date: rev.createdAt.toISOString(),
+                    values: rev.monthlyValues,
+                    editor: rev.editorName,
+                  })),
+                })),
+                revenueItems: revenueItems.map((item, idx) => ({
+                  id: item.id,
+                  name: item.name,
+                  values: item.monthlyValues,
+                  status: item.status,
+                  revision: item.currentRevision,
+                  lastUpdated: item.updatedAt.toISOString(),
+                  history: revenueRevisions[idx].map(rev => ({
+                    revision: rev.revisionNumber,
+                    date: rev.createdAt.toISOString(),
+                    values: rev.monthlyValues,
+                    editor: rev.editorName,
+                  })),
+                })),
+              };
+            })
+          );
+
+          return {
+            id: proj.id,
+            name: proj.name,
+            phases: fullPhases,
+          };
+        })
+      );
+
+      return res.json(fullProjects);
+    } catch (error) {
+      console.error('Get projects error:', error);
+      return res.status(500).json({ message: "Server error" });
+    }
+  });
+
+  app.post("/api/projects", async (req: Request, res: Response) => {
+    try {
+      const data = insertProjectSchema.parse(req.body);
+      const project = await storage.createProject(data);
+      return res.status(201).json(project);
+    } catch (error) {
+      if (error instanceof z.ZodError) {
+        return res.status(400).json({ message: "Validation error", errors: error.errors });
+      }
+      return res.status(500).json({ message: "Server error" });
+    }
+  });
+
+  app.post("/api/project-phases", async (req: Request, res: Response) => {
+    try {
+      const data = insertProjectPhaseSchema.parse(req.body);
+      const phase = await storage.createProjectPhase(data);
+      return res.status(201).json(phase);
+    } catch (error) {
+      if (error instanceof z.ZodError) {
+        return res.status(400).json({ message: "Validation error", errors: error.errors });
+      }
+      return res.status(500).json({ message: "Server error" });
+    }
+  });
+
+  // ===== BUDGET ITEMS =====
+  
+  app.post("/api/budget-items", async (req: Request, res: Response) => {
+    try {
+      const data = insertBudgetItemSchema.parse(req.body);
+      const item = await storage.createBudgetItem(data);
+      return res.status(201).json(item);
+    } catch (error) {
+      if (error instanceof z.ZodError) {
+        return res.status(400).json({ message: "Validation error", errors: error.errors });
+      }
+      return res.status(500).json({ message: "Server error" });
+    }
+  });
+
+  app.patch("/api/budget-items/:id", async (req: Request, res: Response) => {
+    try {
+      const { id } = req.params;
+      const { monthlyValues, status } = req.body;
+      
+      const updated = await storage.updateBudgetItem(id, { 
+        monthlyValues,
+        ...(status && { status }),
+      });
+      
+      if (!updated) {
+        return res.status(404).json({ message: "Budget item not found" });
+      }
+
+      return res.json(updated);
+    } catch (error) {
+      return res.status(500).json({ message: "Server error" });
+    }
+  });
+
+  app.post("/api/budget-items/:id/approve", async (req: Request, res: Response) => {
+    try {
+      const { id } = req.params;
+      const approved = await storage.approveBudgetItem(id);
+      
+      if (!approved) {
+        return res.status(404).json({ message: "Budget item not found" });
+      }
+
+      return res.json(approved);
+    } catch (error) {
+      return res.status(500).json({ message: "Server error" });
+    }
+  });
+
+  app.post("/api/budget-items/:id/revise", async (req: Request, res: Response) => {
+    try {
+      const { id } = req.params;
+      const { editorName } = req.body;
+      
+      // Get current item
+      const currentItem = await storage.getBudgetItem(id);
+      if (!currentItem) {
+        return res.status(404).json({ message: "Budget item not found" });
+      }
+
+      // Save current state as a revision
+      await storage.createBudgetRevision({
+        budgetItemId: id,
+        revisionNumber: currentItem.currentRevision,
+        monthlyValues: currentItem.monthlyValues,
+        editorName: editorName || 'Unknown',
+      });
+
+      // Update item to new revision and set status to draft
+      const updated = await storage.updateBudgetItem(id, {
+        currentRevision: currentItem.currentRevision + 1,
+        status: 'draft',
+      });
+
+      return res.json(updated);
+    } catch (error) {
+      console.error('Revise error:', error);
+      return res.status(500).json({ message: "Server error" });
+    }
+  });
+
+  // ===== TRANSACTIONS =====
+  
+  app.get("/api/transactions", async (req: Request, res: Response) => {
+    try {
+      const limit = parseInt(req.query.limit as string) || 50;
+      const transactions = await storage.getAllTransactions(limit);
+      return res.json(transactions);
+    } catch (error) {
+      return res.status(500).json({ message: "Server error" });
+    }
+  });
+
+  app.post("/api/transactions", async (req: Request, res: Response) => {
+    try {
+      const data = insertTransactionSchema.parse(req.body);
+      const transaction = await storage.createTransaction(data);
+      return res.status(201).json(transaction);
+    } catch (error) {
+      if (error instanceof z.ZodError) {
+        return res.status(400).json({ message: "Validation error", errors: error.errors });
+      }
+      return res.status(500).json({ message: "Server error" });
+    }
+  });
+
+  // ===== USERS & ASSIGNMENTS =====
+  
+  app.get("/api/users", async (req: Request, res: Response) => {
+    try {
+      // In a real app, this would need proper authorization
+      // For now, return mock data or implement properly
+      return res.json([]);
+    } catch (error) {
+      return res.status(500).json({ message: "Server error" });
+    }
+  });
+
+  return server;
 }
