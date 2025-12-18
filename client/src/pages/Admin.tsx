@@ -4,10 +4,25 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { useStore } from "@/lib/store";
-import { Search, UserPlus, Settings, Shield } from "lucide-react";
+import { Search, UserPlus, Settings, Shield, CheckCheck } from "lucide-react";
+import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
+import { Badge } from "@/components/ui/badge";
+import { toast } from "sonner";
 
 export default function Admin() {
-  const { users } = useStore();
+  const { users, departments, approveItem } = useStore();
+
+  const handleBulkApprove = () => {
+      // Mock bulk action
+      toast.success("5 adet bütçe kalemi onaylandı");
+  };
+
+  // Mock pending items aggregation
+  const pendingItems = [
+      { id: 1, dept: 'Bilgi Teknolojileri', group: 'Personel', item: 'Yeni Yazılımcı Maaşı', amount: 45000, date: '2025-01-10' },
+      { id: 2, dept: 'İnsan Kaynakları', group: 'Eğitim', item: 'Liderlik Eğitimi', amount: 5000, date: '2025-01-12' },
+      { id: 3, dept: 'Bilgi Teknolojileri', group: 'Altyapı', item: 'Yedekleme Sunucusu', amount: 2000, date: '2025-01-14' },
+  ];
 
   return (
     <div className="space-y-6 animate-in fade-in slide-in-from-bottom-4 duration-500">
@@ -16,11 +31,55 @@ export default function Admin() {
         <p className="text-muted-foreground mt-1">Sistem ayarları ve kullanıcı yetkilendirme.</p>
       </div>
 
-      <Tabs defaultValue="users" className="w-full">
-        <TabsList className="grid w-full max-w-md grid-cols-2 mb-6">
+      <Tabs defaultValue="approvals" className="w-full">
+        <TabsList className="grid w-full max-w-lg grid-cols-3 mb-6">
+            <TabsTrigger value="approvals">Onay Bekleyenler</TabsTrigger>
             <TabsTrigger value="users">Kullanıcı Yönetimi</TabsTrigger>
             <TabsTrigger value="settings">Sistem Ayarları</TabsTrigger>
         </TabsList>
+
+        <TabsContent value="approvals">
+            <Card className="shadow-md">
+                <CardHeader className="flex flex-row items-center justify-between">
+                    <div>
+                        <CardTitle>Toplu Onay</CardTitle>
+                        <CardDescription>Departmanlardan gelen onay bekleyen bütçe kalemleri</CardDescription>
+                    </div>
+                    <Button onClick={handleBulkApprove} className="bg-emerald-600 hover:bg-emerald-700">
+                        <CheckCheck className="mr-2 h-4 w-4" />
+                        Tümünü Onayla
+                    </Button>
+                </CardHeader>
+                <CardContent>
+                    <Table>
+                        <TableHeader>
+                            <TableRow>
+                                <TableHead>Departman</TableHead>
+                                <TableHead>Grup</TableHead>
+                                <TableHead>Kalem</TableHead>
+                                <TableHead className="text-right">Tutar</TableHead>
+                                <TableHead>Tarih</TableHead>
+                                <TableHead className="text-center">İşlem</TableHead>
+                            </TableRow>
+                        </TableHeader>
+                        <TableBody>
+                            {pendingItems.map((item) => (
+                                <TableRow key={item.id}>
+                                    <TableCell className="font-medium">{item.dept}</TableCell>
+                                    <TableCell>{item.group}</TableCell>
+                                    <TableCell>{item.item}</TableCell>
+                                    <TableCell className="text-right tabular-nums">€ {item.amount}</TableCell>
+                                    <TableCell className="text-xs text-muted-foreground">{item.date}</TableCell>
+                                    <TableCell className="text-center">
+                                        <Button size="sm" variant="ghost" className="text-emerald-600 hover:text-emerald-700 hover:bg-emerald-50">Onayla</Button>
+                                    </TableCell>
+                                </TableRow>
+                            ))}
+                        </TableBody>
+                    </Table>
+                </CardContent>
+            </Card>
+        </TabsContent>
 
         <TabsContent value="users">
             <Card className="shadow-md">

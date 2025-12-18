@@ -6,13 +6,30 @@ import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/com
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { PlusCircle, Download, Upload, Filter } from "lucide-react";
 import { useState } from "react";
+import { AddEntityDialog } from "@/components/budget/AddEntityDialogs";
+import { toast } from "sonner";
 
 export default function DepartmentBudget() {
   const { departments, currentYear, setYear, updateCostItem, approveItem, reviseItem, currentUser } = useStore();
   const [selectedDeptId, setSelectedDeptId] = useState<string | null>(null);
+  
+  // Dialog States
+  const [isNewDeptOpen, setIsNewDeptOpen] = useState(false);
+  const [isNewGroupOpen, setIsNewGroupOpen] = useState(false);
+  const [activeDeptForGroup, setActiveDeptForGroup] = useState<string | null>(null);
 
   const formatMoney = (amount: number) => {
     return new Intl.NumberFormat('tr-TR', { minimumFractionDigits: 0 }).format(amount);
+  };
+  
+  const handleAddDepartment = (name: string) => {
+      // In a real app, this would call a store action
+      toast.success("Departman eklendi", { description: name });
+      // Mock update to UI could be added here if store had addDepartment action
+  };
+
+  const handleAddGroup = (name: string) => {
+      toast.success("Maliyet grubu eklendi", { description: `${activeDeptForGroup ? 'Departman' : ''} -> ${name}` });
   };
 
   const years = [2024, 2025, 2026];
@@ -54,13 +71,31 @@ export default function DepartmentBudget() {
             <Download className="h-4 w-4" />
           </Button>
           {currentUser?.role === 'admin' && (
-             <Button className="bg-primary hover:bg-primary/90">
+             <Button className="bg-primary hover:bg-primary/90" onClick={() => setIsNewDeptOpen(true)}>
                 <PlusCircle className="mr-2 h-4 w-4" />
                 Yeni Departman
              </Button>
           )}
         </div>
       </div>
+
+      <AddEntityDialog 
+        isOpen={isNewDeptOpen} 
+        onClose={() => setIsNewDeptOpen(false)} 
+        onSave={handleAddDepartment}
+        title="Yeni Departman Ekle"
+        description="Bütçe sistemine yeni bir departman tanımlayın."
+        placeholder="Örn: Pazarlama Departmanı"
+      />
+
+      <AddEntityDialog 
+        isOpen={isNewGroupOpen} 
+        onClose={() => setIsNewGroupOpen(false)} 
+        onSave={handleAddGroup}
+        title="Yeni Maliyet Grubu"
+        description="Seçili departman altına yeni bir gider grubu ekleyin."
+        placeholder="Örn: Seyahat Giderleri"
+      />
 
       {/* Summary Cards */}
       <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
@@ -108,11 +143,6 @@ export default function DepartmentBudget() {
                                                 <div className="flex items-center justify-between bg-muted/30 p-2 rounded-md">
                                                     <div className="flex items-center gap-2">
                                                         <h4 className="font-medium text-sm text-foreground">{group.name}</h4>
-                                                        {currentUser?.role === 'admin' && (
-                                                            <Button variant="ghost" size="icon" className="h-6 w-6 opacity-50 hover:opacity-100">
-                                                                <PlusCircle className="h-3 w-3" />
-                                                            </Button>
-                                                        )}
                                                     </div>
                                                     <span className="text-sm font-mono text-muted-foreground">€ {formatMoney(groupTotal)}</span>
                                                 </div>
@@ -128,7 +158,14 @@ export default function DepartmentBudget() {
                                         );
                                     })}
                                     
-                                    <Button variant="outline" className="w-full border-dashed text-muted-foreground hover:text-primary hover:border-primary/50">
+                                    <Button 
+                                        variant="outline" 
+                                        className="w-full border-dashed text-muted-foreground hover:text-primary hover:border-primary/50"
+                                        onClick={() => {
+                                            setActiveDeptForGroup(dept.id);
+                                            setIsNewGroupOpen(true);
+                                        }}
+                                    >
                                         <PlusCircle className="mr-2 h-4 w-4" />
                                         Yeni Maliyet Grubu Ekle
                                     </Button>

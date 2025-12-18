@@ -7,6 +7,7 @@ import { cn } from "@/lib/utils";
 import { Edit2, Save, X, History, Lock, CheckCircle, AlertCircle } from "lucide-react";
 import { useState } from "react";
 import { CostItem, RevenueItem, BudgetMonthValues } from "@/lib/store";
+import { RevisionHistoryDialog } from "./RevisionHistoryDialog";
 
 interface BudgetTableProps {
   items: (CostItem | RevenueItem)[];
@@ -29,6 +30,10 @@ const formatMoney = (amount: number) => {
 export function BudgetTable({ items, onSave, onRevise, onApprove, isAdmin = false, type = 'cost' }: BudgetTableProps) {
   const [editingId, setEditingId] = useState<string | null>(null);
   const [editValues, setEditValues] = useState<BudgetMonthValues>({});
+  
+  // Dialog state
+  const [historyItem, setHistoryItem] = useState<CostItem | RevenueItem | null>(null);
+  const [isHistoryOpen, setIsHistoryOpen] = useState(false);
 
   const startEditing = (item: CostItem | RevenueItem) => {
     setEditingId(item.id);
@@ -50,6 +55,11 @@ export function BudgetTable({ items, onSave, onRevise, onApprove, isAdmin = fals
     setEditValues(prev => ({ ...prev, [monthIndex]: numValue }));
   };
 
+  const openHistory = (item: CostItem | RevenueItem) => {
+    setHistoryItem(item);
+    setIsHistoryOpen(true);
+  };
+
   const getStatusBadge = (status: string) => {
     switch (status) {
       case 'approved': return <Badge variant="outline" className="bg-emerald-50 text-emerald-700 border-emerald-200">Onaylandı</Badge>;
@@ -60,121 +70,129 @@ export function BudgetTable({ items, onSave, onRevise, onApprove, isAdmin = fals
   };
 
   return (
-    <div className="rounded-md border border-border overflow-hidden bg-card">
-      <div className="overflow-x-auto">
-        <Table className="text-xs">
-          <TableHeader className="bg-muted/50">
-            <TableRow>
-              <TableHead className="w-[200px] font-semibold sticky left-0 bg-muted/50 z-10">Kalem Adı</TableHead>
-              {months.map((m) => (
-                <TableHead key={m} className="text-right min-w-[80px] font-medium text-muted-foreground">{m}</TableHead>
-              ))}
-              <TableHead className="text-right font-bold w-[100px] bg-muted/50">Toplam</TableHead>
-              <TableHead className="w-[120px] text-center">Durum</TableHead>
-              <TableHead className="w-[100px] text-center sticky right-0 bg-muted/50 z-10">İşlemler</TableHead>
-            </TableRow>
-          </TableHeader>
-          <TableBody>
-            {items.map((item) => {
-              const isEditing = editingId === item.id;
-              const total = isEditing 
-                ? Object.values(editValues).reduce((a, b) => a + b, 0)
-                : Object.values(item.values).reduce((a, b) => a + b, 0);
+    <>
+      <div className="rounded-md border border-border overflow-hidden bg-card">
+        <div className="overflow-x-auto">
+          <Table className="text-xs">
+            <TableHeader className="bg-muted/50">
+              <TableRow>
+                <TableHead className="w-[200px] font-semibold sticky left-0 bg-muted/50 z-10">Kalem Adı</TableHead>
+                {months.map((m) => (
+                  <TableHead key={m} className="text-right min-w-[80px] font-medium text-muted-foreground">{m}</TableHead>
+                ))}
+                <TableHead className="text-right font-bold w-[100px] bg-muted/50">Toplam</TableHead>
+                <TableHead className="w-[120px] text-center">Durum</TableHead>
+                <TableHead className="w-[100px] text-center sticky right-0 bg-muted/50 z-10">İşlemler</TableHead>
+              </TableRow>
+            </TableHeader>
+            <TableBody>
+              {items.map((item) => {
+                const isEditing = editingId === item.id;
+                const total = isEditing 
+                  ? Object.values(editValues).reduce((a, b) => a + b, 0)
+                  : Object.values(item.values).reduce((a, b) => a + b, 0);
 
-              return (
-                <TableRow key={item.id} className="hover:bg-muted/30 transition-colors">
-                  <TableCell className="font-medium sticky left-0 bg-card z-10 shadow-[1px_0_0_0_rgba(0,0,0,0.05)]">
-                    <div className="flex flex-col">
-                        <span>{item.name}</span>
-                        {item.revision > 0 && <span className="text-[10px] text-muted-foreground">Rev.{item.revision}</span>}
-                    </div>
-                  </TableCell>
-                  {months.map((_, index) => (
-                    <TableCell key={index} className="text-right p-1">
-                      {isEditing ? (
-                        <Input 
-                          className="h-7 text-right text-xs px-1 border-primary/30 focus-visible:ring-1" 
-                          value={editValues[index] || 0}
-                          onChange={(e) => handleValueChange(index, e.target.value)}
-                        />
-                      ) : (
-                        <span className={cn(
-                          "block tabular-nums",
-                          type === 'revenue' && "text-emerald-600 font-medium"
-                        )}>
-                          {formatMoney(item.values[index] || 0)}
-                        </span>
-                      )}
+                return (
+                  <TableRow key={item.id} className="hover:bg-muted/30 transition-colors">
+                    <TableCell className="font-medium sticky left-0 bg-card z-10 shadow-[1px_0_0_0_rgba(0,0,0,0.05)]">
+                      <div className="flex flex-col">
+                          <span>{item.name}</span>
+                          {item.revision > 0 && <span className="text-[10px] text-muted-foreground">Rev.{item.revision}</span>}
+                      </div>
                     </TableCell>
-                  ))}
-                  <TableCell className="text-right font-bold tabular-nums bg-muted/10">
-                    {formatMoney(total)} €
-                  </TableCell>
-                  <TableCell className="text-center">
-                    {getStatusBadge(item.status)}
-                  </TableCell>
-                  <TableCell className="text-center sticky right-0 bg-card z-10 shadow-[-1px_0_0_0_rgba(0,0,0,0.05)]">
-                    <div className="flex items-center justify-center gap-1">
-                      {isEditing ? (
-                        <>
-                          <Button size="icon" variant="ghost" className="h-6 w-6 text-emerald-600 hover:text-emerald-700 hover:bg-emerald-50" onClick={() => saveEditing(item.id)}>
-                            <Save className="h-3 w-3" />
-                          </Button>
-                          <Button size="icon" variant="ghost" className="h-6 w-6 text-destructive hover:text-destructive hover:bg-destructive/10" onClick={cancelEditing}>
-                            <X className="h-3 w-3" />
-                          </Button>
-                        </>
-                      ) : (
-                        <>
-                          {item.status === 'approved' ? (
+                    {months.map((_, index) => (
+                      <TableCell key={index} className="text-right p-1">
+                        {isEditing ? (
+                          <Input 
+                            className="h-7 text-right text-xs px-1 border-primary/30 focus-visible:ring-1" 
+                            value={editValues[index] || 0}
+                            onChange={(e) => handleValueChange(index, e.target.value)}
+                          />
+                        ) : (
+                          <span className={cn(
+                            "block tabular-nums",
+                            type === 'revenue' && "text-emerald-600 font-medium"
+                          )}>
+                            {formatMoney(item.values[index] || 0)}
+                          </span>
+                        )}
+                      </TableCell>
+                    ))}
+                    <TableCell className="text-right font-bold tabular-nums bg-muted/10">
+                      {formatMoney(total)} €
+                    </TableCell>
+                    <TableCell className="text-center">
+                      {getStatusBadge(item.status)}
+                    </TableCell>
+                    <TableCell className="text-center sticky right-0 bg-card z-10 shadow-[-1px_0_0_0_rgba(0,0,0,0.05)]">
+                      <div className="flex items-center justify-center gap-1">
+                        {isEditing ? (
+                          <>
+                            <Button size="icon" variant="ghost" className="h-6 w-6 text-emerald-600 hover:text-emerald-700 hover:bg-emerald-50" onClick={() => saveEditing(item.id)}>
+                              <Save className="h-3 w-3" />
+                            </Button>
+                            <Button size="icon" variant="ghost" className="h-6 w-6 text-destructive hover:text-destructive hover:bg-destructive/10" onClick={cancelEditing}>
+                              <X className="h-3 w-3" />
+                            </Button>
+                          </>
+                        ) : (
+                          <>
+                            {item.status === 'approved' ? (
+                              <Tooltip>
+                                <TooltipTrigger asChild>
+                                  <Button size="icon" variant="ghost" className="h-6 w-6 text-amber-600 hover:text-amber-700 hover:bg-amber-50" onClick={() => onRevise(item.id)}>
+                                      <Lock className="h-3 w-3" />
+                                  </Button>
+                                </TooltipTrigger>
+                                <TooltipContent>Onaylandı - Revize Et</TooltipContent>
+                              </Tooltip>
+                            ) : (
+                              <Tooltip>
+                                  <TooltipTrigger asChild>
+                                      <Button size="icon" variant="ghost" className="h-6 w-6 text-primary hover:text-primary hover:bg-primary/10" onClick={() => startEditing(item)}>
+                                          <Edit2 className="h-3 w-3" />
+                                      </Button>
+                                  </TooltipTrigger>
+                                  <TooltipContent>Düzenle</TooltipContent>
+                              </Tooltip>
+                            )}
+                            
+                            {isAdmin && item.status === 'pending' && onApprove && (
+                               <Tooltip>
+                                  <TooltipTrigger asChild>
+                                      <Button size="icon" variant="ghost" className="h-6 w-6 text-emerald-600 hover:text-emerald-700" onClick={() => onApprove(item.id)}>
+                                          <CheckCircle className="h-3 w-3" />
+                                      </Button>
+                                  </TooltipTrigger>
+                                  <TooltipContent>Onayla</TooltipContent>
+                               </Tooltip>
+                            )}
+
                             <Tooltip>
                               <TooltipTrigger asChild>
-                                <Button size="icon" variant="ghost" className="h-6 w-6 text-amber-600 hover:text-amber-700 hover:bg-amber-50" onClick={() => onRevise(item.id)}>
-                                    <Lock className="h-3 w-3" />
-                                </Button>
+                                  <Button size="icon" variant="ghost" className="h-6 w-6 text-muted-foreground hover:text-foreground" onClick={() => openHistory(item)}>
+                                      <History className="h-3 w-3" />
+                                  </Button>
                               </TooltipTrigger>
-                              <TooltipContent>Onaylandı - Revize Et</TooltipContent>
+                              <TooltipContent>Geçmiş</TooltipContent>
                             </Tooltip>
-                          ) : (
-                            <Tooltip>
-                                <TooltipTrigger asChild>
-                                    <Button size="icon" variant="ghost" className="h-6 w-6 text-primary hover:text-primary hover:bg-primary/10" onClick={() => startEditing(item)}>
-                                        <Edit2 className="h-3 w-3" />
-                                    </Button>
-                                </TooltipTrigger>
-                                <TooltipContent>Düzenle</TooltipContent>
-                            </Tooltip>
-                          )}
-                          
-                          {isAdmin && item.status === 'pending' && onApprove && (
-                             <Tooltip>
-                                <TooltipTrigger asChild>
-                                    <Button size="icon" variant="ghost" className="h-6 w-6 text-emerald-600 hover:text-emerald-700" onClick={() => onApprove(item.id)}>
-                                        <CheckCircle className="h-3 w-3" />
-                                    </Button>
-                                </TooltipTrigger>
-                                <TooltipContent>Onayla</TooltipContent>
-                             </Tooltip>
-                          )}
-
-                          <Tooltip>
-                            <TooltipTrigger asChild>
-                                <Button size="icon" variant="ghost" className="h-6 w-6 text-muted-foreground hover:text-foreground">
-                                    <History className="h-3 w-3" />
-                                </Button>
-                            </TooltipTrigger>
-                            <TooltipContent>Geçmiş</TooltipContent>
-                          </Tooltip>
-                        </>
-                      )}
-                    </div>
-                  </TableCell>
-                </TableRow>
-              );
-            })}
-          </TableBody>
-        </Table>
+                          </>
+                        )}
+                      </div>
+                    </TableCell>
+                  </TableRow>
+                );
+              })}
+            </TableBody>
+          </Table>
+        </div>
       </div>
-    </div>
+
+      <RevisionHistoryDialog 
+        isOpen={isHistoryOpen} 
+        onClose={() => setIsHistoryOpen(false)} 
+        item={historyItem} 
+      />
+    </>
   );
 }

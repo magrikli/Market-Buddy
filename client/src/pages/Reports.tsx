@@ -2,12 +2,20 @@ import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/com
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { useStore } from "@/lib/store";
-import { CheckCircle, XCircle, AlertCircle } from "lucide-react";
+import { CheckCircle, AlertCircle, ArrowRight } from "lucide-react";
 import { useState } from "react";
+import { cn } from "@/lib/utils";
 
 export default function Reports() {
   const { currentYear, departments } = useStore();
   const [selectedReport, setSelectedReport] = useState("budget_vs_actual");
+
+  // Mock comparison data for Rev1 vs Rev2 (normally would come from selection)
+  const revComparisonData = [
+    { name: 'AWS Sunucu Giderleri', rev1: 7500, rev2: 8000, diff: 500 },
+    { name: 'Yazılım Lisansları', rev1: 2000, rev2: 2000, diff: 0 },
+    { name: 'Donanım Bakım', rev1: 1500, rev2: 1200, diff: -300 },
+  ];
 
   // Mock comparison data
   const comparisonData = [
@@ -89,10 +97,61 @@ export default function Reports() {
       )}
 
       {selectedReport === "rev_comparison" && (
-        <div className="flex flex-col items-center justify-center py-12 text-center text-muted-foreground border border-dashed rounded-lg bg-muted/10">
-            <h3 className="text-lg font-medium mb-2">Revizyon Karşılaştırma</h3>
-            <p>Karşılaştırmak için en az iki revizyon bulunan bir kalem seçiniz.</p>
-        </div>
+        <Card className="shadow-md">
+            <CardHeader>
+                <div className="flex items-center justify-between">
+                    <div>
+                        <CardTitle>Revizyon Karşılaştırma</CardTitle>
+                        <CardDescription>Departman bütçesi revizyon değişiklikleri</CardDescription>
+                    </div>
+                    <div className="flex items-center gap-2 bg-muted/30 p-1 rounded-lg">
+                        <Select defaultValue="rev1">
+                            <SelectTrigger className="w-[120px] h-8 text-xs">
+                                <SelectValue placeholder="Rev 1" />
+                            </SelectTrigger>
+                            <SelectContent>
+                                <SelectItem value="rev1">Revizyon 1</SelectItem>
+                                <SelectItem value="rev0">Revizyon 0</SelectItem>
+                            </SelectContent>
+                        </Select>
+                        <ArrowRight className="h-4 w-4 text-muted-foreground" />
+                        <Select defaultValue="rev2">
+                            <SelectTrigger className="w-[120px] h-8 text-xs">
+                                <SelectValue placeholder="Rev 2" />
+                            </SelectTrigger>
+                            <SelectContent>
+                                <SelectItem value="rev2">Revizyon 2</SelectItem>
+                                <SelectItem value="current">Mevcut</SelectItem>
+                            </SelectContent>
+                        </Select>
+                    </div>
+                </div>
+            </CardHeader>
+            <CardContent>
+                <Table>
+                    <TableHeader>
+                        <TableRow>
+                            <TableHead className="w-[300px]">Kalem Adı</TableHead>
+                            <TableHead className="text-right">Revizyon 1</TableHead>
+                            <TableHead className="text-right">Revizyon 2</TableHead>
+                            <TableHead className="text-right">Değişim</TableHead>
+                        </TableRow>
+                    </TableHeader>
+                    <TableBody>
+                         {revComparisonData.map((row, i) => (
+                            <TableRow key={i} className={cn(row.diff !== 0 && "bg-muted/10")}>
+                                <TableCell className="font-medium">{row.name}</TableCell>
+                                <TableCell className="text-right tabular-nums text-muted-foreground">€ {new Intl.NumberFormat('tr-TR').format(row.rev1)}</TableCell>
+                                <TableCell className="text-right tabular-nums font-medium">€ {new Intl.NumberFormat('tr-TR').format(row.rev2)}</TableCell>
+                                <TableCell className={cn("text-right tabular-nums font-bold", row.diff > 0 ? "text-emerald-600" : row.diff < 0 ? "text-destructive" : "text-muted-foreground")}>
+                                    {row.diff > 0 ? '+' : ''}{row.diff !== 0 ? `€ ${new Intl.NumberFormat('tr-TR').format(row.diff)}` : '-'}
+                                </TableCell>
+                            </TableRow>
+                         ))}
+                    </TableBody>
+                </Table>
+            </CardContent>
+        </Card>
       )}
     </div>
   );
