@@ -1,13 +1,13 @@
 import { useStore } from "@/lib/store";
-import { useDepartments, useCreateDepartment, useCreateCostGroup, useUpdateBudgetItem, useReviseBudgetItem, useApproveBudgetItem } from "@/lib/queries";
+import { useDepartments, useCreateDepartment, useCreateCostGroup, useCreateBudgetItem, useUpdateBudgetItem, useReviseBudgetItem, useApproveBudgetItem } from "@/lib/queries";
 import { BudgetTable } from "@/components/budget/BudgetTable";
 import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from "@/components/ui/accordion";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { PlusCircle, Download, Filter, Loader2 } from "lucide-react";
+import { PlusCircle, Download, Filter, Loader2, Plus } from "lucide-react";
 import { useState } from "react";
-import { AddEntityDialog } from "@/components/budget/AddEntityDialogs";
+import { AddEntityDialog, AddBudgetItemDialog } from "@/components/budget/AddEntityDialogs";
 import { toast } from "sonner";
 import type { BudgetMonthValues } from "@/lib/store";
 
@@ -16,6 +16,7 @@ export default function DepartmentBudget() {
   const { data: departments = [], isLoading } = useDepartments(currentYear);
   const createDepartmentMutation = useCreateDepartment();
   const createCostGroupMutation = useCreateCostGroup();
+  const createBudgetItemMutation = useCreateBudgetItem();
   const updateBudgetItemMutation = useUpdateBudgetItem();
   const reviseBudgetItemMutation = useReviseBudgetItem();
   const approveBudgetItemMutation = useApproveBudgetItem();
@@ -23,7 +24,9 @@ export default function DepartmentBudget() {
   // Dialog States
   const [isNewDeptOpen, setIsNewDeptOpen] = useState(false);
   const [isNewGroupOpen, setIsNewGroupOpen] = useState(false);
+  const [isNewItemOpen, setIsNewItemOpen] = useState(false);
   const [activeDeptForGroup, setActiveDeptForGroup] = useState<string | null>(null);
+  const [activeGroupForItem, setActiveGroupForItem] = useState<string | null>(null);
 
   const formatMoney = (amount: number) => {
     return new Intl.NumberFormat('tr-TR', { minimumFractionDigits: 0 }).format(amount);
@@ -46,6 +49,23 @@ export default function DepartmentBudget() {
       toast.success("Maliyet grubu eklendi", { description: name });
       setIsNewGroupOpen(false);
       setActiveDeptForGroup(null);
+    } catch (error: any) {
+      toast.error("Hata", { description: error.message });
+    }
+  };
+
+  const handleAddItem = async (name: string, type: 'cost' | 'revenue') => {
+    if (!activeGroupForItem) return;
+    try {
+      await createBudgetItemMutation.mutateAsync({ 
+        name, 
+        type: 'cost', 
+        costGroupId: activeGroupForItem,
+        year: currentYear 
+      });
+      toast.success("Bütçe kalemi eklendi", { description: name });
+      setIsNewItemOpen(false);
+      setActiveGroupForItem(null);
     } catch (error: any) {
       toast.error("Hata", { description: error.message });
     }
@@ -143,6 +163,14 @@ export default function DepartmentBudget() {
         placeholder="Örn: Seyahat Giderleri"
       />
 
+      <AddBudgetItemDialog 
+        isOpen={isNewItemOpen} 
+        onClose={() => { setIsNewItemOpen(false); setActiveGroupForItem(null); }} 
+        onSave={handleAddItem}
+        title="Yeni Bütçe Kalemi"
+        description="Seçili maliyet grubu altına yeni bir gider kalemi ekleyin."
+      />
+
       {/* Summary Cards */}
       <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
         <Card className="bg-primary/5 border-primary/20 shadow-sm">
@@ -204,6 +232,20 @@ export default function DepartmentBudget() {
                                                     onRevise={handleReviseItem}
                                                     onApprove={handleApproveItem}
                                                 />
+                                                
+                                                <Button 
+                                                    variant="ghost" 
+                                                    size="sm"
+                                                    className="text-muted-foreground hover:text-primary"
+                                                    onClick={() => {
+                                                        setActiveGroupForItem(group.id);
+                                                        setIsNewItemOpen(true);
+                                                    }}
+                                                    data-testid={`button-add-item-${group.id}`}
+                                                >
+                                                    <Plus className="mr-1 h-4 w-4" />
+                                                    Yeni Kalem Ekle
+                                                </Button>
                                             </div>
                                         );
                                     })}
