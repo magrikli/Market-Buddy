@@ -40,6 +40,40 @@ export default function Transactions() {
   });
 
   const watchType = form.watch("type");
+  const watchDepartmentId = form.watch("departmentId");
+  const watchProjectId = form.watch("projectId");
+
+  // Calculate available items based on selection
+  let availableItems: { id: string; name: string; groupName: string }[] = [];
+
+  if (watchType === 'department_expense' && watchDepartmentId) {
+    const dept = departments.find(d => d.id === watchDepartmentId);
+    if (dept) {
+      dept.costGroups.forEach(group => {
+        group.items.forEach(item => {
+          availableItems.push({ id: item.id, name: item.name, groupName: group.name });
+        });
+      });
+    }
+  } else if (watchType === 'project_expense' && watchProjectId) {
+    const proj = projects.find(p => p.id === watchProjectId);
+    if (proj) {
+      proj.phases.forEach(phase => {
+        phase.costItems.forEach(item => {
+          availableItems.push({ id: item.id, name: item.name, groupName: phase.name });
+        });
+      });
+    }
+  } else if (watchType === 'project_revenue' && watchProjectId) {
+    const proj = projects.find(p => p.id === watchProjectId);
+    if (proj) {
+      proj.phases.forEach(phase => {
+        phase.revenueItems.forEach(item => {
+          availableItems.push({ id: item.id, name: item.name, groupName: phase.name });
+        });
+      });
+    }
+  }
 
   function onSubmit(values: z.infer<typeof formSchema>) {
     setLoading(true);
@@ -150,7 +184,10 @@ export default function Transactions() {
                     render={({ field }) => (
                         <FormItem>
                         <FormLabel>Departman</FormLabel>
-                        <Select onValueChange={field.onChange} defaultValue={field.value}>
+                        <Select onValueChange={(val) => {
+                            field.onChange(val);
+                            form.setValue("itemId", ""); // Reset item when parent changes
+                        }} defaultValue={field.value}>
                             <FormControl>
                             <SelectTrigger>
                                 <SelectValue placeholder="Departman seçin" />
@@ -173,7 +210,10 @@ export default function Transactions() {
                     render={({ field }) => (
                         <FormItem>
                         <FormLabel>Proje</FormLabel>
-                        <Select onValueChange={field.onChange} defaultValue={field.value}>
+                        <Select onValueChange={(val) => {
+                            field.onChange(val);
+                            form.setValue("itemId", ""); // Reset item when parent changes
+                        }} defaultValue={field.value}>
                             <FormControl>
                             <SelectTrigger>
                                 <SelectValue placeholder="Proje seçin" />
@@ -190,6 +230,32 @@ export default function Transactions() {
                     )}
                     />
                 )}
+
+                <FormField
+                  control={form.control}
+                  name="itemId"
+                  render={({ field }) => (
+                    <FormItem>
+                      <FormLabel>Kalem (Item)</FormLabel>
+                      <Select onValueChange={field.onChange} value={field.value} disabled={availableItems.length === 0}>
+                        <FormControl>
+                          <SelectTrigger>
+                            <SelectValue placeholder={availableItems.length === 0 ? "Önce departman/proje seçin" : "Kalem seçin"} />
+                          </SelectTrigger>
+                        </FormControl>
+                        <SelectContent>
+                          {availableItems.map(item => (
+                            <SelectItem key={item.id} value={item.id}>
+                              <span className="font-medium">{item.name}</span>
+                              <span className="text-xs text-muted-foreground ml-2">({item.groupName})</span>
+                            </SelectItem>
+                          ))}
+                        </SelectContent>
+                      </Select>
+                      <FormMessage />
+                    </FormItem>
+                  )}
+                />
 
                 <FormField
                   control={form.control}
