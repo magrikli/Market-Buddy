@@ -13,7 +13,7 @@ export function Layout({ children }: { children: React.ReactNode }) {
     <div className="flex h-screen w-full bg-background overflow-hidden">
       <Sidebar />
       <main className="flex-1 overflow-auto">
-        <div className="h-full p-8 max-w-7xl mx-auto w-full ml-[20px] mr-[20px]">
+        <div className="h-full p-8 max-w-7xl mx-auto w-full ml-[80.5px] mr-[80.5px]">
             {children}
         </div>
       </main>
