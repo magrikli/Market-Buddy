@@ -1,24 +1,29 @@
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { useStore } from "@/lib/store";
+import { useDepartments, useProjects } from "@/lib/queries";
 import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, Cell } from 'recharts';
-import { ArrowUpRight, ArrowDownRight, Clock, CheckCircle2 } from "lucide-react";
+import { ArrowUpRight, ArrowDownRight, Clock, CheckCircle2, Loader2 } from "lucide-react";
 
 export default function Dashboard() {
-  const { currentYear, projects, departments } = useStore();
+  const { currentYear } = useStore();
+  const { data: departments = [], isLoading: deptLoading } = useDepartments(currentYear);
+  const { data: projects = [], isLoading: projLoading } = useProjects(currentYear);
 
-  // Mock data calculations
+  // Calculate totals
   const totalDepartmentBudget = departments.reduce((acc, dep) => 
-    acc + dep.costGroups.reduce((gAcc, group) => 
-      gAcc + group.items.reduce((iAcc, item) => 
-        iAcc + Object.values(item.values).reduce((vAcc, v) => vAcc + v, 0), 0), 0), 0);
+    acc + (dep.costGroups || []).reduce((gAcc, group) => 
+      gAcc + (group.items || []).reduce((iAcc, item) => 
+        iAcc + Object.values(item.values || {}).reduce((vAcc: number, v: any) => vAcc + (Number(v) || 0), 0), 0), 0), 0);
   
   const totalProjectBudget = projects.reduce((acc, proj) => 
-    acc + proj.phases.reduce((pAcc, phase) => 
-      pAcc + phase.costItems.reduce((iAcc, item) => 
-        iAcc + Object.values(item.values).reduce((vAcc, v) => vAcc + v, 0), 0), 0), 0);
+    acc + (proj.phases || []).reduce((pAcc, phase) => 
+      pAcc + (phase.costItems || []).reduce((iAcc, item) => 
+        iAcc + Object.values(item.values || {}).reduce((vAcc: number, v: any) => vAcc + (Number(v) || 0), 0), 0), 0), 0);
 
   const totalBudget = totalDepartmentBudget + totalProjectBudget;
-  const mockActuals = totalBudget * 0.28; // Mock actual usage
+  const mockActuals = totalBudget * 0.28;
+  
+  const isLoading = deptLoading || projLoading;
 
   const chartData = [
     { name: 'Oca', Butce: 4000, Gerceklesen: 2400 },

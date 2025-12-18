@@ -1,14 +1,49 @@
 import { useStore } from "@/lib/store";
+import { useProjects, useUpdateBudgetItem, useReviseBudgetItem, useApproveBudgetItem } from "@/lib/queries";
 import { BudgetTable } from "@/components/budget/BudgetTable";
 import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from "@/components/ui/accordion";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { PlusCircle, Download, FolderGit2 } from "lucide-react";
+import { PlusCircle, Download, FolderGit2, Loader2 } from "lucide-react";
+import { toast } from "sonner";
+import type { BudgetMonthValues } from "@/lib/store";
+import { Badge } from "@/components/ui/badge";
 
 export default function ProjectBudget() {
-  const { projects, currentYear, setYear, updateCostItem, approveItem, reviseItem, currentUser } = useStore();
+  const { currentYear, setYear, currentUser } = useStore();
+  const { data: projects = [], isLoading } = useProjects(currentYear);
+  const updateBudgetItemMutation = useUpdateBudgetItem();
+  const reviseBudgetItemMutation = useReviseBudgetItem();
+  const approveBudgetItemMutation = useApproveBudgetItem();
+
+  const handleUpdateItem = async (itemId: string, values: BudgetMonthValues) => {
+    try {
+      await updateBudgetItemMutation.mutateAsync({ id: itemId, data: { monthlyValues: values } });
+      toast.success("Güncellendi");
+    } catch (error: any) {
+      toast.error("Hata", { description: error.message });
+    }
+  };
+
+  const handleReviseItem = async (itemId: string) => {
+    try {
+      await reviseBudgetItemMutation.mutateAsync({ id: itemId, editorName: currentUser?.name || 'Unknown' });
+      toast.success("Revizyon oluşturuldu");
+    } catch (error: any) {
+      toast.error("Hata", { description: error.message });
+    }
+  };
+
+  const handleApproveItem = async (itemId: string) => {
+    try {
+      await approveBudgetItemMutation.mutateAsync(itemId);
+      toast.success("Onaylandı");
+    } catch (error: any) {
+      toast.error("Hata", { description: error.message });
+    }
+  };
 
   const formatMoney = (amount: number) => {
     return new Intl.NumberFormat('tr-TR', { minimumFractionDigits: 0 }).format(amount);
@@ -75,7 +110,7 @@ export default function ProjectBudget() {
                             </TabsList>
                             
                             <TabsContent value="costs" className="space-y-6">
-                                <Accordion type="multiple" className="w-full" defaultValue={project.phases.map(p => p.id)}>
+                                <Accordion type="multiple" className="w-full" defaultValue={(project.phases || []).map(p => p.id)}>
                                     {project.phases.map((phase) => (
                                         <AccordionItem key={phase.id} value={phase.id} className="border border-border/40 rounded-lg mb-4 px-4 overflow-hidden">
                                             <AccordionTrigger className="hover:no-underline py-3">
@@ -83,11 +118,11 @@ export default function ProjectBudget() {
                                             </AccordionTrigger>
                                             <AccordionContent className="pb-4 pt-2">
                                                 <BudgetTable 
-                                                    items={phase.costItems}
+                                                    items={phase.costItems || []}
                                                     isAdmin={currentUser?.role === 'admin'}
-                                                    onSave={(itemId, values) => updateCostItem('project', project.id, phase.id, itemId, values)}
-                                                    onRevise={(itemId) => reviseItem('project', project.id, phase.id, itemId)}
-                                                    onApprove={(itemId) => approveItem('project', project.id, phase.id, itemId)}
+                                                    onSave={handleUpdateItem}
+                                                    onRevise={handleReviseItem}
+                                                    onApprove={handleApproveItem}
                                                     type="cost"
                                                 />
                                             </AccordionContent>
@@ -97,7 +132,7 @@ export default function ProjectBudget() {
                             </TabsContent>
                             
                             <TabsContent value="revenue" className="space-y-6">
-                                <Accordion type="multiple" className="w-full" defaultValue={project.phases.map(p => p.id)}>
+                                <Accordion type="multiple" className="w-full" defaultValue={(project.phases || []).map(p => p.id)}>
                                     {project.phases.map((phase) => (
                                         <AccordionItem key={phase.id} value={phase.id} className="border border-border/40 rounded-lg mb-4 px-4 overflow-hidden">
                                             <AccordionTrigger className="hover:no-underline py-3">
@@ -105,11 +140,11 @@ export default function ProjectBudget() {
                                             </AccordionTrigger>
                                             <AccordionContent className="pb-4 pt-2">
                                                 <BudgetTable 
-                                                    items={phase.revenueItems}
+                                                    items={phase.revenueItems || []}
                                                     isAdmin={currentUser?.role === 'admin'}
-                                                    onSave={(itemId, values) => updateCostItem('project', project.id, phase.id, itemId, values)}
-                                                    onRevise={(itemId) => reviseItem('project', project.id, phase.id, itemId)}
-                                                    onApprove={(itemId) => approveItem('project', project.id, phase.id, itemId)}
+                                                    onSave={handleUpdateItem}
+                                                    onRevise={handleReviseItem}
+                                                    onApprove={handleApproveItem}
                                                     type="revenue"
                                                 />
                                             </AccordionContent>
@@ -127,6 +162,3 @@ export default function ProjectBudget() {
   );
 }
 
-function Badge({ children, variant, className }: any) {
-    return <span className={`px-2 py-0.5 text-xs rounded-full border ${className}`}>{children}</span>
-}
