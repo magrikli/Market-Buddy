@@ -1,0 +1,94 @@
+Şirket bütçe yönetim sistemi oluştur. Teknoloji: Python FastAPI backend, SQLite veritabanı, React frontend, TailwindCSS. Para birimi EUR, arayüz dili Türkçe.
+
+## KULLANICI SİSTEMİ
+- Basit login (kullanıcı adı + şifre)
+- İki rol: Admin ve Normal Kullanıcı
+- Admin: Tüm departman ve projeleri görür/düzenler, bütçe onaylar, kullanıcı yönetir
+- Normal kullanıcı: Sadece atandığı departman/projeleri görür
+- Bir kullanıcı birden fazla departman/projeye atanabilir
+
+## VERİ YAPISI
+
+### Departman Bütçeleri (hiyerarşik):
+Departman → Cost Group → Cost Item
+- Her Cost Item'da 12 aylık bütçe alanları (Ocak-Aralık)
+- Departman, Cost Group, Cost Item eklenebilir/silinebilir
+
+### Proje Bütçeleri (hiyerarşik):
+Proje → Phase (Faz) → Cost Item (giderler) + Revenue Item (gelirler)
+- Her item'da 12 aylık alanlar
+- Proje, Phase, Cost/Revenue Item eklenebilir/silinebilir
+
+### Revizyon Sistemi:
+- Her Cost Item ve Revenue Item için rev geçmişi tutulur
+- Rev0, Rev1, Rev2... şeklinde versiyon numarası
+- Her rev'de tarih damgası saklanır
+- Eski revizyonlar görüntülenebilir, değiştirilemez
+
+### Onay Mekanizması:
+- Cost Item bazında onay
+- Onaylanmamış item'lar düzenlenebilir
+- Onaylanan item'lar kilitlenir, sadece revize edilebilir (yeni rev oluşturur)
+- Sadece Admin onaylayabilir
+- Aynı mekanizma proje bütçelerinde de geçerli
+
+## EKRANLAR
+
+### 1. Departman Bütçe Ekranı
+- Üstte: Yıl seçici dropdown
+- Collapsible departman listesi
+- Departman altında collapsible Cost Group'lar
+  - Cost Group satırında 12 aylık toplamlar gösterilir
+- Cost Group altında Cost Item satırları:
+  - Cost Item adı | Oca | Şub | Mar | ... | Ara | Toplam | Onay Durumu | Edit | Delete | Rev History
+- Edit butonuna basınca: Cost name ve 12 aylık değerler inline düzenlenebilir (onaylanmamışsa)
+- Onaylı item'larda "Revize Et" butonu (yeni rev oluşturur)
+- Yeni departman, cost group, cost item ekleme butonları
+- Departman ve Cost Group satırlarında da aylık toplamlar
+
+### 2. Proje Bütçe Ekranı
+- Aynı yapı: Proje → Phase → Items
+- İki bölüm veya sekme: Giderler (Cost Items) ve Gelirler (Revenue Items)
+- Aynı onay ve revizyon mekanizması
+
+### 3. Harcama/Gelir Giriş Ekranı
+- Form alanları: Tarih, Tutar (EUR), Açıklama
+- Tür seçimi: Departman Harcaması | Proje Harcaması | Proje Geliri
+- Dinamik seçimler:
+  - Departman seçilirse: Departman → Cost Group → Cost Item
+  - Proje seçilirse: Proje → Phase → Cost/Revenue Item
+- Kaydet butonu → Sistem tutarı ilgili aya otomatik ekler
+- Harcama listesi (filtrelenebilir)
+
+### 4. Bütçe vs Gerçekleşen Karşılaştırma Ekranı
+- Filtreler: Yıl, Departman/Proje, Rev seçimi
+- Tablo görünümü:
+  - Satırlar: Cost Item'lar
+  - Sütunlar: Her ay için Bütçe | Gerçekleşen | Fark
+- Toplamlar: Cost Group, Departman/Proje ve genel toplam satırları
+- Negatif farklar kırmızı, pozitif yeşil renkte
+
+### 5. Rev Karşılaştırma Ekranı
+- Seçimler: Departman veya Proje, İki rev seçimi (Rev1 vs Rev2)
+- Tablo: Item bazında ve toplam bazında karşılaştırma
+- Her satırda: Item Adı | Rev1 Değerleri (12 ay) | Rev2 Değerleri (12 ay) | Fark
+- Değişen satırlar vurgulu gösterilsin
+
+### 6. Rev History Popup/Panel
+- Bir item'ın tüm revizyonlarını listeler
+- Her rev için: Rev No, Tarih, 12 aylık değerler
+- Salt okunur görünüm
+
+### 7. Admin Paneli
+- Kullanıcı listesi (ekle, düzenle, sil)
+- Kullanıcıya departman/proje atama (çoklu seçim)
+- Yıl yönetimi (yeni yıl ekleme)
+- Toplu onay ekranı (onay bekleyen tüm item'ları listele, toplu onayla)
+
+## TEKNİK GEREKSİNİMLER
+- Responsive tasarım
+- Collapsible bölümler smooth animasyonlu
+- Tablo hücreleri sağa hizalı (sayılar için)
+- Binlik ayracı nokta, ondalık ayracı virgül (Avrupa formatı: 1.234,56 €)
+- Loading state'leri ve hata mesajları
+- Boş state mesajları ("Henüz departman eklenmemiş" gibi)
