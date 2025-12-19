@@ -180,10 +180,10 @@ export async function deleteBudgetItem(id: string): Promise<void> {
   });
 }
 
-export async function reviseBudgetItem(id: string, editorName: string): Promise<any> {
+export async function reviseBudgetItem(id: string, editorName: string, revisionReason?: string): Promise<any> {
   return fetchAPI(`/budget-items/${id}/revise`, {
     method: 'POST',
-    body: JSON.stringify({ editorName }),
+    body: JSON.stringify({ editorName, revisionReason }),
   });
 }
 

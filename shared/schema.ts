@@ -88,6 +88,9 @@ export const budgetItems = pgTable("budget_items", {
   // Budget values stored as JSONB: { "0": 1000, "1": 1200, ... } for 12 months
   monthlyValues: jsonb("monthly_values").notNull().default({}),
   
+  // Previous approved values for comparison during revision (cleared when approved)
+  previousApprovedValues: jsonb("previous_approved_values"),
+  
   status: varchar("status", { length: 50 }).notNull().default('draft'), // 'draft', 'pending', 'approved', 'rejected'
   currentRevision: integer("current_revision").notNull().default(0),
   
@@ -107,6 +110,7 @@ export const budgetRevisions = pgTable("budget_revisions", {
   budgetItemId: varchar("budget_item_id", { length: 255 }).notNull().references(() => budgetItems.id, { onDelete: 'cascade' }),
   revisionNumber: integer("revision_number").notNull(),
   monthlyValues: jsonb("monthly_values").notNull(),
+  revisionReason: text("revision_reason"),
   editorId: varchar("editor_id", { length: 255 }).references(() => users.id),
   editorName: text("editor_name").notNull(),
   createdAt: timestamp("created_at").defaultNow().notNull(),

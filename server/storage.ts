@@ -233,7 +233,7 @@ export class DatabaseStorage implements IStorage {
 
   async approveBudgetItem(id: string): Promise<BudgetItem | undefined> {
     const result = await db.update(budgetItems)
-      .set({ status: 'approved', updatedAt: new Date() })
+      .set({ status: 'approved', previousApprovedValues: null, updatedAt: new Date() })
       .where(eq(budgetItems.id, id))
       .returning();
     return result[0];

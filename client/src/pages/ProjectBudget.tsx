@@ -27,9 +27,9 @@ export default function ProjectBudget() {
     }
   };
 
-  const handleReviseItem = async (itemId: string) => {
+  const handleReviseItem = async (itemId: string, revisionReason?: string) => {
     try {
-      await reviseBudgetItemMutation.mutateAsync({ id: itemId, editorName: currentUser?.name || 'Unknown' });
+      await reviseBudgetItemMutation.mutateAsync({ id: itemId, editorName: currentUser?.name || 'Unknown', revisionReason });
       toast.success("Revizyon oluşturuldu");
     } catch (error: any) {
       toast.error("Hata", { description: error.message });

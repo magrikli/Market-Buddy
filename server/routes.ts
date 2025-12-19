@@ -212,6 +212,7 @@ export async function registerRoutes(server: Server, app: Express): Promise<Serv
                   id: item.id,
                   name: item.name,
                   values: item.monthlyValues,
+                  previousApprovedValues: item.previousApprovedValues,
                   status: item.status,
                   revision: item.currentRevision,
                   lastUpdated: item.updatedAt.toISOString(),
@@ -350,6 +351,7 @@ export async function registerRoutes(server: Server, app: Express): Promise<Serv
                   id: item.id,
                   name: item.name,
                   values: item.monthlyValues,
+                  previousApprovedValues: item.previousApprovedValues,
                   status: item.status,
                   revision: item.currentRevision,
                   lastUpdated: item.updatedAt.toISOString(),
@@ -364,6 +366,7 @@ export async function registerRoutes(server: Server, app: Express): Promise<Serv
                   id: item.id,
                   name: item.name,
                   values: item.monthlyValues,
+                  previousApprovedValues: item.previousApprovedValues,
                   status: item.status,
                   revision: item.currentRevision,
                   lastUpdated: item.updatedAt.toISOString(),
@@ -472,7 +475,7 @@ export async function registerRoutes(server: Server, app: Express): Promise<Serv
   app.post("/api/budget-items/:id/revise", async (req: Request, res: Response) => {
     try {
       const { id } = req.params;
-      const { editorName } = req.body;
+      const { editorName, revisionReason } = req.body;
       
       // Get current item
       const currentItem = await storage.getBudgetItem(id);
@@ -480,18 +483,20 @@ export async function registerRoutes(server: Server, app: Express): Promise<Serv
         return res.status(404).json({ message: "Budget item not found" });
       }
 
-      // Save current state as a revision
+      // Save current state as a revision with reason
       await storage.createBudgetRevision({
         budgetItemId: id,
         revisionNumber: currentItem.currentRevision,
-        monthlyValues: currentItem.monthlyValues,
+        monthlyValues: currentItem.monthlyValues as Record<string, number>,
+        revisionReason: revisionReason || null,
         editorName: editorName || 'Unknown',
       });
 
-      // Update item to new revision and set status to draft
+      // Update item to new revision, set status to draft, and save previous approved values for comparison
       const updated = await storage.updateBudgetItem(id, {
         currentRevision: currentItem.currentRevision + 1,
         status: 'draft',
+        previousApprovedValues: currentItem.monthlyValues,
       });
 
       return res.json(updated);

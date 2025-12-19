@@ -212,8 +212,8 @@ export function useApproveBudgetItem() {
 export function useReviseBudgetItem() {
   const queryClient = useQueryClient();
   return useMutation({
-    mutationFn: ({ id, editorName }: { id: string; editorName: string }) =>
-      api.reviseBudgetItem(id, editorName),
+    mutationFn: ({ id, editorName, revisionReason }: { id: string; editorName: string; revisionReason?: string }) =>
+      api.reviseBudgetItem(id, editorName, revisionReason),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: queryKeys.departments(2025) });
       queryClient.invalidateQueries({ queryKey: queryKeys.projects(2025) });

@@ -23,6 +23,7 @@ export interface BaseItem {
   id: string;
   name: string;
   values: BudgetMonthValues;
+  previousApprovedValues?: BudgetMonthValues | null;
   status: BudgetStatus;
   revision: number;
   lastUpdated: string;
