@@ -112,15 +112,15 @@ export function Sidebar() {
         })}
       </div>
 
-      <div className="p-4 border-t border-sidebar-border">
-        <div className="flex items-center gap-2">
+      <div className={cn("border-t border-sidebar-border", collapsed ? "p-2" : "p-4")}>
+        <div className={cn("flex items-center", collapsed ? "flex-col gap-2" : "gap-2")}>
           <DropdownMenu>
             <DropdownMenuTrigger asChild>
               <Button 
                 variant="ghost" 
                 className={cn(
-                  "flex-1 justify-start gap-3 h-auto py-2 px-2 hover:bg-sidebar-accent/50",
-                  collapsed && "justify-center px-0"
+                  "justify-start gap-3 h-auto py-2 px-2 hover:bg-sidebar-accent/50",
+                  collapsed ? "w-full justify-center px-0" : "flex-1"
                 )}
                 data-testid="button-user-menu"
               >
@@ -135,7 +135,7 @@ export function Sidebar() {
                 )}
               </Button>
             </DropdownMenuTrigger>
-            <DropdownMenuContent align="end" className="w-48">
+            <DropdownMenuContent align={collapsed ? "center" : "end"} side={collapsed ? "right" : "top"} className="w-48">
               <DropdownMenuItem onClick={() => setIsPasswordDialogOpen(true)} data-testid="menu-change-password">
                 <Key className="h-4 w-4 mr-2" />
                 Şifre Değiştir
@@ -151,7 +151,7 @@ export function Sidebar() {
           <Button
             variant="outline"
             size="icon"
-            className="h-8 w-8 text-muted-foreground hover:text-foreground shrink-0"
+            className={cn("h-8 w-8 text-muted-foreground hover:text-foreground shrink-0", collapsed && "w-full")}
             onClick={() => setCollapsed(!collapsed)}
             data-testid="button-toggle-sidebar"
           >
