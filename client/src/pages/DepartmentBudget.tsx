@@ -131,6 +131,24 @@ export default function DepartmentBudget() {
     }
   };
 
+  const handleSubmitForApproval = async (itemId: string) => {
+    try {
+      await updateBudgetItemMutation.mutateAsync({ id: itemId, data: { status: 'pending' } });
+      toast.success("Onaya gönderildi");
+    } catch (error: any) {
+      toast.error("Hata", { description: error.message });
+    }
+  };
+
+  const handleWithdraw = async (itemId: string) => {
+    try {
+      await updateBudgetItemMutation.mutateAsync({ id: itemId, data: { status: 'draft' } });
+      toast.success("Geri çekildi");
+    } catch (error: any) {
+      toast.error("Hata", { description: error.message });
+    }
+  };
+
   const handleEditDepartment = async (name: string) => {
     if (!editingDept) return;
     try {
@@ -536,6 +554,8 @@ export default function DepartmentBudget() {
                                         onRevise={handleReviseItem}
                                         onApprove={handleApproveItem}
                                         onDelete={handleDeleteBudgetItem}
+                                        onSubmitForApproval={handleSubmitForApproval}
+                                        onWithdraw={handleWithdraw}
                                       />
                                     </div>
                                   );

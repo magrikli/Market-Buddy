@@ -45,6 +45,24 @@ export default function ProjectBudget() {
     }
   };
 
+  const handleSubmitForApproval = async (itemId: string) => {
+    try {
+      await updateBudgetItemMutation.mutateAsync({ id: itemId, data: { status: 'pending' } });
+      toast.success("Onaya gönderildi");
+    } catch (error: any) {
+      toast.error("Hata", { description: error.message });
+    }
+  };
+
+  const handleWithdraw = async (itemId: string) => {
+    try {
+      await updateBudgetItemMutation.mutateAsync({ id: itemId, data: { status: 'draft' } });
+      toast.success("Geri çekildi");
+    } catch (error: any) {
+      toast.error("Hata", { description: error.message });
+    }
+  };
+
   const formatMoney = (amount: number) => {
     return new Intl.NumberFormat('tr-TR', { minimumFractionDigits: 0 }).format(amount);
   };
@@ -123,6 +141,8 @@ export default function ProjectBudget() {
                                                     onSave={handleUpdateItem}
                                                     onRevise={handleReviseItem}
                                                     onApprove={handleApproveItem}
+                                                    onSubmitForApproval={handleSubmitForApproval}
+                                                    onWithdraw={handleWithdraw}
                                                     type="cost"
                                                 />
                                             </AccordionContent>
@@ -145,6 +165,8 @@ export default function ProjectBudget() {
                                                     onSave={handleUpdateItem}
                                                     onRevise={handleReviseItem}
                                                     onApprove={handleApproveItem}
+                                                    onSubmitForApproval={handleSubmitForApproval}
+                                                    onWithdraw={handleWithdraw}
                                                     type="revenue"
                                                 />
                                             </AccordionContent>

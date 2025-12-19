@@ -3,7 +3,7 @@ import { Input } from "@/components/ui/input";
 import { Table, TableBody, TableCell, TableRow } from "@/components/ui/table";
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from "@/components/ui/dropdown-menu";
 import { cn } from "@/lib/utils";
-import { Save, X, History, Lock, CheckCircle, Trash2, MoreHorizontal, Edit2, Clock, FileEdit } from "lucide-react";
+import { Save, X, History, Lock, CheckCircle, Trash2, MoreHorizontal, Edit2, Clock, FileEdit, Send, Undo2 } from "lucide-react";
 import { useState } from "react";
 import { CostItem, RevenueItem, BudgetMonthValues } from "@/lib/store";
 import { RevisionHistoryDialog } from "./RevisionHistoryDialog";
@@ -14,6 +14,8 @@ interface BudgetTableProps {
   onRevise: (itemId: string) => void;
   onApprove?: (itemId: string) => void;
   onDelete?: (itemId: string, name: string) => void;
+  onSubmitForApproval?: (itemId: string) => void;
+  onWithdraw?: (itemId: string) => void;
   isAdmin?: boolean;
   type?: 'cost' | 'revenue';
 }
@@ -27,7 +29,7 @@ const formatMoney = (amount: number) => {
   return new Intl.NumberFormat('tr-TR', { minimumFractionDigits: 0, maximumFractionDigits: 0 }).format(amount);
 };
 
-export function BudgetTable({ items, onSave, onRevise, onApprove, onDelete, isAdmin = false, type = 'cost' }: BudgetTableProps) {
+export function BudgetTable({ items, onSave, onRevise, onApprove, onDelete, onSubmitForApproval, onWithdraw, isAdmin = false, type = 'cost' }: BudgetTableProps) {
   const [editingId, setEditingId] = useState<string | null>(null);
   const [editValues, setEditValues] = useState<BudgetMonthValues>({});
   
@@ -139,6 +141,20 @@ export function BudgetTable({ items, onSave, onRevise, onApprove, onDelete, isAd
                                 <DropdownMenuItem onClick={() => startEditing(item)}>
                                   <Edit2 className="mr-2 h-4 w-4" />
                                   Düzenle
+                                </DropdownMenuItem>
+                              )}
+                              
+                              {item.status === 'draft' && onSubmitForApproval && (
+                                <DropdownMenuItem onClick={() => onSubmitForApproval(item.id)}>
+                                  <Send className="mr-2 h-4 w-4 text-blue-600" />
+                                  Onaya Gönder
+                                </DropdownMenuItem>
+                              )}
+
+                              {item.status === 'pending' && onWithdraw && (
+                                <DropdownMenuItem onClick={() => onWithdraw(item.id)}>
+                                  <Undo2 className="mr-2 h-4 w-4 text-orange-600" />
+                                  Geri Çek
                                 </DropdownMenuItem>
                               )}
                               
