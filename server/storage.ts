@@ -1,11 +1,12 @@
 import { db } from './db';
 import { 
   users, departments, costGroups, projects, projectPhases, budgetItems, budgetRevisions, 
-  transactions, userDepartmentAssignments, userProjectAssignments,
+  transactions, userDepartmentAssignments, userProjectAssignments, departmentGroups,
   type User, type InsertUser, type Department, type InsertDepartment,
   type CostGroup, type InsertCostGroup, type Project, type InsertProject,
   type ProjectPhase, type InsertProjectPhase, type BudgetItem, type InsertBudgetItem,
-  type BudgetRevision, type InsertBudgetRevision, type Transaction, type InsertTransaction
+  type BudgetRevision, type InsertBudgetRevision, type Transaction, type InsertTransaction,
+  type DepartmentGroup, type InsertDepartmentGroup
 } from '@shared/schema';
 import { eq, and, sql } from 'drizzle-orm';
 
@@ -18,6 +19,12 @@ export interface IStorage {
   getUserProjects(userId: string): Promise<string[]>;
   assignUserToDepartment(userId: string, departmentId: string): Promise<void>;
   assignUserToProject(userId: string, projectId: string): Promise<void>;
+  
+  // Department Groups
+  getAllDepartmentGroups(): Promise<DepartmentGroup[]>;
+  createDepartmentGroup(group: InsertDepartmentGroup): Promise<DepartmentGroup>;
+  updateDepartmentGroup(id: string, updates: Partial<DepartmentGroup>): Promise<DepartmentGroup | undefined>;
+  deleteDepartmentGroup(id: string): Promise<void>;
   
   // Departments
   getAllDepartments(): Promise<Department[]>;
@@ -97,6 +104,28 @@ export class DatabaseStorage implements IStorage {
 
   async assignUserToProject(userId: string, projectId: string): Promise<void> {
     await db.insert(userProjectAssignments).values({ userId, projectId }).onConflictDoNothing();
+  }
+
+  // === DEPARTMENT GROUPS ===
+  async getAllDepartmentGroups(): Promise<DepartmentGroup[]> {
+    return await db.select().from(departmentGroups);
+  }
+
+  async createDepartmentGroup(group: InsertDepartmentGroup): Promise<DepartmentGroup> {
+    const result = await db.insert(departmentGroups).values(group).returning();
+    return result[0];
+  }
+
+  async updateDepartmentGroup(id: string, updates: Partial<DepartmentGroup>): Promise<DepartmentGroup | undefined> {
+    const result = await db.update(departmentGroups)
+      .set(updates)
+      .where(eq(departmentGroups.id, id))
+      .returning();
+    return result[0];
+  }
+
+  async deleteDepartmentGroup(id: string): Promise<void> {
+    await db.delete(departmentGroups).where(eq(departmentGroups.id, id));
   }
 
   // === DEPARTMENTS ===

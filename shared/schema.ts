@@ -17,10 +17,22 @@ export const insertUserSchema = createInsertSchema(users).omit({ id: true, creat
 export type InsertUser = z.infer<typeof insertUserSchema>;
 export type User = typeof users.$inferSelect;
 
+// ===== DEPARTMENT GROUPS =====
+export const departmentGroups = pgTable("department_groups", {
+  id: varchar("id", { length: 255 }).primaryKey().default(sql`gen_random_uuid()`),
+  name: text("name").notNull(),
+  createdAt: timestamp("created_at").defaultNow().notNull(),
+});
+
+export const insertDepartmentGroupSchema = createInsertSchema(departmentGroups).omit({ id: true, createdAt: true });
+export type InsertDepartmentGroup = z.infer<typeof insertDepartmentGroupSchema>;
+export type DepartmentGroup = typeof departmentGroups.$inferSelect;
+
 // ===== DEPARTMENTS =====
 export const departments = pgTable("departments", {
   id: varchar("id", { length: 255 }).primaryKey().default(sql`gen_random_uuid()`),
   name: text("name").notNull(),
+  groupId: varchar("group_id", { length: 255 }).references(() => departmentGroups.id, { onDelete: 'set null' }),
   createdAt: timestamp("created_at").defaultNow().notNull(),
 });
 
