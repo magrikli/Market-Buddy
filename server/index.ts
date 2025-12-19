@@ -9,6 +9,9 @@ import { pool } from "./db";
 const app = express();
 const httpServer = createServer(app);
 
+// Trust the proxy (Replit terminates HTTPS before forwarding to the app)
+app.set('trust proxy', 1);
+
 const PgSession = connectPgSimple(session);
 
 app.use(
