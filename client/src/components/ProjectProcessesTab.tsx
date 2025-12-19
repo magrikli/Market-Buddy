@@ -352,12 +352,15 @@ export default function ProjectProcessesTab({ projectId, projectName }: Processe
             </div>
             <div className="space-y-2">
               <Label>Üst Süreç (Opsiyonel)</Label>
-              <Select value={newProcess.parentId} onValueChange={(v) => setNewProcess({ ...newProcess, parentId: v })}>
+              <Select 
+                value={newProcess.parentId || "__none__"} 
+                onValueChange={(v) => setNewProcess({ ...newProcess, parentId: v === "__none__" ? "" : v })}
+              >
                 <SelectTrigger>
                   <SelectValue placeholder="Üst süreç seçin (opsiyonel)" />
                 </SelectTrigger>
                 <SelectContent>
-                  <SelectItem value="">Yok (Ana Süreç)</SelectItem>
+                  <SelectItem value="__none__">Yok (Ana Süreç)</SelectItem>
                   {processes.map(p => (
                     <SelectItem key={p.id} value={p.id}>{p.name}</SelectItem>
                   ))}
