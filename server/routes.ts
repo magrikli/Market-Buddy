@@ -30,6 +30,11 @@ export async function registerRoutes(server: Server, app: Express): Promise<Serv
       const departmentIds = await storage.getUserDepartments(user.id);
       const projectIds = await storage.getUserProjects(user.id);
 
+      // Save session
+      req.session.userId = user.id;
+      req.session.username = user.username;
+      req.session.role = user.role;
+
       return res.json({
         user: {
           id: user.id,
@@ -44,6 +49,49 @@ export async function registerRoutes(server: Server, app: Express): Promise<Serv
       console.error('Login error:', error);
       return res.status(500).json({ message: "Server error" });
     }
+  });
+
+  // Get current user from session
+  app.get("/api/auth/me", async (req: Request, res: Response) => {
+    try {
+      if (!req.session.userId) {
+        return res.status(401).json({ message: "Not authenticated" });
+      }
+
+      const user = await storage.getUser(req.session.userId);
+      if (!user) {
+        req.session.destroy(() => {});
+        return res.status(401).json({ message: "User not found" });
+      }
+
+      const departmentIds = await storage.getUserDepartments(user.id);
+      const projectIds = await storage.getUserProjects(user.id);
+
+      return res.json({
+        user: {
+          id: user.id,
+          username: user.username,
+          name: user.name,
+          role: user.role,
+          assignedDepartmentIds: departmentIds,
+          assignedProjectIds: projectIds,
+        }
+      });
+    } catch (error) {
+      console.error('Auth check error:', error);
+      return res.status(500).json({ message: "Server error" });
+    }
+  });
+
+  // Logout
+  app.post("/api/auth/logout", (req: Request, res: Response) => {
+    req.session.destroy((err) => {
+      if (err) {
+        return res.status(500).json({ message: "Logout failed" });
+      }
+      res.clearCookie('connect.sid');
+      return res.json({ message: "Logged out" });
+    });
   });
 
   app.post("/api/auth/register", async (req: Request, res: Response) => {

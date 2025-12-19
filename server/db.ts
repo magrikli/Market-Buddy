@@ -7,7 +7,7 @@ const { Pool } = pg;
 // Use the external database URL
 const connectionString = 'postgresql://admin:346523@support.parkolay.com:7081/Budget';
 
-const pool = new Pool({
+export const pool = new Pool({
   connectionString,
   ssl: false, // Adjust based on your database SSL requirements
 });

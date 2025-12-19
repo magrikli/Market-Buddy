@@ -1,5 +1,5 @@
 import { Switch, Route } from "wouter";
-import { QueryClientProvider } from "@tanstack/react-query";
+import { QueryClientProvider, useQuery } from "@tanstack/react-query";
 import { queryClient } from "./lib/queryClient";
 import { Toaster } from "@/components/ui/toaster";
 import { TooltipProvider } from "@/components/ui/tooltip";
@@ -7,6 +7,8 @@ import Login from "@/pages/Login";
 import { Layout } from "@/components/layout/Layout";
 import NotFound from "@/pages/not-found";
 import { useStore } from "./lib/store";
+import { getCurrentUser } from "./lib/api";
+import { useEffect } from "react";
 
 // Import real pages
 import Dashboard from "@/pages/Dashboard";
@@ -17,7 +19,30 @@ import Reports from "@/pages/Reports";
 import Admin from "@/pages/Admin";
 
 function Router() {
-  const { currentUser } = useStore();
+  const { currentUser, setUser } = useStore();
+  
+  // Restore session on mount
+  const { data, isLoading } = useQuery({
+    queryKey: ['auth', 'me'],
+    queryFn: getCurrentUser,
+    retry: false,
+    staleTime: Infinity,
+  });
+
+  useEffect(() => {
+    if (data?.user) {
+      setUser(data.user);
+    }
+  }, [data, setUser]);
+
+  // Show loading while checking session
+  if (isLoading) {
+    return (
+      <div className="min-h-screen flex items-center justify-center bg-background">
+        <div className="text-muted-foreground">Yükleniyor...</div>
+      </div>
+    );
+  }
 
   return (
     <Switch>

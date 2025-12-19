@@ -36,6 +36,16 @@ export async function register(data: { username: string; password: string; name:
   });
 }
 
+export async function getCurrentUser(): Promise<{ user: User }> {
+  return fetchAPI('/auth/me');
+}
+
+export async function logout(): Promise<void> {
+  return fetchAPI('/auth/logout', {
+    method: 'POST',
+  });
+}
+
 // === DEPARTMENTS ===
 
 export async function getDepartments(year: number = 2025): Promise<Department[]> {
