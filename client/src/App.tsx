@@ -22,11 +22,12 @@ function Router() {
   const { currentUser, setUser } = useStore();
   
   // Restore session on mount
-  const { data, isLoading } = useQuery({
+  const { data, isLoading, isError } = useQuery({
     queryKey: ['auth', 'me'],
     queryFn: getCurrentUser,
     retry: false,
-    staleTime: Infinity,
+    staleTime: 5 * 60 * 1000, // 5 minutes
+    gcTime: 10 * 60 * 1000, // 10 minutes
   });
 
   useEffect(() => {
@@ -35,8 +36,8 @@ function Router() {
     }
   }, [data, setUser]);
 
-  // Show loading while checking session
-  if (isLoading) {
+  // Show loading while checking session (but not on error - that means not logged in)
+  if (isLoading && !isError) {
     return (
       <div className="min-h-screen flex items-center justify-center bg-background">
         <div className="text-muted-foreground">Yükleniyor...</div>

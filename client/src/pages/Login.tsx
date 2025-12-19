@@ -7,6 +7,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { useLogin } from "@/lib/queries";
 import { Loader2 } from "lucide-react";
+import { useQueryClient } from "@tanstack/react-query";
 
 export default function Login() {
   const [username, setUsername] = useState("admin");
@@ -15,6 +16,7 @@ export default function Login() {
   const { setUser } = useStore();
   const [_, setLocation] = useLocation();
   const loginMutation = useLogin();
+  const queryClient = useQueryClient();
 
   const handleLogin = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -23,6 +25,8 @@ export default function Login() {
     try {
       const result = await loginMutation.mutateAsync({ username, password });
       setUser(result.user);
+      // Update the auth cache so future checks know we're logged in
+      queryClient.setQueryData(['auth', 'me'], { user: result.user });
       setLocation("/");
     } catch (err: any) {
       setError(err.message || "Giriş başarısız. Lütfen bilgilerinizi kontrol edin.");
