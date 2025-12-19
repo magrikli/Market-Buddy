@@ -343,6 +343,10 @@ export default function DepartmentBudget() {
                                                                     </Button>
                                                                 </DropdownMenuTrigger>
                                                                 <DropdownMenuContent align="end">
+                                                                    <DropdownMenuItem onClick={() => { setActiveGroupForItem(group.id); setIsNewItemOpen(true); }}>
+                                                                        <Plus className="mr-2 h-4 w-4" />
+                                                                        Yeni Kalem Ekle
+                                                                    </DropdownMenuItem>
                                                                     <DropdownMenuItem onClick={() => { setEditingGroup({ id: group.id, name: group.name }); setEditGroupOpen(true); }}>
                                                                         <Pencil className="mr-2 h-4 w-4" />
                                                                         Düzenle
@@ -365,20 +369,6 @@ export default function DepartmentBudget() {
                                                     onApprove={handleApproveItem}
                                                     onDelete={handleDeleteBudgetItem}
                                                 />
-                                                
-                                                <Button 
-                                                    variant="ghost" 
-                                                    size="sm"
-                                                    className="text-muted-foreground hover:text-primary"
-                                                    onClick={() => {
-                                                        setActiveGroupForItem(group.id);
-                                                        setIsNewItemOpen(true);
-                                                    }}
-                                                    data-testid={`button-add-item-${group.id}`}
-                                                >
-                                                    <Plus className="mr-1 h-4 w-4" />
-                                                    Yeni Kalem Ekle
-                                                </Button>
                                             </div>
                                         );
                                     })}
