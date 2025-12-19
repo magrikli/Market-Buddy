@@ -18,7 +18,7 @@ import type { ProjectProcess } from "@/lib/api";
 import { toast } from "sonner";
 import { 
   Plus, ChevronDown, ChevronRight, CalendarIcon, Trash2, Edit2, 
-  RotateCcw, History, CheckCircle2, MoreHorizontal
+  RotateCcw, History, CheckCircle2, MoreHorizontal, Folder, FileText
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 
@@ -95,7 +95,7 @@ export default function ProjectProcessesTab({ projectId, projectName }: Processe
   const [editingProcess, setEditingProcess] = useState<ProjectProcess | null>(null);
   const [revisionDialogProcess, setRevisionDialogProcess] = useState<ProjectProcess | null>(null);
   const [historyDialogProcess, setHistoryDialogProcess] = useState<ProjectProcess | null>(null);
-  const [newProcess, setNewProcess] = useState({ name: "", parentId: "", startDate: new Date(), endDate: addDays(new Date(), 30) });
+  const [newProcess, setNewProcess] = useState({ name: "", parentId: "", isGroup: false, startDate: new Date(), endDate: addDays(new Date(), 30) });
   const [revisionReason, setRevisionReason] = useState("");
 
   const tree = useMemo(() => buildTree(processes), [processes]);
@@ -136,12 +136,13 @@ export default function ProjectProcessesTab({ projectId, projectName }: Processe
         name: newProcess.name,
         projectId,
         parentId: newProcess.parentId || null,
+        isGroup: newProcess.isGroup,
         startDate: format(newProcess.startDate, "yyyy-MM-dd"),
         endDate: format(newProcess.endDate, "yyyy-MM-dd"),
       });
-      toast.success("Süreç oluşturuldu");
+      toast.success(newProcess.isGroup ? "Grup oluşturuldu" : "Süreç oluşturuldu");
       setIsAddDialogOpen(false);
-      setNewProcess({ name: "", parentId: "", startDate: new Date(), endDate: addDays(new Date(), 30) });
+      setNewProcess({ name: "", parentId: "", isGroup: false, startDate: new Date(), endDate: addDays(new Date(), 30) });
     } catch (error: any) {
       toast.error(error.message);
     }
@@ -258,7 +259,7 @@ export default function ProjectProcessesTab({ projectId, projectName }: Processe
                     <th className="text-left p-3 font-medium w-[200px]">Süreç Adı</th>
                     <th className="text-left p-3 font-medium w-[100px]">Başlangıç</th>
                     <th className="text-left p-3 font-medium w-[100px]">Bitiş</th>
-                    <th className="text-left p-3 font-medium w-[80px]">Durum</th>
+                    <th className="text-left p-3 font-medium w-[80px]">Gün</th>
                     <th className="text-left p-3 font-medium min-w-[300px]">
                       <div className="flex text-xs text-muted-foreground">
                         {Array.from({ length: Math.min(Math.ceil(ganttDays.length / 7), 12) }).map((_, i) => (
@@ -293,7 +294,12 @@ export default function ProjectProcessesTab({ projectId, projectName }: Processe
                           ) : (
                             <div className="w-5" />
                           )}
-                          <span className="font-medium truncate" title={process.name}>
+                          {process.isGroup ? (
+                            <Folder className="h-4 w-4 text-amber-500 shrink-0" />
+                          ) : (
+                            <FileText className="h-4 w-4 text-blue-500 shrink-0" />
+                          )}
+                          <span className={cn("font-medium truncate", process.isGroup && "text-amber-700")} title={process.name}>
                             {process.name}
                           </span>
                           {process.currentRevision > 0 && (
@@ -309,25 +315,19 @@ export default function ProjectProcessesTab({ projectId, projectName }: Processe
                       <td className="p-3 text-muted-foreground">
                         {format(parseISO(process.endDate), "dd.MM.yyyy")}
                       </td>
-                      <td className="p-3">
-                        <Badge 
-                          variant="outline" 
-                          className={cn(
-                            "text-[10px]",
-                            statusColors[process.status]
-                          )}
-                        >
-                          {statusLabels[process.status]}
-                        </Badge>
+                      <td className="p-3 text-center font-medium">
+                        {differenceInDays(parseISO(process.endDate), parseISO(process.startDate)) + 1}
                       </td>
                       <td className="p-3">
                         <div className="relative h-6 bg-gray-100 rounded min-w-[200px]">
                           <div
                             className={cn(
                               "absolute h-full rounded text-[10px] flex items-center justify-center text-white font-medium",
-                              process.status === 'approved' ? 'bg-green-500' :
-                              process.status === 'pending' ? 'bg-yellow-500' :
-                              process.status === 'rejected' ? 'bg-red-500' : 'bg-blue-500'
+                              process.isGroup 
+                                ? 'bg-amber-400' 
+                                : process.status === 'approved' ? 'bg-green-500' :
+                                  process.status === 'pending' ? 'bg-yellow-500' :
+                                  process.status === 'rejected' ? 'bg-red-500' : 'bg-blue-500'
                             )}
                             style={getGanttBarStyle(process)}
                             title={`${differenceInDays(parseISO(process.endDate), parseISO(process.startDate)) + 1} gün`}
@@ -396,31 +396,70 @@ export default function ProjectProcessesTab({ projectId, projectName }: Processe
       <Dialog open={isAddDialogOpen} onOpenChange={setIsAddDialogOpen}>
         <DialogContent>
           <DialogHeader>
-            <DialogTitle>Yeni Süreç Ekle</DialogTitle>
-            <DialogDescription>Proje için yeni bir süreç tanımlayın</DialogDescription>
+            <DialogTitle>Yeni {newProcess.isGroup ? 'Grup' : 'Süreç'} Ekle</DialogTitle>
+            <DialogDescription>Proje için yeni bir {newProcess.isGroup ? 'grup' : 'süreç'} tanımlayın</DialogDescription>
           </DialogHeader>
           <div className="space-y-4 py-4">
             <div className="space-y-2">
-              <Label>Süreç Adı</Label>
+              <Label>Tür</Label>
+              <div className="flex gap-4">
+                <label className={cn(
+                  "flex items-center gap-2 p-3 border rounded-lg cursor-pointer flex-1 transition-colors",
+                  !newProcess.isGroup ? "border-blue-500 bg-blue-50" : "border-gray-200 hover:bg-muted/50"
+                )}>
+                  <input
+                    type="radio"
+                    name="processType"
+                    checked={!newProcess.isGroup}
+                    onChange={() => setNewProcess({ ...newProcess, isGroup: false })}
+                    className="sr-only"
+                  />
+                  <FileText className={cn("h-5 w-5", !newProcess.isGroup ? "text-blue-500" : "text-gray-400")} />
+                  <div>
+                    <div className={cn("font-medium", !newProcess.isGroup ? "text-blue-700" : "")}>Süreç</div>
+                    <div className="text-xs text-muted-foreground">Tek bir iş kalemi</div>
+                  </div>
+                </label>
+                <label className={cn(
+                  "flex items-center gap-2 p-3 border rounded-lg cursor-pointer flex-1 transition-colors",
+                  newProcess.isGroup ? "border-amber-500 bg-amber-50" : "border-gray-200 hover:bg-muted/50"
+                )}>
+                  <input
+                    type="radio"
+                    name="processType"
+                    checked={newProcess.isGroup}
+                    onChange={() => setNewProcess({ ...newProcess, isGroup: true })}
+                    className="sr-only"
+                  />
+                  <Folder className={cn("h-5 w-5", newProcess.isGroup ? "text-amber-500" : "text-gray-400")} />
+                  <div>
+                    <div className={cn("font-medium", newProcess.isGroup ? "text-amber-700" : "")}>Grup</div>
+                    <div className="text-xs text-muted-foreground">Süreçleri grupla</div>
+                  </div>
+                </label>
+              </div>
+            </div>
+            <div className="space-y-2">
+              <Label>{newProcess.isGroup ? 'Grup' : 'Süreç'} Adı</Label>
               <Input
                 value={newProcess.name}
                 onChange={(e) => setNewProcess({ ...newProcess, name: e.target.value })}
-                placeholder="Örn: Tasarım Aşaması"
+                placeholder={newProcess.isGroup ? "Örn: Tasarım Fazı" : "Örn: UI Tasarımı"}
                 data-testid="input-process-name"
               />
             </div>
             <div className="space-y-2">
-              <Label>Üst Süreç (Opsiyonel)</Label>
+              <Label>Üst Grup (Opsiyonel)</Label>
               <Select 
                 value={newProcess.parentId || "__none__"} 
                 onValueChange={(v) => setNewProcess({ ...newProcess, parentId: v === "__none__" ? "" : v })}
               >
                 <SelectTrigger>
-                  <SelectValue placeholder="Üst süreç seçin (opsiyonel)" />
+                  <SelectValue placeholder="Üst grup seçin (opsiyonel)" />
                 </SelectTrigger>
                 <SelectContent>
-                  <SelectItem value="__none__">Yok (Ana Süreç)</SelectItem>
-                  {processes.map(p => (
+                  <SelectItem value="__none__">Yok (Ana Seviye)</SelectItem>
+                  {processes.filter(p => p.isGroup).map(p => (
                     <SelectItem key={p.id} value={p.id}>{p.name}</SelectItem>
                   ))}
                 </SelectContent>

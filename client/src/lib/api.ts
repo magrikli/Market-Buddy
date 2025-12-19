@@ -341,6 +341,7 @@ export interface ProjectProcess {
   name: string;
   projectId: string;
   parentId: string | null;
+  isGroup: boolean;
   startDate: string;
   endDate: string;
   status: 'draft' | 'pending' | 'approved' | 'rejected';
@@ -361,6 +362,7 @@ export async function createProjectProcess(data: {
   name: string;
   projectId: string;
   parentId?: string | null;
+  isGroup?: boolean;
   startDate: string;
   endDate: string;
   sortOrder?: number;

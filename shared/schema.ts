@@ -141,6 +141,7 @@ export const projectProcesses = pgTable("project_processes", {
   name: text("name").notNull(),
   projectId: varchar("project_id", { length: 255 }).notNull().references(() => projects.id, { onDelete: 'cascade' }),
   parentId: varchar("parent_id", { length: 255 }), // Self-reference for tree structure
+  isGroup: boolean("is_group").notNull().default(false), // true = Group (contains processes), false = Process
   
   startDate: timestamp("start_date").notNull(),
   endDate: timestamp("end_date").notNull(),

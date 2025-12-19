@@ -425,6 +425,7 @@ export function useCreateProjectProcess() {
       name: string;
       projectId: string;
       parentId?: string | null;
+      isGroup?: boolean;
       startDate: string;
       endDate: string;
       sortOrder?: number;
