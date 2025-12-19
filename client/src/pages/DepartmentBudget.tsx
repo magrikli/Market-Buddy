@@ -493,7 +493,7 @@ export default function DepartmentBudget() {
                                                     </div>
                                                   </th>
                                                 ))}
-                                                <th className="text-right w-[120px] p-2 bg-primary/20">
+                                                <th className="text-right w-[150px] p-2 bg-primary/20">
                                                   <div className="flex items-center justify-end gap-2">
                                                     <div className="flex flex-col items-end">
                                                       <span className="text-[10px] text-muted-foreground font-medium">Toplam</span>
@@ -627,7 +627,7 @@ export default function DepartmentBudget() {
                                                   </div>
                                                 </th>
                                               ))}
-                                              <th className="text-right w-[120px] p-2 bg-primary/20">
+                                              <th className="text-right w-[150px] p-2 bg-primary/20">
                                                 <div className="flex items-center justify-end gap-2">
                                                   <div className="flex flex-col items-end">
                                                     <span className="text-[10px] text-muted-foreground font-medium">Toplam</span>
