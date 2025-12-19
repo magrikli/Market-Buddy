@@ -1,5 +1,5 @@
 import { useStore } from "@/lib/store";
-import { useDepartments, useCreateDepartment, useCreateCostGroup, useCreateBudgetItem, useUpdateBudgetItem, useReviseBudgetItem, useApproveBudgetItem, useUpdateDepartment, useDeleteDepartment, useUpdateCostGroup, useDeleteCostGroup, useDeleteBudgetItem, useDepartmentGroups, useCreateDepartmentGroup, useUpdateDepartmentGroup, useDeleteDepartmentGroup } from "@/lib/queries";
+import { useDepartments, useCreateDepartment, useCreateCostGroup, useCreateBudgetItem, useUpdateBudgetItem, useReviseBudgetItem, useApproveBudgetItem, useRevertBudgetItem, useUpdateDepartment, useDeleteDepartment, useUpdateCostGroup, useDeleteCostGroup, useDeleteBudgetItem, useDepartmentGroups, useCreateDepartmentGroup, useUpdateDepartmentGroup, useDeleteDepartmentGroup } from "@/lib/queries";
 import type { DepartmentGroup } from "@/lib/store";
 import { BudgetTable } from "@/components/budget/BudgetTable";
 import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from "@/components/ui/accordion";
@@ -23,6 +23,7 @@ export default function DepartmentBudget() {
   const updateBudgetItemMutation = useUpdateBudgetItem();
   const reviseBudgetItemMutation = useReviseBudgetItem();
   const approveBudgetItemMutation = useApproveBudgetItem();
+  const revertBudgetItemMutation = useRevertBudgetItem();
   const updateDepartmentMutation = useUpdateDepartment();
   const deleteDepartmentMutation = useDeleteDepartment();
   const updateCostGroupMutation = useUpdateCostGroup();
@@ -144,6 +145,15 @@ export default function DepartmentBudget() {
     try {
       await updateBudgetItemMutation.mutateAsync({ id: itemId, data: { status: 'draft' } });
       toast.success("Geri çekildi");
+    } catch (error: any) {
+      toast.error("Hata", { description: error.message });
+    }
+  };
+
+  const handleRevertItem = async (itemId: string) => {
+    try {
+      await revertBudgetItemMutation.mutateAsync(itemId);
+      toast.success("Önceki onaylı değerlere geri alındı");
     } catch (error: any) {
       toast.error("Hata", { description: error.message });
     }
@@ -556,6 +566,7 @@ export default function DepartmentBudget() {
                                         onDelete={handleDeleteBudgetItem}
                                         onSubmitForApproval={handleSubmitForApproval}
                                         onWithdraw={handleWithdraw}
+                                        onRevert={handleRevertItem}
                                       />
                                     </div>
                                   );
@@ -692,6 +703,7 @@ export default function DepartmentBudget() {
                                       onDelete={handleDeleteBudgetItem}
                                       onSubmitForApproval={handleSubmitForApproval}
                                       onWithdraw={handleWithdraw}
+                                      onRevert={handleRevertItem}
                                     />
                                   </div>
                                 );

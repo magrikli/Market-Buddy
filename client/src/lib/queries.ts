@@ -221,6 +221,17 @@ export function useReviseBudgetItem() {
   });
 }
 
+export function useRevertBudgetItem() {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: (id: string) => api.revertBudgetItem(id),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: queryKeys.departments(2025) });
+      queryClient.invalidateQueries({ queryKey: queryKeys.projects(2025) });
+    },
+  });
+}
+
 export function useDeleteBudgetItem() {
   const queryClient = useQueryClient();
   return useMutation({

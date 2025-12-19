@@ -1,5 +1,5 @@
 import { useStore } from "@/lib/store";
-import { useProjects, useUpdateBudgetItem, useReviseBudgetItem, useApproveBudgetItem } from "@/lib/queries";
+import { useProjects, useUpdateBudgetItem, useReviseBudgetItem, useApproveBudgetItem, useRevertBudgetItem } from "@/lib/queries";
 import { BudgetTable } from "@/components/budget/BudgetTable";
 import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from "@/components/ui/accordion";
 import { Button } from "@/components/ui/button";
@@ -17,6 +17,7 @@ export default function ProjectBudget() {
   const updateBudgetItemMutation = useUpdateBudgetItem();
   const reviseBudgetItemMutation = useReviseBudgetItem();
   const approveBudgetItemMutation = useApproveBudgetItem();
+  const revertBudgetItemMutation = useRevertBudgetItem();
 
   const handleUpdateItem = async (itemId: string, values: BudgetMonthValues) => {
     try {
@@ -58,6 +59,15 @@ export default function ProjectBudget() {
     try {
       await updateBudgetItemMutation.mutateAsync({ id: itemId, data: { status: 'draft' } });
       toast.success("Geri çekildi");
+    } catch (error: any) {
+      toast.error("Hata", { description: error.message });
+    }
+  };
+
+  const handleRevertItem = async (itemId: string) => {
+    try {
+      await revertBudgetItemMutation.mutateAsync(itemId);
+      toast.success("Önceki onaylı değerlere geri alındı");
     } catch (error: any) {
       toast.error("Hata", { description: error.message });
     }
@@ -143,6 +153,7 @@ export default function ProjectBudget() {
                                                     onApprove={handleApproveItem}
                                                     onSubmitForApproval={handleSubmitForApproval}
                                                     onWithdraw={handleWithdraw}
+                                                    onRevert={handleRevertItem}
                                                     type="cost"
                                                 />
                                             </AccordionContent>
@@ -167,6 +178,7 @@ export default function ProjectBudget() {
                                                     onApprove={handleApproveItem}
                                                     onSubmitForApproval={handleSubmitForApproval}
                                                     onWithdraw={handleWithdraw}
+                                                    onRevert={handleRevertItem}
                                                     type="revenue"
                                                 />
                                             </AccordionContent>
