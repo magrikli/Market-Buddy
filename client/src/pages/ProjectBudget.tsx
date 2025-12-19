@@ -335,21 +335,21 @@ export default function ProjectBudget() {
         defaultValue={editingPhase?.name}
       />
 
-      <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+      <div className="grid grid-cols-1 md:grid-cols-3 gap-4 justify-end ml-auto">
         <Card className="bg-primary/5 border-primary/20 shadow-sm">
-          <CardHeader className="pb-2">
+          <CardHeader className="pb-2 text-right">
             <CardDescription className="text-xs uppercase tracking-wider">Toplam Projeler</CardDescription>
             <CardTitle className="text-2xl font-bold">{visibleProjects.length}</CardTitle>
           </CardHeader>
         </Card>
         <Card className="bg-destructive/5 border-destructive/20 shadow-sm">
-          <CardHeader className="pb-2">
+          <CardHeader className="pb-2 text-right">
             <CardDescription className="text-xs uppercase tracking-wider">Toplam Giderler</CardDescription>
             <CardTitle className="text-2xl font-bold text-destructive">€{formatMoney(totalCosts)}</CardTitle>
           </CardHeader>
         </Card>
         <Card className="bg-emerald-500/5 border-emerald-500/20 shadow-sm">
-          <CardHeader className="pb-2">
+          <CardHeader className="pb-2 text-right">
             <CardDescription className="text-xs uppercase tracking-wider">Toplam Gelirler</CardDescription>
             <CardTitle className="text-2xl font-bold text-emerald-600">€{formatMoney(totalRevenue)}</CardTitle>
           </CardHeader>
