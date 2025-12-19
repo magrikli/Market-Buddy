@@ -1,12 +1,13 @@
 import { useStore } from "@/lib/store";
-import { useDepartments, useCreateDepartment, useCreateCostGroup, useCreateBudgetItem, useUpdateBudgetItem, useReviseBudgetItem, useApproveBudgetItem, useUpdateDepartment, useDeleteDepartment, useUpdateCostGroup, useDeleteCostGroup, useDeleteBudgetItem } from "@/lib/queries";
+import { useDepartments, useCreateDepartment, useCreateCostGroup, useCreateBudgetItem, useUpdateBudgetItem, useReviseBudgetItem, useApproveBudgetItem, useUpdateDepartment, useDeleteDepartment, useUpdateCostGroup, useDeleteCostGroup, useDeleteBudgetItem, useDepartmentGroups, useCreateDepartmentGroup, useUpdateDepartmentGroup, useDeleteDepartmentGroup } from "@/lib/queries";
+import type { DepartmentGroup } from "@/lib/store";
 import { BudgetTable } from "@/components/budget/BudgetTable";
 import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from "@/components/ui/accordion";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from "@/components/ui/dropdown-menu";
-import { PlusCircle, Download, Filter, Loader2, Plus, MoreHorizontal, Pencil, Trash2 } from "lucide-react";
+import { PlusCircle, Download, Filter, Loader2, Plus, MoreHorizontal, Pencil, Trash2, FolderOpen, Building2 } from "lucide-react";
 import { useState } from "react";
 import { AddEntityDialog, AddBudgetItemDialog } from "@/components/budget/AddEntityDialogs";
 import { toast } from "sonner";
@@ -15,6 +16,7 @@ import type { BudgetMonthValues } from "@/lib/store";
 export default function DepartmentBudget() {
   const { currentYear, setYear, currentUser } = useStore();
   const { data: departments = [], isLoading } = useDepartments(currentYear);
+  const { data: departmentGroups = [] } = useDepartmentGroups();
   const createDepartmentMutation = useCreateDepartment();
   const createCostGroupMutation = useCreateCostGroup();
   const createBudgetItemMutation = useCreateBudgetItem();
@@ -26,19 +28,25 @@ export default function DepartmentBudget() {
   const updateCostGroupMutation = useUpdateCostGroup();
   const deleteCostGroupMutation = useDeleteCostGroup();
   const deleteBudgetItemMutation = useDeleteBudgetItem();
+  const createDepartmentGroupMutation = useCreateDepartmentGroup();
+  const updateDepartmentGroupMutation = useUpdateDepartmentGroup();
+  const deleteDepartmentGroupMutation = useDeleteDepartmentGroup();
   
   // Dialog States
   const [isNewDeptOpen, setIsNewDeptOpen] = useState(false);
   const [isNewGroupOpen, setIsNewGroupOpen] = useState(false);
   const [isNewItemOpen, setIsNewItemOpen] = useState(false);
+  const [isNewDeptGroupOpen, setIsNewDeptGroupOpen] = useState(false);
   const [activeDeptForGroup, setActiveDeptForGroup] = useState<string | null>(null);
   const [activeGroupForItem, setActiveGroupForItem] = useState<string | null>(null);
   
   // Edit dialog states
   const [editDeptOpen, setEditDeptOpen] = useState(false);
   const [editGroupOpen, setEditGroupOpen] = useState(false);
+  const [editDeptGroupOpen, setEditDeptGroupOpen] = useState(false);
   const [editingDept, setEditingDept] = useState<{id: string; name: string} | null>(null);
   const [editingGroup, setEditingGroup] = useState<{id: string; name: string} | null>(null);
+  const [editingDeptGroup, setEditingDeptGroup] = useState<{id: string; name: string} | null>(null);
 
   const formatMoney = (amount: number) => {
     return new Intl.NumberFormat('tr-TR', { minimumFractionDigits: 0 }).format(amount);
@@ -113,10 +121,51 @@ export default function DepartmentBudget() {
   const handleEditDepartment = async (name: string) => {
     if (!editingDept) return;
     try {
-      await updateDepartmentMutation.mutateAsync({ id: editingDept.id, name });
+      await updateDepartmentMutation.mutateAsync({ id: editingDept.id, updates: { name } });
       toast.success("Departman güncellendi", { description: name });
       setEditDeptOpen(false);
       setEditingDept(null);
+    } catch (error: any) {
+      toast.error("Hata", { description: error.message });
+    }
+  };
+
+  const handleAddDeptGroup = async (name: string) => {
+    try {
+      await createDepartmentGroupMutation.mutateAsync(name);
+      toast.success("Departman grubu eklendi", { description: name });
+      setIsNewDeptGroupOpen(false);
+    } catch (error: any) {
+      toast.error("Hata", { description: error.message });
+    }
+  };
+
+  const handleEditDeptGroup = async (name: string) => {
+    if (!editingDeptGroup) return;
+    try {
+      await updateDepartmentGroupMutation.mutateAsync({ id: editingDeptGroup.id, name });
+      toast.success("Departman grubu güncellendi", { description: name });
+      setEditDeptGroupOpen(false);
+      setEditingDeptGroup(null);
+    } catch (error: any) {
+      toast.error("Hata", { description: error.message });
+    }
+  };
+
+  const handleDeleteDeptGroup = async (id: string, name: string) => {
+    if (!confirm(`"${name}" departman grubunu silmek istediğinize emin misiniz?`)) return;
+    try {
+      await deleteDepartmentGroupMutation.mutateAsync(id);
+      toast.success("Departman grubu silindi", { description: name });
+    } catch (error: any) {
+      toast.error("Hata", { description: error.message });
+    }
+  };
+
+  const handleAssignDeptToGroup = async (deptId: string, groupId: string | null) => {
+    try {
+      await updateDepartmentMutation.mutateAsync({ id: deptId, updates: { groupId } });
+      toast.success("Departman grubu güncellendi");
     } catch (error: any) {
       toast.error("Hata", { description: error.message });
     }
@@ -171,6 +220,14 @@ export default function DepartmentBudget() {
     ? departments 
     : departments.filter(d => currentUser?.assignedDepartmentIds.includes(d.id));
 
+  // Group departments by their groupId
+  const groupedDepartments = departmentGroups.map(group => ({
+    group,
+    departments: visibleDepartments.filter(d => d.groupId === group.id)
+  })).filter(g => g.departments.length > 0);
+
+  const ungroupedDepartments = visibleDepartments.filter(d => !d.groupId);
+
   const totalBudget = visibleDepartments.reduce((acc, dep) => {
       return acc + dep.costGroups.reduce((gAcc, group) => {
           return gAcc + group.items.reduce((iAcc, item) => {
@@ -203,10 +260,24 @@ export default function DepartmentBudget() {
             <Download className="h-4 w-4" />
           </Button>
           {currentUser?.role === 'admin' && (
-             <Button className="bg-primary hover:bg-primary/90" onClick={() => setIsNewDeptOpen(true)}>
-                <PlusCircle className="mr-2 h-4 w-4" />
-                Yeni Departman
-             </Button>
+            <DropdownMenu>
+              <DropdownMenuTrigger asChild>
+                <Button className="bg-primary hover:bg-primary/90">
+                  <PlusCircle className="mr-2 h-4 w-4" />
+                  Ekle
+                </Button>
+              </DropdownMenuTrigger>
+              <DropdownMenuContent align="end">
+                <DropdownMenuItem onClick={() => setIsNewDeptGroupOpen(true)}>
+                  <Plus className="mr-2 h-4 w-4" />
+                  Yeni Departman Grubu
+                </DropdownMenuItem>
+                <DropdownMenuItem onClick={() => setIsNewDeptOpen(true)}>
+                  <Plus className="mr-2 h-4 w-4" />
+                  Yeni Departman
+                </DropdownMenuItem>
+              </DropdownMenuContent>
+            </DropdownMenu>
           )}
         </div>
       </div>
@@ -257,6 +328,25 @@ export default function DepartmentBudget() {
         defaultValue={editingGroup?.name}
       />
 
+      <AddEntityDialog 
+        isOpen={isNewDeptGroupOpen} 
+        onClose={() => setIsNewDeptGroupOpen(false)} 
+        onSave={handleAddDeptGroup}
+        title="Yeni Departman Grubu"
+        description="Departmanları gruplamak için yeni bir kategori oluşturun."
+        placeholder="Örn: Operasyonlar"
+      />
+
+      <AddEntityDialog 
+        isOpen={editDeptGroupOpen} 
+        onClose={() => { setEditDeptGroupOpen(false); setEditingDeptGroup(null); }} 
+        onSave={handleEditDeptGroup}
+        title="Departman Grubu Düzenle"
+        description="Departman grubu adını güncelleyin."
+        placeholder="Grup adı"
+        defaultValue={editingDeptGroup?.name}
+      />
+
       {/* Summary Cards */}
       <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
         <Card className="bg-primary/5 border-primary/20 shadow-sm">
@@ -283,101 +373,259 @@ export default function DepartmentBudget() {
                 <p>Görüntülenecek departman bulunamadı.</p>
              </div>
           ) : (
-            <Accordion type="multiple" className="w-full">
-                {visibleDepartments.map((dept) => {
-                    const deptTotal = dept.costGroups.reduce((acc, g) => acc + g.items.reduce((iAcc, i) => iAcc + Object.values(i.values).reduce((vAcc, v) => vAcc + v, 0), 0), 0);
-                    
-                    return (
-                        <AccordionItem key={dept.id} value={dept.id} className="border-b border-border/50 px-6">
-                            <AccordionTrigger className="hover:no-underline py-4">
-                                <div className="flex items-center justify-between w-full pr-4">
-                                    <div className="flex items-center gap-3">
-                                        <span className="font-semibold text-lg text-foreground">{dept.name}</span>
-                                        <span className="px-2 py-0.5 rounded-full bg-muted text-xs font-medium text-muted-foreground">{dept.costGroups.length} Grup</span>
-                                    </div>
-                                    <div className="flex items-center gap-3">
-                                        <span className="font-mono font-medium text-foreground">€ {formatMoney(deptTotal)}</span>
-                                        {currentUser?.role === 'admin' && (
-                                            <DropdownMenu>
-                                                <DropdownMenuTrigger asChild onClick={(e) => e.stopPropagation()}>
-                                                    <Button variant="ghost" size="icon" className="h-8 w-8">
-                                                        <MoreHorizontal className="h-4 w-4" />
-                                                    </Button>
-                                                </DropdownMenuTrigger>
-                                                <DropdownMenuContent align="end">
-                                                    <DropdownMenuItem onClick={(e) => { e.stopPropagation(); setActiveDeptForGroup(dept.id); setIsNewGroupOpen(true); }}>
-                                                        <PlusCircle className="mr-2 h-4 w-4" />
-                                                        Yeni Grup Ekle
-                                                    </DropdownMenuItem>
-                                                    <DropdownMenuItem onClick={(e) => { e.stopPropagation(); setEditingDept({ id: dept.id, name: dept.name }); setEditDeptOpen(true); }}>
-                                                        <Pencil className="mr-2 h-4 w-4" />
-                                                        Düzenle
-                                                    </DropdownMenuItem>
-                                                    <DropdownMenuItem onClick={(e) => { e.stopPropagation(); handleDeleteDepartment(dept.id, dept.name); }} className="text-destructive">
-                                                        <Trash2 className="mr-2 h-4 w-4" />
-                                                        Sil
-                                                    </DropdownMenuItem>
-                                                </DropdownMenuContent>
-                                            </DropdownMenu>
-                                        )}
-                                    </div>
+            <div className="divide-y divide-border/50">
+              {/* Grouped Departments */}
+              {groupedDepartments.map(({ group, departments: groupDepts }) => {
+                const groupTotal = groupDepts.reduce((acc, dept) => 
+                  acc + dept.costGroups.reduce((gAcc, g) => 
+                    gAcc + g.items.reduce((iAcc, i) => 
+                      iAcc + Object.values(i.values).reduce((vAcc, v) => vAcc + v, 0), 0), 0), 0);
+
+                return (
+                  <div key={group.id} className="p-4">
+                    <div className="flex items-center justify-between mb-3 bg-primary/5 p-3 rounded-lg">
+                      <div className="flex items-center gap-3">
+                        <FolderOpen className="h-5 w-5 text-primary" />
+                        <span className="font-bold text-lg text-primary">{group.name}</span>
+                        <span className="px-2 py-0.5 rounded-full bg-primary/10 text-xs font-medium text-primary">{groupDepts.length} Departman</span>
+                      </div>
+                      <div className="flex items-center gap-3">
+                        <span className="font-mono font-medium text-primary">€ {formatMoney(groupTotal)}</span>
+                        {currentUser?.role === 'admin' && (
+                          <DropdownMenu>
+                            <DropdownMenuTrigger asChild>
+                              <Button variant="ghost" size="icon" className="h-8 w-8">
+                                <MoreHorizontal className="h-4 w-4" />
+                              </Button>
+                            </DropdownMenuTrigger>
+                            <DropdownMenuContent align="end">
+                              <DropdownMenuItem onClick={() => { setEditingDeptGroup({ id: group.id, name: group.name }); setEditDeptGroupOpen(true); }}>
+                                <Pencil className="mr-2 h-4 w-4" />
+                                Düzenle
+                              </DropdownMenuItem>
+                              <DropdownMenuItem onClick={() => handleDeleteDeptGroup(group.id, group.name)} className="text-destructive">
+                                <Trash2 className="mr-2 h-4 w-4" />
+                                Sil
+                              </DropdownMenuItem>
+                            </DropdownMenuContent>
+                          </DropdownMenu>
+                        )}
+                      </div>
+                    </div>
+
+                    <Accordion type="multiple" className="w-full pl-4 border-l-2 border-primary/20">
+                      {groupDepts.map((dept) => {
+                        const deptTotal = dept.costGroups.reduce((acc, g) => acc + g.items.reduce((iAcc, i) => iAcc + Object.values(i.values).reduce((vAcc, v) => vAcc + v, 0), 0), 0);
+                        return (
+                          <AccordionItem key={dept.id} value={dept.id} className="border-b border-border/50 px-4">
+                            <AccordionTrigger className="hover:no-underline py-3">
+                              <div className="flex items-center justify-between w-full pr-4">
+                                <div className="flex items-center gap-3">
+                                  <Building2 className="h-4 w-4 text-muted-foreground" />
+                                  <span className="font-semibold text-foreground">{dept.name}</span>
+                                  <span className="px-2 py-0.5 rounded-full bg-muted text-xs font-medium text-muted-foreground">{dept.costGroups.length} Grup</span>
                                 </div>
+                                <div className="flex items-center gap-3">
+                                  <span className="font-mono font-medium text-foreground">€ {formatMoney(deptTotal)}</span>
+                                  {currentUser?.role === 'admin' && (
+                                    <DropdownMenu>
+                                      <DropdownMenuTrigger asChild onClick={(e) => e.stopPropagation()}>
+                                        <Button variant="ghost" size="icon" className="h-7 w-7">
+                                          <MoreHorizontal className="h-3 w-3" />
+                                        </Button>
+                                      </DropdownMenuTrigger>
+                                      <DropdownMenuContent align="end">
+                                        <DropdownMenuItem onClick={(e) => { e.stopPropagation(); setActiveDeptForGroup(dept.id); setIsNewGroupOpen(true); }}>
+                                          <PlusCircle className="mr-2 h-4 w-4" />
+                                          Yeni Grup Ekle
+                                        </DropdownMenuItem>
+                                        <DropdownMenuItem onClick={(e) => { e.stopPropagation(); setEditingDept({ id: dept.id, name: dept.name }); setEditDeptOpen(true); }}>
+                                          <Pencil className="mr-2 h-4 w-4" />
+                                          Düzenle
+                                        </DropdownMenuItem>
+                                        <DropdownMenuItem onClick={(e) => { e.stopPropagation(); handleAssignDeptToGroup(dept.id, null); }}>
+                                          <FolderOpen className="mr-2 h-4 w-4" />
+                                          Gruptan Çıkar
+                                        </DropdownMenuItem>
+                                        <DropdownMenuItem onClick={(e) => { e.stopPropagation(); handleDeleteDepartment(dept.id, dept.name); }} className="text-destructive">
+                                          <Trash2 className="mr-2 h-4 w-4" />
+                                          Sil
+                                        </DropdownMenuItem>
+                                      </DropdownMenuContent>
+                                    </DropdownMenu>
+                                  )}
+                                </div>
+                              </div>
                             </AccordionTrigger>
-                            <AccordionContent className="pb-6 pt-2">
-                                <div className="space-y-6 pl-4 border-l-2 border-border/50 ml-2">
-                                    {dept.costGroups.map((group) => {
-                                        const groupTotal = group.items.reduce((acc, i) => acc + Object.values(i.values).reduce((vAcc, v) => vAcc + v, 0), 0);
-                                        return (
-                                            <div key={group.id} className="space-y-3">
-                                                <div className="flex items-center justify-between bg-muted/30 p-2 rounded-md">
-                                                    <div className="flex items-center gap-2">
-                                                        <h4 className="font-medium text-sm text-foreground">{group.name}</h4>
-                                                    </div>
-                                                    <div className="flex items-center gap-2">
-                                                        <span className="text-sm font-mono text-muted-foreground">€ {formatMoney(groupTotal)}</span>
-                                                        {currentUser?.role === 'admin' && (
-                                                            <DropdownMenu>
-                                                                <DropdownMenuTrigger asChild>
-                                                                    <Button variant="ghost" size="icon" className="h-7 w-7">
-                                                                        <MoreHorizontal className="h-3 w-3" />
-                                                                    </Button>
-                                                                </DropdownMenuTrigger>
-                                                                <DropdownMenuContent align="end">
-                                                                    <DropdownMenuItem onClick={() => { setActiveGroupForItem(group.id); setIsNewItemOpen(true); }}>
-                                                                        <Plus className="mr-2 h-4 w-4" />
-                                                                        Yeni Kalem Ekle
-                                                                    </DropdownMenuItem>
-                                                                    <DropdownMenuItem onClick={() => { setEditingGroup({ id: group.id, name: group.name }); setEditGroupOpen(true); }}>
-                                                                        <Pencil className="mr-2 h-4 w-4" />
-                                                                        Düzenle
-                                                                    </DropdownMenuItem>
-                                                                    <DropdownMenuItem onClick={() => handleDeleteGroup(group.id, group.name)} className="text-destructive">
-                                                                        <Trash2 className="mr-2 h-4 w-4" />
-                                                                        Sil
-                                                                    </DropdownMenuItem>
-                                                                </DropdownMenuContent>
-                                                            </DropdownMenu>
-                                                        )}
-                                                    </div>
-                                                </div>
-                                                
-                                                <BudgetTable 
-                                                    items={group.items}
-                                                    isAdmin={currentUser?.role === 'admin'}
-                                                    onSave={handleUpdateItem}
-                                                    onRevise={handleReviseItem}
-                                                    onApprove={handleApproveItem}
-                                                    onDelete={handleDeleteBudgetItem}
-                                                />
-                                            </div>
-                                        );
-                                    })}
-                                </div>
+                            <AccordionContent className="pb-4 pt-2">
+                              <div className="space-y-4 pl-4 border-l-2 border-border/50 ml-2">
+                                {dept.costGroups.map((costGroup) => {
+                                  const costGroupTotal = costGroup.items.reduce((acc, i) => acc + Object.values(i.values).reduce((vAcc, v) => vAcc + v, 0), 0);
+                                  return (
+                                    <div key={costGroup.id} className="space-y-3">
+                                      <div className="flex items-center justify-between bg-muted/30 p-2 rounded-md">
+                                        <div className="flex items-center gap-2">
+                                          <h4 className="font-medium text-sm text-foreground">{costGroup.name}</h4>
+                                        </div>
+                                        <div className="flex items-center gap-2">
+                                          <span className="text-sm font-mono text-muted-foreground">€ {formatMoney(costGroupTotal)}</span>
+                                          {currentUser?.role === 'admin' && (
+                                            <DropdownMenu>
+                                              <DropdownMenuTrigger asChild>
+                                                <Button variant="ghost" size="icon" className="h-7 w-7">
+                                                  <MoreHorizontal className="h-3 w-3" />
+                                                </Button>
+                                              </DropdownMenuTrigger>
+                                              <DropdownMenuContent align="end">
+                                                <DropdownMenuItem onClick={() => { setActiveGroupForItem(costGroup.id); setIsNewItemOpen(true); }}>
+                                                  <Plus className="mr-2 h-4 w-4" />
+                                                  Yeni Kalem Ekle
+                                                </DropdownMenuItem>
+                                                <DropdownMenuItem onClick={() => { setEditingGroup({ id: costGroup.id, name: costGroup.name }); setEditGroupOpen(true); }}>
+                                                  <Pencil className="mr-2 h-4 w-4" />
+                                                  Düzenle
+                                                </DropdownMenuItem>
+                                                <DropdownMenuItem onClick={() => handleDeleteGroup(costGroup.id, costGroup.name)} className="text-destructive">
+                                                  <Trash2 className="mr-2 h-4 w-4" />
+                                                  Sil
+                                                </DropdownMenuItem>
+                                              </DropdownMenuContent>
+                                            </DropdownMenu>
+                                          )}
+                                        </div>
+                                      </div>
+                                      <BudgetTable 
+                                        items={costGroup.items}
+                                        isAdmin={currentUser?.role === 'admin'}
+                                        onSave={handleUpdateItem}
+                                        onRevise={handleReviseItem}
+                                        onApprove={handleApproveItem}
+                                        onDelete={handleDeleteBudgetItem}
+                                      />
+                                    </div>
+                                  );
+                                })}
+                              </div>
                             </AccordionContent>
+                          </AccordionItem>
+                        );
+                      })}
+                    </Accordion>
+                  </div>
+                );
+              })}
+
+              {/* Ungrouped Departments */}
+              {ungroupedDepartments.length > 0 && (
+                <div className="p-4">
+                  {groupedDepartments.length > 0 && (
+                    <div className="flex items-center gap-3 mb-3 p-3">
+                      <span className="font-medium text-muted-foreground">Grupsuz Departmanlar</span>
+                    </div>
+                  )}
+                  <Accordion type="multiple" className="w-full">
+                    {ungroupedDepartments.map((dept) => {
+                      const deptTotal = dept.costGroups.reduce((acc, g) => acc + g.items.reduce((iAcc, i) => iAcc + Object.values(i.values).reduce((vAcc, v) => vAcc + v, 0), 0), 0);
+                      return (
+                        <AccordionItem key={dept.id} value={dept.id} className="border-b border-border/50 px-4">
+                          <AccordionTrigger className="hover:no-underline py-3">
+                            <div className="flex items-center justify-between w-full pr-4">
+                              <div className="flex items-center gap-3">
+                                <Building2 className="h-4 w-4 text-muted-foreground" />
+                                <span className="font-semibold text-foreground">{dept.name}</span>
+                                <span className="px-2 py-0.5 rounded-full bg-muted text-xs font-medium text-muted-foreground">{dept.costGroups.length} Grup</span>
+                              </div>
+                              <div className="flex items-center gap-3">
+                                <span className="font-mono font-medium text-foreground">€ {formatMoney(deptTotal)}</span>
+                                {currentUser?.role === 'admin' && (
+                                  <DropdownMenu>
+                                    <DropdownMenuTrigger asChild onClick={(e) => e.stopPropagation()}>
+                                      <Button variant="ghost" size="icon" className="h-7 w-7">
+                                        <MoreHorizontal className="h-3 w-3" />
+                                      </Button>
+                                    </DropdownMenuTrigger>
+                                    <DropdownMenuContent align="end">
+                                      <DropdownMenuItem onClick={(e) => { e.stopPropagation(); setActiveDeptForGroup(dept.id); setIsNewGroupOpen(true); }}>
+                                        <PlusCircle className="mr-2 h-4 w-4" />
+                                        Yeni Grup Ekle
+                                      </DropdownMenuItem>
+                                      {departmentGroups.length > 0 && departmentGroups.map(g => (
+                                        <DropdownMenuItem key={g.id} onClick={(e) => { e.stopPropagation(); handleAssignDeptToGroup(dept.id, g.id); }}>
+                                          <FolderOpen className="mr-2 h-4 w-4" />
+                                          {g.name}'a Taşı
+                                        </DropdownMenuItem>
+                                      ))}
+                                      <DropdownMenuItem onClick={(e) => { e.stopPropagation(); setEditingDept({ id: dept.id, name: dept.name }); setEditDeptOpen(true); }}>
+                                        <Pencil className="mr-2 h-4 w-4" />
+                                        Düzenle
+                                      </DropdownMenuItem>
+                                      <DropdownMenuItem onClick={(e) => { e.stopPropagation(); handleDeleteDepartment(dept.id, dept.name); }} className="text-destructive">
+                                        <Trash2 className="mr-2 h-4 w-4" />
+                                        Sil
+                                      </DropdownMenuItem>
+                                    </DropdownMenuContent>
+                                  </DropdownMenu>
+                                )}
+                              </div>
+                            </div>
+                          </AccordionTrigger>
+                          <AccordionContent className="pb-4 pt-2">
+                            <div className="space-y-4 pl-4 border-l-2 border-border/50 ml-2">
+                              {dept.costGroups.map((costGroup) => {
+                                const costGroupTotal = costGroup.items.reduce((acc, i) => acc + Object.values(i.values).reduce((vAcc, v) => vAcc + v, 0), 0);
+                                return (
+                                  <div key={costGroup.id} className="space-y-3">
+                                    <div className="flex items-center justify-between bg-muted/30 p-2 rounded-md">
+                                      <div className="flex items-center gap-2">
+                                        <h4 className="font-medium text-sm text-foreground">{costGroup.name}</h4>
+                                      </div>
+                                      <div className="flex items-center gap-2">
+                                        <span className="text-sm font-mono text-muted-foreground">€ {formatMoney(costGroupTotal)}</span>
+                                        {currentUser?.role === 'admin' && (
+                                          <DropdownMenu>
+                                            <DropdownMenuTrigger asChild>
+                                              <Button variant="ghost" size="icon" className="h-7 w-7">
+                                                <MoreHorizontal className="h-3 w-3" />
+                                              </Button>
+                                            </DropdownMenuTrigger>
+                                            <DropdownMenuContent align="end">
+                                              <DropdownMenuItem onClick={() => { setActiveGroupForItem(costGroup.id); setIsNewItemOpen(true); }}>
+                                                <Plus className="mr-2 h-4 w-4" />
+                                                Yeni Kalem Ekle
+                                              </DropdownMenuItem>
+                                              <DropdownMenuItem onClick={() => { setEditingGroup({ id: costGroup.id, name: costGroup.name }); setEditGroupOpen(true); }}>
+                                                <Pencil className="mr-2 h-4 w-4" />
+                                                Düzenle
+                                              </DropdownMenuItem>
+                                              <DropdownMenuItem onClick={() => handleDeleteGroup(costGroup.id, costGroup.name)} className="text-destructive">
+                                                <Trash2 className="mr-2 h-4 w-4" />
+                                                Sil
+                                              </DropdownMenuItem>
+                                            </DropdownMenuContent>
+                                          </DropdownMenu>
+                                        )}
+                                      </div>
+                                    </div>
+                                    <BudgetTable 
+                                      items={costGroup.items}
+                                      isAdmin={currentUser?.role === 'admin'}
+                                      onSave={handleUpdateItem}
+                                      onRevise={handleReviseItem}
+                                      onApprove={handleApproveItem}
+                                      onDelete={handleDeleteBudgetItem}
+                                    />
+                                  </div>
+                                );
+                              })}
+                            </div>
+                          </AccordionContent>
                         </AccordionItem>
-                    );
-                })}
-            </Accordion>
+                      );
+                    })}
+                  </Accordion>
+                </div>
+              )}
+            </div>
           )}
         </CardContent>
       </Card>

@@ -5,6 +5,7 @@ import type { User } from './store';
 // Query keys
 export const queryKeys = {
   user: ['user'] as const,
+  departmentGroups: ['departmentGroups'] as const,
   departments: (year: number) => ['departments', year] as const,
   projects: (year: number) => ['projects', year] as const,
   transactions: (limit?: number) => ['transactions', limit] as const,
@@ -19,6 +20,45 @@ export function useLogin() {
       api.login(username, password),
     onSuccess: (data) => {
       queryClient.setQueryData(queryKeys.user, data.user);
+    },
+  });
+}
+
+// === DEPARTMENT GROUPS ===
+
+export function useDepartmentGroups() {
+  return useQuery({
+    queryKey: queryKeys.departmentGroups,
+    queryFn: () => api.getDepartmentGroups(),
+  });
+}
+
+export function useCreateDepartmentGroup() {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: (name: string) => api.createDepartmentGroup(name),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: queryKeys.departmentGroups });
+    },
+  });
+}
+
+export function useUpdateDepartmentGroup() {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: ({ id, name }: { id: string; name: string }) => api.updateDepartmentGroup(id, name),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: queryKeys.departmentGroups });
+    },
+  });
+}
+
+export function useDeleteDepartmentGroup() {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: (id: string) => api.deleteDepartmentGroup(id),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: queryKeys.departmentGroups });
     },
   });
 }
@@ -55,7 +95,8 @@ export function useCreateCostGroup() {
 export function useUpdateDepartment() {
   const queryClient = useQueryClient();
   return useMutation({
-    mutationFn: ({ id, name }: { id: string; name: string }) => api.updateDepartment(id, name),
+    mutationFn: ({ id, updates }: { id: string; updates: { name?: string; groupId?: string | null } }) => 
+      api.updateDepartment(id, updates),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: queryKeys.departments(2025) });
     },

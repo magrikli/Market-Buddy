@@ -1,4 +1,4 @@
-import type { User, Department, Project } from './store';
+import type { User, Department, Project, DepartmentGroup } from './store';
 
 const API_BASE = '/api';
 
@@ -47,6 +47,32 @@ export async function logout(): Promise<void> {
   });
 }
 
+// === DEPARTMENT GROUPS ===
+
+export async function getDepartmentGroups(): Promise<DepartmentGroup[]> {
+  return fetchAPI('/department-groups');
+}
+
+export async function createDepartmentGroup(name: string): Promise<DepartmentGroup> {
+  return fetchAPI('/department-groups', {
+    method: 'POST',
+    body: JSON.stringify({ name }),
+  });
+}
+
+export async function updateDepartmentGroup(id: string, name: string): Promise<DepartmentGroup> {
+  return fetchAPI(`/department-groups/${id}`, {
+    method: 'PATCH',
+    body: JSON.stringify({ name }),
+  });
+}
+
+export async function deleteDepartmentGroup(id: string): Promise<void> {
+  return fetchAPI(`/department-groups/${id}`, {
+    method: 'DELETE',
+  });
+}
+
 // === DEPARTMENTS ===
 
 export async function getDepartments(year: number = 2025): Promise<Department[]> {
@@ -60,10 +86,10 @@ export async function createDepartment(name: string): Promise<Department> {
   });
 }
 
-export async function updateDepartment(id: string, name: string): Promise<Department> {
+export async function updateDepartment(id: string, updates: { name?: string; groupId?: string | null }): Promise<Department> {
   return fetchAPI(`/departments/${id}`, {
     method: 'PATCH',
-    body: JSON.stringify({ name }),
+    body: JSON.stringify(updates),
   });
 }
 

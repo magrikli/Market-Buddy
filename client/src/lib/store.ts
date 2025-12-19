@@ -45,9 +45,15 @@ export interface CostGroup {
   items: CostItem[];
 }
 
+export interface DepartmentGroup {
+  id: string;
+  name: string;
+}
+
 export interface Department {
   id: string;
   name: string;
+  groupId: string | null;
   costGroups: CostGroup[];
 }
 
