@@ -109,7 +109,7 @@ export function BudgetTable({ items, onSave, onRevise, onApprove, onDelete, isAd
                       </TableCell>
                     ))}
                     <TableCell className="w-[100px] text-right font-bold tabular-nums bg-muted/10 p-2">
-                      {formatMoney(total)} €
+                      € {formatMoney(total)}
                     </TableCell>
                     <TableCell className="w-[120px] text-center p-2">
                       {getStatusBadge(item.status)}
