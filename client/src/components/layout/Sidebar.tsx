@@ -81,27 +81,29 @@ export function Sidebar() {
             )}
         </div>
         
-        <Button 
-            variant="outline" 
-            size={collapsed ? "icon" : "sm"} 
-            className={cn("w-full justify-start text-muted-foreground hover:text-destructive hover:bg-destructive/10 hover:border-destructive/20", collapsed && "justify-center")}
-            onClick={() => {
-                logout();
-                window.location.href = '/login'; // Force redirect
-            }}
-        >
-            <LogOut className="h-4 w-4 mr-2" />
-            {!collapsed && "Çıkış Yap"}
-        </Button>
+        <div className="flex items-center gap-2">
+          <Button 
+              variant="outline" 
+              size={collapsed ? "icon" : "sm"} 
+              className={cn("flex-1 justify-start text-muted-foreground hover:text-destructive hover:bg-destructive/10 hover:border-destructive/20", collapsed && "justify-center")}
+              onClick={() => {
+                  logout();
+                  window.location.href = '/login';
+              }}
+          >
+              <LogOut className="h-4 w-4 mr-2" />
+              {!collapsed && "Çıkış Yap"}
+          </Button>
 
-        <Button
-            variant="ghost"
-            size="icon"
-            className="absolute -right-3 top-20 h-6 w-6 rounded-full border bg-background shadow-md"
-            onClick={() => setCollapsed(!collapsed)}
-        >
-            {collapsed ? <ChevronRight className="h-3 w-3" /> : <ChevronLeft className="h-3 w-3" />}
-        </Button>
+          <Button
+              variant="outline"
+              size="icon"
+              className="h-8 w-8 text-muted-foreground hover:text-foreground"
+              onClick={() => setCollapsed(!collapsed)}
+          >
+              {collapsed ? <ChevronRight className="h-4 w-4" /> : <ChevronLeft className="h-4 w-4" />}
+          </Button>
+        </div>
       </div>
     </div>
   );
