@@ -499,7 +499,6 @@ export default function DepartmentBudget() {
                                                     <span className="font-mono font-bold text-foreground">€ {formatMoney(costGroupTotal)}</span>
                                                   </div>
                                                 </th>
-                                                <th className="w-[120px] p-2"></th>
                                                 <th className="w-[100px] p-2 sticky right-0 bg-primary/10 z-10 text-center">
                                                   {currentUser?.role === 'admin' && (
                                                     <DropdownMenu>
@@ -634,7 +633,6 @@ export default function DepartmentBudget() {
                                                   <span className="font-mono font-bold text-foreground">€ {formatMoney(costGroupTotal)}</span>
                                                 </div>
                                               </th>
-                                              <th className="w-[120px] p-2"></th>
                                               <th className="w-[100px] p-2 sticky right-0 bg-primary/10 z-10 text-center">
                                                 {currentUser?.role === 'admin' && (
                                                   <DropdownMenu>

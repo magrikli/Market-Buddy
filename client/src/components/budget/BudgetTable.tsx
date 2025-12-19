@@ -1,10 +1,9 @@
-import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Table, TableBody, TableCell, TableRow } from "@/components/ui/table";
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from "@/components/ui/dropdown-menu";
 import { cn } from "@/lib/utils";
-import { Save, X, History, Lock, CheckCircle, Trash2, MoreHorizontal, Edit2 } from "lucide-react";
+import { Save, X, History, Lock, CheckCircle, Trash2, MoreHorizontal, Edit2, Clock, FileEdit } from "lucide-react";
 import { useState } from "react";
 import { CostItem, RevenueItem, BudgetMonthValues } from "@/lib/store";
 import { RevisionHistoryDialog } from "./RevisionHistoryDialog";
@@ -61,12 +60,12 @@ export function BudgetTable({ items, onSave, onRevise, onApprove, onDelete, isAd
     setIsHistoryOpen(true);
   };
 
-  const getStatusBadge = (status: string) => {
+  const getStatusIcon = (status: string) => {
     switch (status) {
-      case 'approved': return <Badge variant="outline" className="bg-emerald-50 text-emerald-700 border-emerald-200">Onaylandı</Badge>;
-      case 'pending': return <Badge variant="outline" className="bg-amber-50 text-amber-700 border-amber-200">Onay Bekliyor</Badge>;
-      case 'rejected': return <Badge variant="outline" className="bg-red-50 text-red-700 border-red-200">Reddedildi</Badge>;
-      default: return <Badge variant="outline" className="bg-slate-50 text-slate-700 border-slate-200">Taslak</Badge>;
+      case 'approved': return <CheckCircle className="h-3.5 w-3.5 text-emerald-500" />;
+      case 'pending': return <Clock className="h-3.5 w-3.5 text-amber-500" />;
+      case 'rejected': return <X className="h-3.5 w-3.5 text-red-500" />;
+      default: return <FileEdit className="h-3.5 w-3.5 text-muted-foreground" />;
     }
   };
 
@@ -83,11 +82,14 @@ export function BudgetTable({ items, onSave, onRevise, onApprove, onDelete, isAd
                   : Object.values(item.values).reduce((a, b) => a + b, 0);
 
                 return (
-                  <TableRow key={item.id} className="hover:bg-muted/30 transition-colors">
+                  <TableRow key={item.id} className={cn("hover:bg-muted/30 transition-colors", item.status === 'approved' && "opacity-60")}>
                     <TableCell className="w-[200px] font-medium sticky left-0 bg-card z-10 shadow-[1px_0_0_0_rgba(0,0,0,0.05)] p-2">
-                      <div className="flex flex-col">
+                      <div className="flex items-center gap-2">
+                        {getStatusIcon(item.status)}
+                        <div className="flex flex-col">
                           <span>{item.name}</span>
                           {item.revision > 0 && <span className="text-[10px] text-muted-foreground">Rev.{item.revision}</span>}
+                        </div>
                       </div>
                     </TableCell>
                     {months.map((_, index) => (
@@ -110,9 +112,6 @@ export function BudgetTable({ items, onSave, onRevise, onApprove, onDelete, isAd
                     ))}
                     <TableCell className="w-[100px] text-right font-bold tabular-nums bg-muted/10 p-2">
                       € {formatMoney(total)}
-                    </TableCell>
-                    <TableCell className="w-[120px] text-center p-2">
-                      {getStatusBadge(item.status)}
                     </TableCell>
                     <TableCell className="w-[100px] text-center sticky right-0 bg-card z-10 shadow-[-1px_0_0_0_rgba(0,0,0,0.05)] p-2">
                       <div className="flex items-center justify-center gap-1">
