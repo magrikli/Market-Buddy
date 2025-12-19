@@ -72,18 +72,18 @@ export function BudgetTable({ items, onSave, onRevise, onApprove, onDelete, isAd
 
   return (
     <>
-      <div className="rounded-md border border-border overflow-hidden bg-card">
+      <div className="rounded-b-md border-x border-b border-border overflow-hidden bg-card">
         <div className="overflow-x-auto">
           <Table className="text-xs">
             <TableHeader className="bg-muted/50">
               <TableRow>
                 <TableHead className="w-[200px] font-semibold sticky left-0 bg-muted/50 z-10">Kalem Adı</TableHead>
                 {months.map((m) => (
-                  <TableHead key={m} className="text-right min-w-[80px] font-medium text-muted-foreground">{m}</TableHead>
+                  <TableHead key={m} className="text-right min-w-[80px] font-medium text-muted-foreground text-[10px]">{m}</TableHead>
                 ))}
-                <TableHead className="text-right font-bold w-[100px] bg-muted/50">Toplam</TableHead>
-                <TableHead className="w-[120px] text-center">Durum</TableHead>
-                <TableHead className="w-[100px] text-center sticky right-0 bg-muted/50 z-10">İşlemler</TableHead>
+                <TableHead className="text-right font-bold w-[100px] bg-muted/50 text-[10px]">Toplam</TableHead>
+                <TableHead className="w-[120px] text-center text-[10px]">Durum</TableHead>
+                <TableHead className="w-[100px] text-center sticky right-0 bg-muted/50 z-10 text-[10px]">İşlemler</TableHead>
               </TableRow>
             </TableHeader>
             <TableBody>

@@ -51,6 +51,19 @@ export default function DepartmentBudget() {
   const formatMoney = (amount: number) => {
     return new Intl.NumberFormat('tr-TR', { minimumFractionDigits: 0 }).format(amount);
   };
+
+  const months = [
+    "Ocak", "Şubat", "Mart", "Nisan", "Mayıs", "Haziran", 
+    "Temmuz", "Ağustos", "Eylül", "Ekim", "Kasım", "Aralık"
+  ];
+
+  const getMonthlyTotals = (items: any[]) => {
+    const totals: Record<number, number> = {};
+    for (let i = 0; i < 12; i++) {
+      totals[i] = items.reduce((sum, item) => sum + (item.values[i] || 0), 0);
+    }
+    return totals;
+  };
   
   const handleAddDepartment = async (name: string) => {
     try {
@@ -461,37 +474,61 @@ export default function DepartmentBudget() {
                               <div className="space-y-4 pl-4 border-l-2 border-border/50 ml-2">
                                 {dept.costGroups.map((costGroup) => {
                                   const costGroupTotal = costGroup.items.reduce((acc, i) => acc + Object.values(i.values).reduce((vAcc, v) => vAcc + v, 0), 0);
+                                  const monthlyTotals = getMonthlyTotals(costGroup.items);
                                   return (
-                                    <div key={costGroup.id} className="space-y-3">
-                                      <div className="flex items-center justify-between bg-muted/30 p-2 rounded-md">
-                                        <div className="flex items-center gap-2">
-                                          <h4 className="font-medium text-sm text-foreground">{costGroup.name}</h4>
-                                        </div>
-                                        <div className="flex items-center gap-2">
-                                          <span className="text-sm font-mono text-muted-foreground">€ {formatMoney(costGroupTotal)}</span>
-                                          {currentUser?.role === 'admin' && (
-                                            <DropdownMenu>
-                                              <DropdownMenuTrigger asChild>
-                                                <Button variant="ghost" size="icon" className="h-7 w-7">
-                                                  <MoreHorizontal className="h-3 w-3" />
-                                                </Button>
-                                              </DropdownMenuTrigger>
-                                              <DropdownMenuContent align="end">
-                                                <DropdownMenuItem onClick={() => { setActiveGroupForItem(costGroup.id); setIsNewItemOpen(true); }}>
-                                                  <Plus className="mr-2 h-4 w-4" />
-                                                  Yeni Kalem Ekle
-                                                </DropdownMenuItem>
-                                                <DropdownMenuItem onClick={() => { setEditingGroup({ id: costGroup.id, name: costGroup.name }); setEditGroupOpen(true); }}>
-                                                  <Pencil className="mr-2 h-4 w-4" />
-                                                  Düzenle
-                                                </DropdownMenuItem>
-                                                <DropdownMenuItem onClick={() => handleDeleteGroup(costGroup.id, costGroup.name)} className="text-destructive">
-                                                  <Trash2 className="mr-2 h-4 w-4" />
-                                                  Sil
-                                                </DropdownMenuItem>
-                                              </DropdownMenuContent>
-                                            </DropdownMenu>
-                                          )}
+                                    <div key={costGroup.id} className="space-y-0">
+                                      <div className="rounded-t-md border border-b-0 border-border overflow-hidden bg-card">
+                                        <div className="overflow-x-auto">
+                                          <table className="w-full text-xs">
+                                            <thead>
+                                              <tr className="bg-primary/10">
+                                                <th className="w-[200px] text-left p-2 font-semibold sticky left-0 bg-primary/10 z-10">
+                                                  <div className="flex items-center gap-2">
+                                                    <span className="text-foreground">{costGroup.name}</span>
+                                                    {currentUser?.role === 'admin' && (
+                                                      <DropdownMenu>
+                                                        <DropdownMenuTrigger asChild>
+                                                          <Button variant="ghost" size="icon" className="h-6 w-6">
+                                                            <MoreHorizontal className="h-3 w-3" />
+                                                          </Button>
+                                                        </DropdownMenuTrigger>
+                                                        <DropdownMenuContent align="start">
+                                                          <DropdownMenuItem onClick={() => { setActiveGroupForItem(costGroup.id); setIsNewItemOpen(true); }}>
+                                                            <Plus className="mr-2 h-4 w-4" />
+                                                            Yeni Kalem Ekle
+                                                          </DropdownMenuItem>
+                                                          <DropdownMenuItem onClick={() => { setEditingGroup({ id: costGroup.id, name: costGroup.name }); setEditGroupOpen(true); }}>
+                                                            <Pencil className="mr-2 h-4 w-4" />
+                                                            Düzenle
+                                                          </DropdownMenuItem>
+                                                          <DropdownMenuItem onClick={() => handleDeleteGroup(costGroup.id, costGroup.name)} className="text-destructive">
+                                                            <Trash2 className="mr-2 h-4 w-4" />
+                                                            Sil
+                                                          </DropdownMenuItem>
+                                                        </DropdownMenuContent>
+                                                      </DropdownMenu>
+                                                    )}
+                                                  </div>
+                                                </th>
+                                                {months.map((m, idx) => (
+                                                  <th key={m} className="text-right min-w-[80px] p-2">
+                                                    <div className="flex flex-col items-end">
+                                                      <span className="text-[10px] text-muted-foreground font-medium">{m}</span>
+                                                      <span className="font-mono font-semibold text-foreground">{formatMoney(monthlyTotals[idx])}</span>
+                                                    </div>
+                                                  </th>
+                                                ))}
+                                                <th className="text-right w-[100px] p-2 bg-primary/20">
+                                                  <div className="flex flex-col items-end">
+                                                    <span className="text-[10px] text-muted-foreground font-medium">Toplam</span>
+                                                    <span className="font-mono font-bold text-foreground">€ {formatMoney(costGroupTotal)}</span>
+                                                  </div>
+                                                </th>
+                                                <th className="w-[120px] p-2"></th>
+                                                <th className="w-[100px] p-2 sticky right-0 bg-primary/10 z-10"></th>
+                                              </tr>
+                                            </thead>
+                                          </table>
                                         </div>
                                       </div>
                                       <BudgetTable 
@@ -573,37 +610,61 @@ export default function DepartmentBudget() {
                             <div className="space-y-4 pl-4 border-l-2 border-border/50 ml-2">
                               {dept.costGroups.map((costGroup) => {
                                 const costGroupTotal = costGroup.items.reduce((acc, i) => acc + Object.values(i.values).reduce((vAcc, v) => vAcc + v, 0), 0);
+                                const monthlyTotals = getMonthlyTotals(costGroup.items);
                                 return (
-                                  <div key={costGroup.id} className="space-y-3">
-                                    <div className="flex items-center justify-between bg-muted/30 p-2 rounded-md">
-                                      <div className="flex items-center gap-2">
-                                        <h4 className="font-medium text-sm text-foreground">{costGroup.name}</h4>
-                                      </div>
-                                      <div className="flex items-center gap-2">
-                                        <span className="text-sm font-mono text-muted-foreground">€ {formatMoney(costGroupTotal)}</span>
-                                        {currentUser?.role === 'admin' && (
-                                          <DropdownMenu>
-                                            <DropdownMenuTrigger asChild>
-                                              <Button variant="ghost" size="icon" className="h-7 w-7">
-                                                <MoreHorizontal className="h-3 w-3" />
-                                              </Button>
-                                            </DropdownMenuTrigger>
-                                            <DropdownMenuContent align="end">
-                                              <DropdownMenuItem onClick={() => { setActiveGroupForItem(costGroup.id); setIsNewItemOpen(true); }}>
-                                                <Plus className="mr-2 h-4 w-4" />
-                                                Yeni Kalem Ekle
-                                              </DropdownMenuItem>
-                                              <DropdownMenuItem onClick={() => { setEditingGroup({ id: costGroup.id, name: costGroup.name }); setEditGroupOpen(true); }}>
-                                                <Pencil className="mr-2 h-4 w-4" />
-                                                Düzenle
-                                              </DropdownMenuItem>
-                                              <DropdownMenuItem onClick={() => handleDeleteGroup(costGroup.id, costGroup.name)} className="text-destructive">
-                                                <Trash2 className="mr-2 h-4 w-4" />
-                                                Sil
-                                              </DropdownMenuItem>
-                                            </DropdownMenuContent>
-                                          </DropdownMenu>
-                                        )}
+                                  <div key={costGroup.id} className="space-y-0">
+                                    <div className="rounded-t-md border border-b-0 border-border overflow-hidden bg-card">
+                                      <div className="overflow-x-auto">
+                                        <table className="w-full text-xs">
+                                          <thead>
+                                            <tr className="bg-primary/10">
+                                              <th className="w-[200px] text-left p-2 font-semibold sticky left-0 bg-primary/10 z-10">
+                                                <div className="flex items-center gap-2">
+                                                  <span className="text-foreground">{costGroup.name}</span>
+                                                  {currentUser?.role === 'admin' && (
+                                                    <DropdownMenu>
+                                                      <DropdownMenuTrigger asChild>
+                                                        <Button variant="ghost" size="icon" className="h-6 w-6">
+                                                          <MoreHorizontal className="h-3 w-3" />
+                                                        </Button>
+                                                      </DropdownMenuTrigger>
+                                                      <DropdownMenuContent align="start">
+                                                        <DropdownMenuItem onClick={() => { setActiveGroupForItem(costGroup.id); setIsNewItemOpen(true); }}>
+                                                          <Plus className="mr-2 h-4 w-4" />
+                                                          Yeni Kalem Ekle
+                                                        </DropdownMenuItem>
+                                                        <DropdownMenuItem onClick={() => { setEditingGroup({ id: costGroup.id, name: costGroup.name }); setEditGroupOpen(true); }}>
+                                                          <Pencil className="mr-2 h-4 w-4" />
+                                                          Düzenle
+                                                        </DropdownMenuItem>
+                                                        <DropdownMenuItem onClick={() => handleDeleteGroup(costGroup.id, costGroup.name)} className="text-destructive">
+                                                          <Trash2 className="mr-2 h-4 w-4" />
+                                                          Sil
+                                                        </DropdownMenuItem>
+                                                      </DropdownMenuContent>
+                                                    </DropdownMenu>
+                                                  )}
+                                                </div>
+                                              </th>
+                                              {months.map((m, idx) => (
+                                                <th key={m} className="text-right min-w-[80px] p-2">
+                                                  <div className="flex flex-col items-end">
+                                                    <span className="text-[10px] text-muted-foreground font-medium">{m}</span>
+                                                    <span className="font-mono font-semibold text-foreground">{formatMoney(monthlyTotals[idx])}</span>
+                                                  </div>
+                                                </th>
+                                              ))}
+                                              <th className="text-right w-[100px] p-2 bg-primary/20">
+                                                <div className="flex flex-col items-end">
+                                                  <span className="text-[10px] text-muted-foreground font-medium">Toplam</span>
+                                                  <span className="font-mono font-bold text-foreground">€ {formatMoney(costGroupTotal)}</span>
+                                                </div>
+                                              </th>
+                                              <th className="w-[120px] p-2"></th>
+                                              <th className="w-[100px] p-2 sticky right-0 bg-primary/10 z-10"></th>
+                                            </tr>
+                                          </thead>
+                                        </table>
                                       </div>
                                     </div>
                                     <BudgetTable 
