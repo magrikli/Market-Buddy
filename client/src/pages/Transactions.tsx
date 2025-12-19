@@ -28,11 +28,19 @@ const formSchema = z.object({
 });
 
 export default function Transactions() {
-  const { currentYear } = useStore();
-  const { data: departments = [] } = useDepartments(currentYear);
-  const { data: projects = [] } = useProjects(currentYear);
+  const { currentYear, currentUser } = useStore();
+  const { data: allDepartments = [] } = useDepartments(currentYear);
+  const { data: allProjects = [] } = useProjects(currentYear);
   const createTransactionMutation = useCreateTransaction();
   const [loading, setLoading] = useState(false);
+
+  const isAdmin = currentUser?.role === 'admin';
+  const departments = isAdmin 
+    ? allDepartments 
+    : allDepartments.filter(d => currentUser?.assignedDepartmentIds?.includes(d.id));
+  const projects = isAdmin 
+    ? allProjects 
+    : allProjects.filter(p => currentUser?.assignedProjectIds?.includes(p.id));
 
   const form = useForm<z.infer<typeof formSchema>>({
     resolver: zodResolver(formSchema),
