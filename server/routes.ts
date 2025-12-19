@@ -4,7 +4,7 @@ import { storage } from "./storage";
 import { 
   insertUserSchema, insertDepartmentSchema, insertCostGroupSchema, 
   insertProjectSchema, insertProjectPhaseSchema, insertBudgetItemSchema, 
-  insertTransactionSchema, insertBudgetRevisionSchema 
+  insertTransactionSchema, insertBudgetRevisionSchema, insertDepartmentGroupSchema 
 } from "@shared/schema";
 import { z } from "zod";
 import bcrypt from "bcrypt";
@@ -137,6 +137,55 @@ export async function registerRoutes(server: Server, app: Express): Promise<Serv
     }
   });
 
+  // ===== DEPARTMENT GROUPS =====
+  
+  app.get("/api/department-groups", async (req: Request, res: Response) => {
+    try {
+      const groups = await storage.getAllDepartmentGroups();
+      return res.json(groups);
+    } catch (error) {
+      console.error('Get department groups error:', error);
+      return res.status(500).json({ message: "Server error" });
+    }
+  });
+
+  app.post("/api/department-groups", async (req: Request, res: Response) => {
+    try {
+      const data = insertDepartmentGroupSchema.parse(req.body);
+      const group = await storage.createDepartmentGroup(data);
+      return res.status(201).json(group);
+    } catch (error) {
+      if (error instanceof z.ZodError) {
+        return res.status(400).json({ message: "Validation error", errors: error.errors });
+      }
+      return res.status(500).json({ message: "Server error" });
+    }
+  });
+
+  app.patch("/api/department-groups/:id", async (req: Request, res: Response) => {
+    try {
+      const { id } = req.params;
+      const { name } = req.body;
+      const group = await storage.updateDepartmentGroup(id, { name });
+      if (!group) {
+        return res.status(404).json({ message: "Department group not found" });
+      }
+      return res.json(group);
+    } catch (error) {
+      return res.status(500).json({ message: "Server error" });
+    }
+  });
+
+  app.delete("/api/department-groups/:id", async (req: Request, res: Response) => {
+    try {
+      const { id } = req.params;
+      await storage.deleteDepartmentGroup(id);
+      return res.status(204).send();
+    } catch (error) {
+      return res.status(500).json({ message: "Server error" });
+    }
+  });
+
   // ===== DEPARTMENTS =====
   
   app.get("/api/departments", async (req: Request, res: Response) => {
@@ -180,6 +229,7 @@ export async function registerRoutes(server: Server, app: Express): Promise<Serv
           return {
             id: dept.id,
             name: dept.name,
+            groupId: dept.groupId,
             costGroups,
           };
         })
@@ -208,8 +258,11 @@ export async function registerRoutes(server: Server, app: Express): Promise<Serv
   app.patch("/api/departments/:id", async (req: Request, res: Response) => {
     try {
       const { id } = req.params;
-      const { name } = req.body;
-      const department = await storage.updateDepartment(id, { name });
+      const { name, groupId } = req.body;
+      const updates: { name?: string; groupId?: string | null } = {};
+      if (name !== undefined) updates.name = name;
+      if (groupId !== undefined) updates.groupId = groupId;
+      const department = await storage.updateDepartment(id, updates);
       if (!department) {
         return res.status(404).json({ message: "Department not found" });
       }
