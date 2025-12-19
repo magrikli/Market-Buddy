@@ -84,14 +84,14 @@ export function BudgetTable({ items, onSave, onRevise, onApprove, onDelete, isAd
 
                 return (
                   <TableRow key={item.id} className="hover:bg-muted/30 transition-colors">
-                    <TableCell className="font-medium sticky left-0 bg-card z-10 shadow-[1px_0_0_0_rgba(0,0,0,0.05)]">
+                    <TableCell className="w-[200px] font-medium sticky left-0 bg-card z-10 shadow-[1px_0_0_0_rgba(0,0,0,0.05)] p-2">
                       <div className="flex flex-col">
                           <span>{item.name}</span>
                           {item.revision > 0 && <span className="text-[10px] text-muted-foreground">Rev.{item.revision}</span>}
                       </div>
                     </TableCell>
                     {months.map((_, index) => (
-                      <TableCell key={index} className="text-right p-1">
+                      <TableCell key={index} className="min-w-[80px] text-right p-2">
                         {isEditing ? (
                           <Input 
                             className="h-7 text-right text-xs px-1 border-primary/30 focus-visible:ring-1" 
@@ -108,13 +108,13 @@ export function BudgetTable({ items, onSave, onRevise, onApprove, onDelete, isAd
                         )}
                       </TableCell>
                     ))}
-                    <TableCell className="text-right font-bold tabular-nums bg-muted/10">
+                    <TableCell className="w-[100px] text-right font-bold tabular-nums bg-muted/10 p-2">
                       {formatMoney(total)} €
                     </TableCell>
-                    <TableCell className="text-center">
+                    <TableCell className="w-[120px] text-center p-2">
                       {getStatusBadge(item.status)}
                     </TableCell>
-                    <TableCell className="text-center sticky right-0 bg-card z-10 shadow-[-1px_0_0_0_rgba(0,0,0,0.05)]">
+                    <TableCell className="w-[100px] text-center sticky right-0 bg-card z-10 shadow-[-1px_0_0_0_rgba(0,0,0,0.05)] p-2">
                       <div className="flex items-center justify-center gap-1">
                         {isEditing ? (
                           <>
