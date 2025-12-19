@@ -22,7 +22,6 @@ export default function ProjectBudget() {
   const { currentYear, setYear, currentUser } = useStore();
   const { data: projects = [], isLoading } = useProjects(currentYear);
   
-  // Mutations
   const createProjectMutation = useCreateProject();
   const updateProjectMutation = useUpdateProject();
   const deleteProjectMutation = useDeleteProject();
@@ -36,7 +35,6 @@ export default function ProjectBudget() {
   const revertBudgetItemMutation = useRevertBudgetItem();
   const deleteBudgetItemMutation = useDeleteBudgetItem();
   
-  // Dialog States
   const [isNewProjectOpen, setIsNewProjectOpen] = useState(false);
   const [isNewPhaseOpen, setIsNewPhaseOpen] = useState(false);
   const [isNewCostItemOpen, setIsNewCostItemOpen] = useState(false);
@@ -44,7 +42,6 @@ export default function ProjectBudget() {
   const [activeProjectForPhase, setActiveProjectForPhase] = useState<string | null>(null);
   const [activePhaseForItem, setActivePhaseForItem] = useState<string | null>(null);
   
-  // Edit dialog states
   const [editProjectOpen, setEditProjectOpen] = useState(false);
   const [editPhaseOpen, setEditPhaseOpen] = useState(false);
   const [editingProject, setEditingProject] = useState<{id: string; name: string} | null>(null);
@@ -67,7 +64,6 @@ export default function ProjectBudget() {
     return totals;
   };
 
-  // Project CRUD handlers
   const handleAddProject = async (name: string) => {
     try {
       await createProjectMutation.mutateAsync(name);
@@ -100,7 +96,6 @@ export default function ProjectBudget() {
     }
   };
 
-  // Phase CRUD handlers
   const handleAddPhase = async (name: string) => {
     if (!activeProjectForPhase) return;
     try {
@@ -135,7 +130,6 @@ export default function ProjectBudget() {
     }
   };
 
-  // Budget Item handlers
   const handleAddCostItem = async (name: string, type: 'cost' | 'revenue') => {
     if (!activePhaseForItem) return;
     try {
@@ -240,7 +234,6 @@ export default function ProjectBudget() {
     ? projects 
     : projects.filter(p => currentUser?.assignedProjectIds.includes(p.id));
 
-  // Calculate totals
   const totalCosts = visibleProjects.reduce((acc, proj) => {
     return acc + (proj.phases || []).reduce((pAcc: number, phase: any) => {
       return pAcc + (phase.costItems || []).reduce((iAcc: number, item: any) => {
@@ -259,7 +252,6 @@ export default function ProjectBudget() {
 
   return (
     <div className="space-y-6 animate-in fade-in slide-in-from-bottom-4 duration-500">
-      {/* Header Section */}
       <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
         <div>
           <h1 className="text-3xl font-bold tracking-tight text-foreground">Proje Bütçesi</h1>
@@ -289,7 +281,6 @@ export default function ProjectBudget() {
         </div>
       </div>
 
-      {/* Dialogs */}
       <AddEntityDialog 
         isOpen={isNewProjectOpen} 
         onClose={() => setIsNewProjectOpen(false)} 
@@ -344,7 +335,6 @@ export default function ProjectBudget() {
         defaultValue={editingPhase?.name}
       />
 
-      {/* Summary Cards */}
       <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
         <Card className="bg-primary/5 border-primary/20 shadow-sm">
           <CardHeader className="pb-2">
@@ -366,7 +356,6 @@ export default function ProjectBudget() {
         </Card>
       </div>
 
-      {/* Main Content */}
       <Card className="overflow-hidden border-border/50 shadow-lg">
         <CardHeader className="bg-muted/30 border-b border-border/50">
           <div className="flex items-center justify-between">
@@ -392,258 +381,237 @@ export default function ProjectBudget() {
               </p>
             </div>
           ) : (
-            <div className="space-y-6">
-              <Accordion type="multiple" className="w-full" defaultValue={visibleProjects.map(p => p.id)}>
-                {visibleProjects.map((project) => (
-                  <AccordionItem key={project.id} value={project.id} className="border border-border/40 rounded-lg mb-4 px-4 overflow-hidden">
+            <Accordion type="multiple" className="w-full" defaultValue={visibleProjects.map(p => p.id)}>
+              {visibleProjects.map((project) => {
+                const projectCostTotal = (project.phases || []).reduce((acc: number, phase: any) => 
+                  acc + (phase.costItems || []).reduce((iAcc: number, item: any) => 
+                    iAcc + Object.values(item.values as Record<string, number>).reduce((sum, v) => sum + v, 0), 0), 0);
+                const projectRevenueTotal = (project.phases || []).reduce((acc: number, phase: any) => 
+                  acc + (phase.revenueItems || []).reduce((iAcc: number, item: any) => 
+                    iAcc + Object.values(item.values as Record<string, number>).reduce((sum, v) => sum + v, 0), 0), 0);
+                
+                return (
+                  <AccordionItem key={project.id} value={project.id} className="border-b border-border/50 px-4">
                     <AccordionTrigger className="hover:no-underline py-3">
                       <div className="flex items-center justify-between w-full pr-4">
-                        <div className="flex items-center gap-2">
+                        <div className="flex items-center gap-3">
                           <FolderGit2 className="h-4 w-4 text-primary" />
-                          <span className="font-semibold">{project.name}</span>
-                          <span className="text-xs text-muted-foreground ml-2">
-                            ({(project.phases || []).length} faz)
+                          <span className="font-semibold text-foreground">{project.name}</span>
+                          <span className="px-2 py-0.5 rounded-full bg-muted text-xs font-medium text-muted-foreground">
+                            {(project.phases || []).length} Faz
                           </span>
                         </div>
-                        {currentUser?.role === 'admin' && (
-                          <DropdownMenu>
-                            <DropdownMenuTrigger asChild onClick={(e) => e.stopPropagation()}>
-                              <Button variant="ghost" size="icon" className="h-8 w-8">
-                                <MoreHorizontal className="h-4 w-4" />
-                              </Button>
-                            </DropdownMenuTrigger>
-                            <DropdownMenuContent align="end">
-                              <DropdownMenuItem onClick={(e) => { e.stopPropagation(); setActiveProjectForPhase(project.id); setIsNewPhaseOpen(true); }}>
-                                <Plus className="mr-2 h-4 w-4" />
-                                Yeni Faz Ekle
-                              </DropdownMenuItem>
-                              <DropdownMenuItem onClick={(e) => { e.stopPropagation(); setEditingProject({ id: project.id, name: project.name }); setEditProjectOpen(true); }}>
-                                <Pencil className="mr-2 h-4 w-4" />
-                                Düzenle
-                              </DropdownMenuItem>
-                              <DropdownMenuItem onClick={(e) => { e.stopPropagation(); handleDeleteProject(project.id, project.name); }} className="text-destructive">
-                                <Trash2 className="mr-2 h-4 w-4" />
-                                Sil
-                              </DropdownMenuItem>
-                            </DropdownMenuContent>
-                          </DropdownMenu>
-                        )}
+                        <div className="flex items-center gap-3">
+                          <div className="flex items-center gap-4 text-sm">
+                            <span className="text-destructive font-mono">€{formatMoney(projectCostTotal)}</span>
+                            <span className="text-emerald-600 font-mono">€{formatMoney(projectRevenueTotal)}</span>
+                          </div>
+                          {currentUser?.role === 'admin' && (
+                            <DropdownMenu>
+                              <DropdownMenuTrigger asChild onClick={(e) => e.stopPropagation()}>
+                                <Button variant="ghost" size="icon" className="h-7 w-7">
+                                  <MoreHorizontal className="h-3 w-3" />
+                                </Button>
+                              </DropdownMenuTrigger>
+                              <DropdownMenuContent align="end">
+                                <DropdownMenuItem onClick={(e) => { e.stopPropagation(); setActiveProjectForPhase(project.id); setIsNewPhaseOpen(true); }}>
+                                  <PlusCircle className="mr-2 h-4 w-4" />
+                                  Yeni Faz Ekle
+                                </DropdownMenuItem>
+                                <DropdownMenuItem onClick={(e) => { e.stopPropagation(); setEditingProject({ id: project.id, name: project.name }); setEditProjectOpen(true); }}>
+                                  <Pencil className="mr-2 h-4 w-4" />
+                                  Düzenle
+                                </DropdownMenuItem>
+                                <DropdownMenuItem onClick={(e) => { e.stopPropagation(); handleDeleteProject(project.id, project.name); }} className="text-destructive">
+                                  <Trash2 className="mr-2 h-4 w-4" />
+                                  Sil
+                                </DropdownMenuItem>
+                              </DropdownMenuContent>
+                            </DropdownMenu>
+                          )}
+                        </div>
                       </div>
                     </AccordionTrigger>
                     <AccordionContent className="pb-4 pt-2">
-                      <Tabs defaultValue="costs" className="w-full">
-                        <TabsList className="grid w-full max-w-md grid-cols-2 mb-6">
-                          <TabsTrigger value="costs">Giderler</TabsTrigger>
-                          <TabsTrigger value="revenue">Gelirler</TabsTrigger>
-                        </TabsList>
+                      {(project.phases || []).length === 0 ? (
+                        <div className="text-center p-8 bg-muted/10 rounded-lg border border-dashed">
+                          <Layers className="h-8 w-8 mx-auto text-muted-foreground opacity-50 mb-2" />
+                          <p className="text-muted-foreground text-sm">Henüz faz eklenmemiş.</p>
+                        </div>
+                      ) : (
+                        <Tabs defaultValue="costs" className="w-full">
+                          <TabsList className="grid w-full max-w-md grid-cols-2 mb-6">
+                            <TabsTrigger value="costs">Giderler</TabsTrigger>
+                            <TabsTrigger value="revenue">Gelirler</TabsTrigger>
+                          </TabsList>
 
-                        <TabsContent value="costs" className="space-y-4">
-                          {(project.phases || []).length === 0 ? (
-                            <div className="text-center p-8 bg-muted/10 rounded-lg border border-dashed">
-                              <Layers className="h-8 w-8 mx-auto text-muted-foreground opacity-50 mb-2" />
-                              <p className="text-muted-foreground text-sm">Henüz faz eklenmemiş.</p>
-                            </div>
-                          ) : (
-                            <Accordion type="multiple" className="w-full" defaultValue={(project.phases || []).map((p: any) => `cost-${p.id}`)}>
+                          <TabsContent value="costs" className="space-y-4">
+                            <div className="space-y-4 pl-4 border-l-2 border-border/50 ml-2">
                               {(project.phases || []).map((phase: any) => {
-                                const costTotals = getMonthlyTotals(phase.costItems || []);
-                                const grandTotal = Object.values(costTotals).reduce((a: number, b: number) => a + b, 0);
+                                const phaseTotal = (phase.costItems || []).reduce((acc: number, i: any) => acc + Object.values(i.values as Record<string, number>).reduce((vAcc, v) => vAcc + v, 0), 0);
+                                const monthlyTotals = getMonthlyTotals(phase.costItems || []);
                                 
                                 return (
-                                  <AccordionItem key={`cost-${phase.id}`} value={`cost-${phase.id}`} className="border border-border/30 rounded-lg mb-3 overflow-hidden">
-                                    <AccordionTrigger className="hover:no-underline py-2 px-3 bg-muted/20">
-                                      <div className="flex items-center justify-between w-full pr-4">
-                                        <div className="flex items-center gap-2">
-                                          <Layers className="h-3 w-3 text-muted-foreground" />
-                                          <span className="font-medium text-sm">{phase.name}</span>
-                                          <span className="text-xs text-muted-foreground">
-                                            ({(phase.costItems || []).length} kalem)
-                                          </span>
-                                        </div>
-                                        <div className="flex items-center gap-2">
-                                          <span className="text-xs font-medium text-destructive">
-                                            €{formatMoney(grandTotal)}
-                                          </span>
-                                          {currentUser?.role === 'admin' && (
-                                            <DropdownMenu>
-                                              <DropdownMenuTrigger asChild onClick={(e) => e.stopPropagation()}>
-                                                <Button variant="ghost" size="icon" className="h-6 w-6">
-                                                  <MoreHorizontal className="h-3 w-3" />
-                                                </Button>
-                                              </DropdownMenuTrigger>
-                                              <DropdownMenuContent align="end">
-                                                <DropdownMenuItem onClick={(e) => { e.stopPropagation(); setActivePhaseForItem(phase.id); setIsNewCostItemOpen(true); }}>
-                                                  <Plus className="mr-2 h-4 w-4" />
-                                                  Yeni Gider Kalemi
-                                                </DropdownMenuItem>
-                                                <DropdownMenuItem onClick={(e) => { e.stopPropagation(); setEditingPhase({ id: phase.id, name: phase.name }); setEditPhaseOpen(true); }}>
-                                                  <Pencil className="mr-2 h-4 w-4" />
-                                                  Düzenle
-                                                </DropdownMenuItem>
-                                                <DropdownMenuItem onClick={(e) => { e.stopPropagation(); handleDeletePhase(phase.id, phase.name); }} className="text-destructive">
-                                                  <Trash2 className="mr-2 h-4 w-4" />
-                                                  Sil
-                                                </DropdownMenuItem>
-                                              </DropdownMenuContent>
-                                            </DropdownMenu>
-                                          )}
-                                        </div>
+                                  <div key={phase.id} className="space-y-0">
+                                    <div className="rounded-t-md border border-b-0 border-border overflow-hidden bg-card">
+                                      <div className="overflow-x-auto">
+                                        <table className="w-full text-xs">
+                                          <thead>
+                                            <tr className="bg-primary/10">
+                                              <th className="w-[200px] text-left p-2 font-semibold sticky left-0 bg-primary/10 z-10">
+                                                <div className="flex items-center gap-2">
+                                                  <Layers className="h-3 w-3 text-muted-foreground" />
+                                                  <span className="text-foreground">{phase.name}</span>
+                                                </div>
+                                              </th>
+                                              {months.map((m, idx) => (
+                                                <th key={m} className="text-right min-w-[80px] p-2">
+                                                  <div className="flex flex-col items-end">
+                                                    <span className="text-[10px] text-muted-foreground font-medium">{m}</span>
+                                                    <span className="font-mono font-semibold text-foreground">{formatMoney(monthlyTotals[idx])}</span>
+                                                  </div>
+                                                </th>
+                                              ))}
+                                              <th className="text-right w-[150px] p-2 bg-primary/20">
+                                                <div className="flex items-center justify-end gap-2">
+                                                  <div className="flex flex-col items-end">
+                                                    <span className="text-[10px] text-muted-foreground font-medium">Toplam</span>
+                                                    <span className="font-mono font-bold text-foreground">€ {formatMoney(phaseTotal)}</span>
+                                                  </div>
+                                                  {currentUser?.role === 'admin' && (
+                                                    <DropdownMenu>
+                                                      <DropdownMenuTrigger asChild>
+                                                        <Button variant="ghost" size="icon" className="h-6 w-6">
+                                                          <MoreHorizontal className="h-3 w-3" />
+                                                        </Button>
+                                                      </DropdownMenuTrigger>
+                                                      <DropdownMenuContent align="end">
+                                                        <DropdownMenuItem onClick={() => { setActivePhaseForItem(phase.id); setIsNewCostItemOpen(true); }}>
+                                                          <Plus className="mr-2 h-4 w-4" />
+                                                          Yeni Gider Kalemi
+                                                        </DropdownMenuItem>
+                                                        <DropdownMenuItem onClick={() => { setEditingPhase({ id: phase.id, name: phase.name }); setEditPhaseOpen(true); }}>
+                                                          <Pencil className="mr-2 h-4 w-4" />
+                                                          Düzenle
+                                                        </DropdownMenuItem>
+                                                        <DropdownMenuItem onClick={() => handleDeletePhase(phase.id, phase.name)} className="text-destructive">
+                                                          <Trash2 className="mr-2 h-4 w-4" />
+                                                          Sil
+                                                        </DropdownMenuItem>
+                                                      </DropdownMenuContent>
+                                                    </DropdownMenu>
+                                                  )}
+                                                </div>
+                                              </th>
+                                            </tr>
+                                          </thead>
+                                        </table>
                                       </div>
-                                    </AccordionTrigger>
-                                    <AccordionContent className="pb-3 pt-2 px-3">
-                                      {/* Table Header */}
-                                      <div className="overflow-x-auto mb-2">
-                                        <div className="min-w-max">
-                                          <table className="w-full text-xs">
-                                            <thead>
-                                              <tr className="border-b border-border/30">
-                                                <th className="text-left py-2 px-2 font-medium text-muted-foreground w-[200px]">Kalem Adı</th>
-                                                {months.map((month, idx) => (
-                                                  <th key={idx} className="text-right py-2 px-1 font-medium text-muted-foreground min-w-[80px]">{month}</th>
-                                                ))}
-                                                <th className="text-right py-2 px-2 font-medium text-muted-foreground w-[120px]">Toplam</th>
-                                                <th className="text-center py-2 px-2 font-medium text-muted-foreground w-[80px]">Durum</th>
-                                                <th className="w-[100px]"></th>
-                                              </tr>
-                                              <tr className="bg-muted/30 font-medium">
-                                                <td className="py-2 px-2 text-foreground">Toplam</td>
-                                                {months.map((_, idx) => (
-                                                  <td key={idx} className="text-right py-2 px-1 text-foreground">€{formatMoney(costTotals[idx] || 0)}</td>
-                                                ))}
-                                                <td className="text-right py-2 px-2 font-bold text-foreground">€{formatMoney(grandTotal)}</td>
-                                                <td></td>
-                                                <td></td>
-                                              </tr>
-                                            </thead>
-                                          </table>
-                                        </div>
-                                      </div>
-                                      <BudgetTable 
-                                        items={phase.costItems || []}
-                                        isAdmin={currentUser?.role === 'admin'}
-                                        onSave={handleUpdateItem}
-                                        onRevise={handleReviseItem}
-                                        onApprove={handleApproveItem}
-                                        onDelete={handleDeleteBudgetItem}
-                                        onSubmitForApproval={handleSubmitForApproval}
-                                        onWithdraw={handleWithdraw}
-                                        onRevert={handleRevertItem}
-                                        type="cost"
-                                      />
-                                    </AccordionContent>
-                                  </AccordionItem>
+                                    </div>
+                                    <BudgetTable 
+                                      items={phase.costItems || []}
+                                      isAdmin={currentUser?.role === 'admin'}
+                                      onSave={handleUpdateItem}
+                                      onRevise={handleReviseItem}
+                                      onApprove={handleApproveItem}
+                                      onDelete={handleDeleteBudgetItem}
+                                      onSubmitForApproval={handleSubmitForApproval}
+                                      onWithdraw={handleWithdraw}
+                                      onRevert={handleRevertItem}
+                                    />
+                                  </div>
                                 );
                               })}
-                            </Accordion>
-                          )}
-                        </TabsContent>
-
-                        <TabsContent value="revenue" className="space-y-4">
-                          {(project.phases || []).length === 0 ? (
-                            <div className="text-center p-8 bg-muted/10 rounded-lg border border-dashed">
-                              <Layers className="h-8 w-8 mx-auto text-muted-foreground opacity-50 mb-2" />
-                              <p className="text-muted-foreground text-sm">Henüz faz eklenmemiş.</p>
                             </div>
-                          ) : (
-                            <Accordion type="multiple" className="w-full" defaultValue={(project.phases || []).map((p: any) => `revenue-${p.id}`)}>
+                          </TabsContent>
+
+                          <TabsContent value="revenue" className="space-y-4">
+                            <div className="space-y-4 pl-4 border-l-2 border-border/50 ml-2">
                               {(project.phases || []).map((phase: any) => {
-                                const revenueTotals = getMonthlyTotals(phase.revenueItems || []);
-                                const grandTotal = Object.values(revenueTotals).reduce((a: number, b: number) => a + b, 0);
+                                const phaseTotal = (phase.revenueItems || []).reduce((acc: number, i: any) => acc + Object.values(i.values as Record<string, number>).reduce((vAcc, v) => vAcc + v, 0), 0);
+                                const monthlyTotals = getMonthlyTotals(phase.revenueItems || []);
                                 
                                 return (
-                                  <AccordionItem key={`revenue-${phase.id}`} value={`revenue-${phase.id}`} className="border border-border/30 rounded-lg mb-3 overflow-hidden">
-                                    <AccordionTrigger className="hover:no-underline py-2 px-3 bg-muted/20">
-                                      <div className="flex items-center justify-between w-full pr-4">
-                                        <div className="flex items-center gap-2">
-                                          <Layers className="h-3 w-3 text-muted-foreground" />
-                                          <span className="font-medium text-sm">{phase.name}</span>
-                                          <span className="text-xs text-muted-foreground">
-                                            ({(phase.revenueItems || []).length} kalem)
-                                          </span>
-                                        </div>
-                                        <div className="flex items-center gap-2">
-                                          <span className="text-xs font-medium text-emerald-600">
-                                            €{formatMoney(grandTotal)}
-                                          </span>
-                                          {currentUser?.role === 'admin' && (
-                                            <DropdownMenu>
-                                              <DropdownMenuTrigger asChild onClick={(e) => e.stopPropagation()}>
-                                                <Button variant="ghost" size="icon" className="h-6 w-6">
-                                                  <MoreHorizontal className="h-3 w-3" />
-                                                </Button>
-                                              </DropdownMenuTrigger>
-                                              <DropdownMenuContent align="end">
-                                                <DropdownMenuItem onClick={(e) => { e.stopPropagation(); setActivePhaseForItem(phase.id); setIsNewRevenueItemOpen(true); }}>
-                                                  <Plus className="mr-2 h-4 w-4" />
-                                                  Yeni Gelir Kalemi
-                                                </DropdownMenuItem>
-                                                <DropdownMenuItem onClick={(e) => { e.stopPropagation(); setEditingPhase({ id: phase.id, name: phase.name }); setEditPhaseOpen(true); }}>
-                                                  <Pencil className="mr-2 h-4 w-4" />
-                                                  Düzenle
-                                                </DropdownMenuItem>
-                                                <DropdownMenuItem onClick={(e) => { e.stopPropagation(); handleDeletePhase(phase.id, phase.name); }} className="text-destructive">
-                                                  <Trash2 className="mr-2 h-4 w-4" />
-                                                  Sil
-                                                </DropdownMenuItem>
-                                              </DropdownMenuContent>
-                                            </DropdownMenu>
-                                          )}
-                                        </div>
+                                  <div key={phase.id} className="space-y-0">
+                                    <div className="rounded-t-md border border-b-0 border-border overflow-hidden bg-card">
+                                      <div className="overflow-x-auto">
+                                        <table className="w-full text-xs">
+                                          <thead>
+                                            <tr className="bg-emerald-500/10">
+                                              <th className="w-[200px] text-left p-2 font-semibold sticky left-0 bg-emerald-500/10 z-10">
+                                                <div className="flex items-center gap-2">
+                                                  <Layers className="h-3 w-3 text-muted-foreground" />
+                                                  <span className="text-foreground">{phase.name}</span>
+                                                </div>
+                                              </th>
+                                              {months.map((m, idx) => (
+                                                <th key={m} className="text-right min-w-[80px] p-2">
+                                                  <div className="flex flex-col items-end">
+                                                    <span className="text-[10px] text-muted-foreground font-medium">{m}</span>
+                                                    <span className="font-mono font-semibold text-foreground">{formatMoney(monthlyTotals[idx])}</span>
+                                                  </div>
+                                                </th>
+                                              ))}
+                                              <th className="text-right w-[150px] p-2 bg-emerald-500/20">
+                                                <div className="flex items-center justify-end gap-2">
+                                                  <div className="flex flex-col items-end">
+                                                    <span className="text-[10px] text-muted-foreground font-medium">Toplam</span>
+                                                    <span className="font-mono font-bold text-foreground">€ {formatMoney(phaseTotal)}</span>
+                                                  </div>
+                                                  {currentUser?.role === 'admin' && (
+                                                    <DropdownMenu>
+                                                      <DropdownMenuTrigger asChild>
+                                                        <Button variant="ghost" size="icon" className="h-6 w-6">
+                                                          <MoreHorizontal className="h-3 w-3" />
+                                                        </Button>
+                                                      </DropdownMenuTrigger>
+                                                      <DropdownMenuContent align="end">
+                                                        <DropdownMenuItem onClick={() => { setActivePhaseForItem(phase.id); setIsNewRevenueItemOpen(true); }}>
+                                                          <Plus className="mr-2 h-4 w-4" />
+                                                          Yeni Gelir Kalemi
+                                                        </DropdownMenuItem>
+                                                        <DropdownMenuItem onClick={() => { setEditingPhase({ id: phase.id, name: phase.name }); setEditPhaseOpen(true); }}>
+                                                          <Pencil className="mr-2 h-4 w-4" />
+                                                          Düzenle
+                                                        </DropdownMenuItem>
+                                                        <DropdownMenuItem onClick={() => handleDeletePhase(phase.id, phase.name)} className="text-destructive">
+                                                          <Trash2 className="mr-2 h-4 w-4" />
+                                                          Sil
+                                                        </DropdownMenuItem>
+                                                      </DropdownMenuContent>
+                                                    </DropdownMenu>
+                                                  )}
+                                                </div>
+                                              </th>
+                                            </tr>
+                                          </thead>
+                                        </table>
                                       </div>
-                                    </AccordionTrigger>
-                                    <AccordionContent className="pb-3 pt-2 px-3">
-                                      {/* Table Header */}
-                                      <div className="overflow-x-auto mb-2">
-                                        <div className="min-w-max">
-                                          <table className="w-full text-xs">
-                                            <thead>
-                                              <tr className="border-b border-border/30">
-                                                <th className="text-left py-2 px-2 font-medium text-muted-foreground w-[200px]">Kalem Adı</th>
-                                                {months.map((month, idx) => (
-                                                  <th key={idx} className="text-right py-2 px-1 font-medium text-muted-foreground min-w-[80px]">{month}</th>
-                                                ))}
-                                                <th className="text-right py-2 px-2 font-medium text-muted-foreground w-[120px]">Toplam</th>
-                                                <th className="text-center py-2 px-2 font-medium text-muted-foreground w-[80px]">Durum</th>
-                                                <th className="w-[100px]"></th>
-                                              </tr>
-                                              <tr className="bg-muted/30 font-medium">
-                                                <td className="py-2 px-2 text-foreground">Toplam</td>
-                                                {months.map((_, idx) => (
-                                                  <td key={idx} className="text-right py-2 px-1 text-foreground">€{formatMoney(revenueTotals[idx] || 0)}</td>
-                                                ))}
-                                                <td className="text-right py-2 px-2 font-bold text-foreground">€{formatMoney(grandTotal)}</td>
-                                                <td></td>
-                                                <td></td>
-                                              </tr>
-                                            </thead>
-                                          </table>
-                                        </div>
-                                      </div>
-                                      <BudgetTable 
-                                        items={phase.revenueItems || []}
-                                        isAdmin={currentUser?.role === 'admin'}
-                                        onSave={handleUpdateItem}
-                                        onRevise={handleReviseItem}
-                                        onApprove={handleApproveItem}
-                                        onDelete={handleDeleteBudgetItem}
-                                        onSubmitForApproval={handleSubmitForApproval}
-                                        onWithdraw={handleWithdraw}
-                                        onRevert={handleRevertItem}
-                                        type="revenue"
-                                      />
-                                    </AccordionContent>
-                                  </AccordionItem>
+                                    </div>
+                                    <BudgetTable 
+                                      items={phase.revenueItems || []}
+                                      isAdmin={currentUser?.role === 'admin'}
+                                      onSave={handleUpdateItem}
+                                      onRevise={handleReviseItem}
+                                      onApprove={handleApproveItem}
+                                      onDelete={handleDeleteBudgetItem}
+                                      onSubmitForApproval={handleSubmitForApproval}
+                                      onWithdraw={handleWithdraw}
+                                      onRevert={handleRevertItem}
+                                      type="revenue"
+                                    />
+                                  </div>
                                 );
                               })}
-                            </Accordion>
-                          )}
-                        </TabsContent>
-                      </Tabs>
+                            </div>
+                          </TabsContent>
+                        </Tabs>
+                      )}
                     </AccordionContent>
                   </AccordionItem>
-                ))}
-              </Accordion>
-            </div>
+                );
+              })}
+            </Accordion>
           )}
         </CardContent>
       </Card>
