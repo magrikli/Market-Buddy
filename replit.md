@@ -54,7 +54,8 @@ Database schema includes:
 - User assignment tables for department/project access control
 
 ### Authentication & Authorization
-- Simple username/password login
+- Simple username/password login with localStorage persistence
+- Session persists across page refreshes using browser localStorage
 - Two roles: `admin` (full system access) and `user` (assigned resources only)
 - Users can be assigned to multiple departments and projects
 - Admin-only features: approval workflow, user management, system settings
