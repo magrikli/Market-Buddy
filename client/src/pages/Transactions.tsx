@@ -6,6 +6,7 @@ import { Input } from "@/components/ui/input";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { useStore } from "@/lib/store";
+import { useDepartments, useProjects, useCreateTransaction, useTransactions } from "@/lib/queries";
 import { cn } from "@/lib/utils";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { format } from "date-fns";
@@ -27,7 +28,10 @@ const formSchema = z.object({
 });
 
 export default function Transactions() {
-  const { departments, projects, addTransaction } = useStore();
+  const { currentYear } = useStore();
+  const { data: departments = [] } = useDepartments(currentYear);
+  const { data: projects = [] } = useProjects(currentYear);
+  const createTransactionMutation = useCreateTransaction();
   const [loading, setLoading] = useState(false);
 
   const form = useForm<z.infer<typeof formSchema>>({
@@ -75,25 +79,36 @@ export default function Transactions() {
     }
   }
 
-  function onSubmit(values: z.infer<typeof formSchema>) {
+  async function onSubmit(values: z.infer<typeof formSchema>) {
     setLoading(true);
-    // Simulate API call
-    setTimeout(() => {
-      console.log(values);
+    try {
+      await createTransactionMutation.mutateAsync({
+        type: values.type.includes('expense') ? 'expense' : 'revenue',
+        amount: parseFloat(values.amount),
+        description: values.description,
+        date: format(values.date, 'yyyy-MM-dd'),
+        budgetItemId: values.itemId,
+      });
       toast.success("Kayıt başarıyla eklendi", {
         description: `${values.description} - ${values.amount} €`
       });
       form.reset();
+    } catch (error: any) {
+      toast.error("Hata", { description: error.message });
+    } finally {
       setLoading(false);
-    }, 1000);
+    }
   }
 
-  // Mock transaction history
-  const history = [
-    { id: 1, date: '2025-01-15', desc: 'AWS Ocak Faturası', amount: 1200, type: 'Gider', category: 'IT - Altyapı' },
-    { id: 2, date: '2025-01-20', desc: 'Ofis Malzemeleri', amount: 450, type: 'Gider', category: 'İK - Ofis' },
-    { id: 3, date: '2025-02-01', desc: 'Danışmanlık Ödemesi', amount: 5000, type: 'Gider', category: 'Proje A - Faz 1' },
-  ];
+  const { data: transactionHistory = [] } = useTransactions(10);
+  const history = transactionHistory.map((t: any) => ({
+    id: t.id,
+    date: t.date,
+    desc: t.description,
+    amount: t.amount,
+    type: t.type === 'expense' ? 'Gider' : 'Gelir',
+    category: '-',
+  }));
 
   return (
     <div className="space-y-6 animate-in fade-in slide-in-from-bottom-4 duration-500">

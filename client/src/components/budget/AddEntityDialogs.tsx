@@ -12,10 +12,18 @@ interface AddDialogProps {
     title: string;
     description: string;
     placeholder: string;
+    defaultValue?: string;
 }
 
-export function AddEntityDialog({ isOpen, onClose, onSave, title, description, placeholder }: AddDialogProps) {
-    const [name, setName] = useState("");
+export function AddEntityDialog({ isOpen, onClose, onSave, title, description, placeholder, defaultValue }: AddDialogProps) {
+    const [name, setName] = useState(defaultValue || "");
+    
+    // Reset name when dialog opens with new defaultValue
+    const [lastDefaultValue, setLastDefaultValue] = useState(defaultValue);
+    if (defaultValue !== lastDefaultValue) {
+        setName(defaultValue || "");
+        setLastDefaultValue(defaultValue);
+    }
 
     const handleSave = () => {
         if (name.trim()) {

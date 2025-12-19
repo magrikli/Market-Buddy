@@ -23,10 +23,14 @@ export interface IStorage {
   getAllDepartments(): Promise<Department[]>;
   getDepartment(id: string): Promise<Department | undefined>;
   createDepartment(dept: InsertDepartment): Promise<Department>;
+  updateDepartment(id: string, updates: Partial<Department>): Promise<Department | undefined>;
+  deleteDepartment(id: string): Promise<void>;
   
   // Cost Groups
   getCostGroupsByDepartment(departmentId: string): Promise<CostGroup[]>;
   createCostGroup(group: InsertCostGroup): Promise<CostGroup>;
+  updateCostGroup(id: string, updates: Partial<CostGroup>): Promise<CostGroup | undefined>;
+  deleteCostGroup(id: string): Promise<void>;
   
   // Projects
   getAllProjects(): Promise<Project[]>;
@@ -44,6 +48,7 @@ export interface IStorage {
   createBudgetItem(item: InsertBudgetItem): Promise<BudgetItem>;
   updateBudgetItem(id: string, updates: Partial<BudgetItem>): Promise<BudgetItem | undefined>;
   approveBudgetItem(id: string): Promise<BudgetItem | undefined>;
+  deleteBudgetItem(id: string): Promise<void>;
   
   // Budget Revisions
   createBudgetRevision(revision: InsertBudgetRevision): Promise<BudgetRevision>;
@@ -109,6 +114,18 @@ export class DatabaseStorage implements IStorage {
     return result[0];
   }
 
+  async updateDepartment(id: string, updates: Partial<Department>): Promise<Department | undefined> {
+    const result = await db.update(departments)
+      .set(updates)
+      .where(eq(departments.id, id))
+      .returning();
+    return result[0];
+  }
+
+  async deleteDepartment(id: string): Promise<void> {
+    await db.delete(departments).where(eq(departments.id, id));
+  }
+
   // === COST GROUPS ===
   async getCostGroupsByDepartment(departmentId: string): Promise<CostGroup[]> {
     return await db.select().from(costGroups).where(eq(costGroups.departmentId, departmentId));
@@ -117,6 +134,18 @@ export class DatabaseStorage implements IStorage {
   async createCostGroup(group: InsertCostGroup): Promise<CostGroup> {
     const result = await db.insert(costGroups).values(group).returning();
     return result[0];
+  }
+
+  async updateCostGroup(id: string, updates: Partial<CostGroup>): Promise<CostGroup | undefined> {
+    const result = await db.update(costGroups)
+      .set(updates)
+      .where(eq(costGroups.id, id))
+      .returning();
+    return result[0];
+  }
+
+  async deleteCostGroup(id: string): Promise<void> {
+    await db.delete(costGroups).where(eq(costGroups.id, id));
   }
 
   // === PROJECTS ===
@@ -179,6 +208,10 @@ export class DatabaseStorage implements IStorage {
       .where(eq(budgetItems.id, id))
       .returning();
     return result[0];
+  }
+
+  async deleteBudgetItem(id: string): Promise<void> {
+    await db.delete(budgetItems).where(eq(budgetItems.id, id));
   }
 
   // === BUDGET REVISIONS ===

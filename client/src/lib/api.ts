@@ -49,10 +49,36 @@ export async function createDepartment(name: string): Promise<Department> {
   });
 }
 
+export async function updateDepartment(id: string, name: string): Promise<Department> {
+  return fetchAPI(`/departments/${id}`, {
+    method: 'PATCH',
+    body: JSON.stringify({ name }),
+  });
+}
+
+export async function deleteDepartment(id: string): Promise<void> {
+  return fetchAPI(`/departments/${id}`, {
+    method: 'DELETE',
+  });
+}
+
 export async function createCostGroup(data: { name: string; departmentId: string }): Promise<any> {
   return fetchAPI('/cost-groups', {
     method: 'POST',
     body: JSON.stringify(data),
+  });
+}
+
+export async function updateCostGroup(id: string, name: string): Promise<any> {
+  return fetchAPI(`/cost-groups/${id}`, {
+    method: 'PATCH',
+    body: JSON.stringify({ name }),
+  });
+}
+
+export async function deleteCostGroup(id: string): Promise<void> {
+  return fetchAPI(`/cost-groups/${id}`, {
+    method: 'DELETE',
   });
 }
 
@@ -108,6 +134,12 @@ export async function updateBudgetItem(id: string, data: { monthlyValues?: any; 
 export async function approveBudgetItem(id: string): Promise<any> {
   return fetchAPI(`/budget-items/${id}/approve`, {
     method: 'POST',
+  });
+}
+
+export async function deleteBudgetItem(id: string): Promise<void> {
+  return fetchAPI(`/budget-items/${id}`, {
+    method: 'DELETE',
   });
 }
 

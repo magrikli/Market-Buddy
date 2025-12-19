@@ -4,7 +4,7 @@ import { Input } from "@/components/ui/input";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip";
 import { cn } from "@/lib/utils";
-import { Edit2, Save, X, History, Lock, CheckCircle, AlertCircle } from "lucide-react";
+import { Edit2, Save, X, History, Lock, CheckCircle, Trash2 } from "lucide-react";
 import { useState } from "react";
 import { CostItem, RevenueItem, BudgetMonthValues } from "@/lib/store";
 import { RevisionHistoryDialog } from "./RevisionHistoryDialog";
@@ -14,6 +14,7 @@ interface BudgetTableProps {
   onSave: (itemId: string, values: BudgetMonthValues) => void;
   onRevise: (itemId: string) => void;
   onApprove?: (itemId: string) => void;
+  onDelete?: (itemId: string, name: string) => void;
   isAdmin?: boolean;
   type?: 'cost' | 'revenue';
 }
@@ -27,7 +28,7 @@ const formatMoney = (amount: number) => {
   return new Intl.NumberFormat('tr-TR', { minimumFractionDigits: 0, maximumFractionDigits: 0 }).format(amount);
 };
 
-export function BudgetTable({ items, onSave, onRevise, onApprove, isAdmin = false, type = 'cost' }: BudgetTableProps) {
+export function BudgetTable({ items, onSave, onRevise, onApprove, onDelete, isAdmin = false, type = 'cost' }: BudgetTableProps) {
   const [editingId, setEditingId] = useState<string | null>(null);
   const [editValues, setEditValues] = useState<BudgetMonthValues>({});
   
@@ -176,6 +177,17 @@ export function BudgetTable({ items, onSave, onRevise, onApprove, isAdmin = fals
                               </TooltipTrigger>
                               <TooltipContent>Geçmiş</TooltipContent>
                             </Tooltip>
+                            
+                            {isAdmin && onDelete && (
+                              <Tooltip>
+                                <TooltipTrigger asChild>
+                                    <Button size="icon" variant="ghost" className="h-6 w-6 text-destructive hover:text-destructive hover:bg-destructive/10" onClick={() => onDelete(item.id, item.name)}>
+                                        <Trash2 className="h-3 w-3" />
+                                    </Button>
+                                </TooltipTrigger>
+                                <TooltipContent>Sil</TooltipContent>
+                              </Tooltip>
+                            )}
                           </>
                         )}
                       </div>

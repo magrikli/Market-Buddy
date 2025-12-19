@@ -52,6 +52,46 @@ export function useCreateCostGroup() {
   });
 }
 
+export function useUpdateDepartment() {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: ({ id, name }: { id: string; name: string }) => api.updateDepartment(id, name),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: queryKeys.departments(2025) });
+    },
+  });
+}
+
+export function useDeleteDepartment() {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: (id: string) => api.deleteDepartment(id),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: queryKeys.departments(2025) });
+    },
+  });
+}
+
+export function useUpdateCostGroup() {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: ({ id, name }: { id: string; name: string }) => api.updateCostGroup(id, name),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: queryKeys.departments(2025) });
+    },
+  });
+}
+
+export function useDeleteCostGroup() {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: (id: string) => api.deleteCostGroup(id),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: queryKeys.departments(2025) });
+    },
+  });
+}
+
 // === PROJECTS ===
 
 export function useProjects(year: number = 2025) {
@@ -133,6 +173,17 @@ export function useReviseBudgetItem() {
   return useMutation({
     mutationFn: ({ id, editorName }: { id: string; editorName: string }) =>
       api.reviseBudgetItem(id, editorName),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: queryKeys.departments(2025) });
+      queryClient.invalidateQueries({ queryKey: queryKeys.projects(2025) });
+    },
+  });
+}
+
+export function useDeleteBudgetItem() {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: (id: string) => api.deleteBudgetItem(id),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: queryKeys.departments(2025) });
       queryClient.invalidateQueries({ queryKey: queryKeys.projects(2025) });

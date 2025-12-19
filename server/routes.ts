@@ -149,6 +149,30 @@ export async function registerRoutes(server: Server, app: Express): Promise<Serv
     }
   });
 
+  app.patch("/api/departments/:id", async (req: Request, res: Response) => {
+    try {
+      const { id } = req.params;
+      const { name } = req.body;
+      const department = await storage.updateDepartment(id, { name });
+      if (!department) {
+        return res.status(404).json({ message: "Department not found" });
+      }
+      return res.json(department);
+    } catch (error) {
+      return res.status(500).json({ message: "Server error" });
+    }
+  });
+
+  app.delete("/api/departments/:id", async (req: Request, res: Response) => {
+    try {
+      const { id } = req.params;
+      await storage.deleteDepartment(id);
+      return res.json({ success: true });
+    } catch (error) {
+      return res.status(500).json({ message: "Server error" });
+    }
+  });
+
   app.post("/api/cost-groups", async (req: Request, res: Response) => {
     try {
       const data = insertCostGroupSchema.parse(req.body);
@@ -158,6 +182,30 @@ export async function registerRoutes(server: Server, app: Express): Promise<Serv
       if (error instanceof z.ZodError) {
         return res.status(400).json({ message: "Validation error", errors: error.errors });
       }
+      return res.status(500).json({ message: "Server error" });
+    }
+  });
+
+  app.patch("/api/cost-groups/:id", async (req: Request, res: Response) => {
+    try {
+      const { id } = req.params;
+      const { name } = req.body;
+      const group = await storage.updateCostGroup(id, { name });
+      if (!group) {
+        return res.status(404).json({ message: "Cost group not found" });
+      }
+      return res.json(group);
+    } catch (error) {
+      return res.status(500).json({ message: "Server error" });
+    }
+  });
+
+  app.delete("/api/cost-groups/:id", async (req: Request, res: Response) => {
+    try {
+      const { id } = req.params;
+      await storage.deleteCostGroup(id);
+      return res.json({ success: true });
+    } catch (error) {
       return res.status(500).json({ message: "Server error" });
     }
   });
@@ -340,6 +388,16 @@ export async function registerRoutes(server: Server, app: Express): Promise<Serv
       return res.json(updated);
     } catch (error) {
       console.error('Revise error:', error);
+      return res.status(500).json({ message: "Server error" });
+    }
+  });
+
+  app.delete("/api/budget-items/:id", async (req: Request, res: Response) => {
+    try {
+      const { id } = req.params;
+      await storage.deleteBudgetItem(id);
+      return res.json({ success: true });
+    } catch (error) {
       return res.status(500).json({ message: "Server error" });
     }
   });

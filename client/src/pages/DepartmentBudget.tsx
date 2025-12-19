@@ -1,11 +1,12 @@
 import { useStore } from "@/lib/store";
-import { useDepartments, useCreateDepartment, useCreateCostGroup, useCreateBudgetItem, useUpdateBudgetItem, useReviseBudgetItem, useApproveBudgetItem } from "@/lib/queries";
+import { useDepartments, useCreateDepartment, useCreateCostGroup, useCreateBudgetItem, useUpdateBudgetItem, useReviseBudgetItem, useApproveBudgetItem, useUpdateDepartment, useDeleteDepartment, useUpdateCostGroup, useDeleteCostGroup, useDeleteBudgetItem } from "@/lib/queries";
 import { BudgetTable } from "@/components/budget/BudgetTable";
 import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from "@/components/ui/accordion";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { PlusCircle, Download, Filter, Loader2, Plus } from "lucide-react";
+import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from "@/components/ui/dropdown-menu";
+import { PlusCircle, Download, Filter, Loader2, Plus, MoreHorizontal, Pencil, Trash2 } from "lucide-react";
 import { useState } from "react";
 import { AddEntityDialog, AddBudgetItemDialog } from "@/components/budget/AddEntityDialogs";
 import { toast } from "sonner";
@@ -20,6 +21,11 @@ export default function DepartmentBudget() {
   const updateBudgetItemMutation = useUpdateBudgetItem();
   const reviseBudgetItemMutation = useReviseBudgetItem();
   const approveBudgetItemMutation = useApproveBudgetItem();
+  const updateDepartmentMutation = useUpdateDepartment();
+  const deleteDepartmentMutation = useDeleteDepartment();
+  const updateCostGroupMutation = useUpdateCostGroup();
+  const deleteCostGroupMutation = useDeleteCostGroup();
+  const deleteBudgetItemMutation = useDeleteBudgetItem();
   
   // Dialog States
   const [isNewDeptOpen, setIsNewDeptOpen] = useState(false);
@@ -27,6 +33,12 @@ export default function DepartmentBudget() {
   const [isNewItemOpen, setIsNewItemOpen] = useState(false);
   const [activeDeptForGroup, setActiveDeptForGroup] = useState<string | null>(null);
   const [activeGroupForItem, setActiveGroupForItem] = useState<string | null>(null);
+  
+  // Edit dialog states
+  const [editDeptOpen, setEditDeptOpen] = useState(false);
+  const [editGroupOpen, setEditGroupOpen] = useState(false);
+  const [editingDept, setEditingDept] = useState<{id: string; name: string} | null>(null);
+  const [editingGroup, setEditingGroup] = useState<{id: string; name: string} | null>(null);
 
   const formatMoney = (amount: number) => {
     return new Intl.NumberFormat('tr-TR', { minimumFractionDigits: 0 }).format(amount);
@@ -93,6 +105,60 @@ export default function DepartmentBudget() {
     try {
       await approveBudgetItemMutation.mutateAsync(itemId);
       toast.success("Onaylandı");
+    } catch (error: any) {
+      toast.error("Hata", { description: error.message });
+    }
+  };
+
+  const handleEditDepartment = async (name: string) => {
+    if (!editingDept) return;
+    try {
+      await updateDepartmentMutation.mutateAsync({ id: editingDept.id, name });
+      toast.success("Departman güncellendi", { description: name });
+      setEditDeptOpen(false);
+      setEditingDept(null);
+    } catch (error: any) {
+      toast.error("Hata", { description: error.message });
+    }
+  };
+
+  const handleDeleteDepartment = async (id: string, name: string) => {
+    if (!confirm(`"${name}" departmanını silmek istediğinize emin misiniz?`)) return;
+    try {
+      await deleteDepartmentMutation.mutateAsync(id);
+      toast.success("Departman silindi", { description: name });
+    } catch (error: any) {
+      toast.error("Hata", { description: error.message });
+    }
+  };
+
+  const handleEditGroup = async (name: string) => {
+    if (!editingGroup) return;
+    try {
+      await updateCostGroupMutation.mutateAsync({ id: editingGroup.id, name });
+      toast.success("Maliyet grubu güncellendi", { description: name });
+      setEditGroupOpen(false);
+      setEditingGroup(null);
+    } catch (error: any) {
+      toast.error("Hata", { description: error.message });
+    }
+  };
+
+  const handleDeleteGroup = async (id: string, name: string) => {
+    if (!confirm(`"${name}" maliyet grubunu silmek istediğinize emin misiniz?`)) return;
+    try {
+      await deleteCostGroupMutation.mutateAsync(id);
+      toast.success("Maliyet grubu silindi", { description: name });
+    } catch (error: any) {
+      toast.error("Hata", { description: error.message });
+    }
+  };
+
+  const handleDeleteBudgetItem = async (id: string, name: string) => {
+    if (!confirm(`"${name}" kalemini silmek istediğinize emin misiniz?`)) return;
+    try {
+      await deleteBudgetItemMutation.mutateAsync(id);
+      toast.success("Bütçe kalemi silindi", { description: name });
     } catch (error: any) {
       toast.error("Hata", { description: error.message });
     }
@@ -171,6 +237,26 @@ export default function DepartmentBudget() {
         description="Seçili maliyet grubu altına yeni bir gider kalemi ekleyin."
       />
 
+      <AddEntityDialog 
+        isOpen={editDeptOpen} 
+        onClose={() => { setEditDeptOpen(false); setEditingDept(null); }} 
+        onSave={handleEditDepartment}
+        title="Departman Düzenle"
+        description="Departman adını güncelleyin."
+        placeholder="Departman adı"
+        defaultValue={editingDept?.name}
+      />
+
+      <AddEntityDialog 
+        isOpen={editGroupOpen} 
+        onClose={() => { setEditGroupOpen(false); setEditingGroup(null); }} 
+        onSave={handleEditGroup}
+        title="Maliyet Grubu Düzenle"
+        description="Maliyet grubu adını güncelleyin."
+        placeholder="Maliyet grubu adı"
+        defaultValue={editingGroup?.name}
+      />
+
       {/* Summary Cards */}
       <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
         <Card className="bg-primary/5 border-primary/20 shadow-sm">
@@ -209,7 +295,28 @@ export default function DepartmentBudget() {
                                         <span className="font-semibold text-lg text-foreground">{dept.name}</span>
                                         <span className="px-2 py-0.5 rounded-full bg-muted text-xs font-medium text-muted-foreground">{dept.costGroups.length} Grup</span>
                                     </div>
-                                    <span className="font-mono font-medium text-foreground">€ {formatMoney(deptTotal)}</span>
+                                    <div className="flex items-center gap-3">
+                                        <span className="font-mono font-medium text-foreground">€ {formatMoney(deptTotal)}</span>
+                                        {currentUser?.role === 'admin' && (
+                                            <DropdownMenu>
+                                                <DropdownMenuTrigger asChild onClick={(e) => e.stopPropagation()}>
+                                                    <Button variant="ghost" size="icon" className="h-8 w-8">
+                                                        <MoreHorizontal className="h-4 w-4" />
+                                                    </Button>
+                                                </DropdownMenuTrigger>
+                                                <DropdownMenuContent align="end">
+                                                    <DropdownMenuItem onClick={(e) => { e.stopPropagation(); setEditingDept({ id: dept.id, name: dept.name }); setEditDeptOpen(true); }}>
+                                                        <Pencil className="mr-2 h-4 w-4" />
+                                                        Düzenle
+                                                    </DropdownMenuItem>
+                                                    <DropdownMenuItem onClick={(e) => { e.stopPropagation(); handleDeleteDepartment(dept.id, dept.name); }} className="text-destructive">
+                                                        <Trash2 className="mr-2 h-4 w-4" />
+                                                        Sil
+                                                    </DropdownMenuItem>
+                                                </DropdownMenuContent>
+                                            </DropdownMenu>
+                                        )}
+                                    </div>
                                 </div>
                             </AccordionTrigger>
                             <AccordionContent className="pb-6 pt-2">
@@ -222,7 +329,28 @@ export default function DepartmentBudget() {
                                                     <div className="flex items-center gap-2">
                                                         <h4 className="font-medium text-sm text-foreground">{group.name}</h4>
                                                     </div>
-                                                    <span className="text-sm font-mono text-muted-foreground">€ {formatMoney(groupTotal)}</span>
+                                                    <div className="flex items-center gap-2">
+                                                        <span className="text-sm font-mono text-muted-foreground">€ {formatMoney(groupTotal)}</span>
+                                                        {currentUser?.role === 'admin' && (
+                                                            <DropdownMenu>
+                                                                <DropdownMenuTrigger asChild>
+                                                                    <Button variant="ghost" size="icon" className="h-7 w-7">
+                                                                        <MoreHorizontal className="h-3 w-3" />
+                                                                    </Button>
+                                                                </DropdownMenuTrigger>
+                                                                <DropdownMenuContent align="end">
+                                                                    <DropdownMenuItem onClick={() => { setEditingGroup({ id: group.id, name: group.name }); setEditGroupOpen(true); }}>
+                                                                        <Pencil className="mr-2 h-4 w-4" />
+                                                                        Düzenle
+                                                                    </DropdownMenuItem>
+                                                                    <DropdownMenuItem onClick={() => handleDeleteGroup(group.id, group.name)} className="text-destructive">
+                                                                        <Trash2 className="mr-2 h-4 w-4" />
+                                                                        Sil
+                                                                    </DropdownMenuItem>
+                                                                </DropdownMenuContent>
+                                                            </DropdownMenu>
+                                                        )}
+                                                    </div>
                                                 </div>
                                                 
                                                 <BudgetTable 
@@ -231,6 +359,7 @@ export default function DepartmentBudget() {
                                                     onSave={handleUpdateItem}
                                                     onRevise={handleReviseItem}
                                                     onApprove={handleApproveItem}
+                                                    onDelete={handleDeleteBudgetItem}
                                                 />
                                                 
                                                 <Button 
