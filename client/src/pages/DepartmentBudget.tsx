@@ -382,18 +382,6 @@ export default function DepartmentBudget() {
                                             </div>
                                         );
                                     })}
-                                    
-                                    <Button 
-                                        variant="outline" 
-                                        className="w-full border-dashed text-muted-foreground hover:text-primary hover:border-primary/50"
-                                        onClick={() => {
-                                            setActiveDeptForGroup(dept.id);
-                                            setIsNewGroupOpen(true);
-                                        }}
-                                    >
-                                        <PlusCircle className="mr-2 h-4 w-4" />
-                                        Yeni Maliyet Grubu Ekle
-                                    </Button>
                                 </div>
                             </AccordionContent>
                         </AccordionItem>
