@@ -47,6 +47,13 @@ export async function logout(): Promise<void> {
   });
 }
 
+export async function changePassword(userId: string, currentPassword: string, newPassword: string): Promise<{ message: string }> {
+  return fetchAPI('/auth/change-password', {
+    method: 'POST',
+    body: JSON.stringify({ userId, currentPassword, newPassword }),
+  });
+}
+
 // === USERS ===
 
 export interface UserWithAssignments {

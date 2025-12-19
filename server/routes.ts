@@ -102,6 +102,39 @@ export async function registerRoutes(server: Server, app: Express): Promise<Serv
     });
   });
 
+  // Change own password
+  app.post("/api/auth/change-password", async (req: Request, res: Response) => {
+    try {
+      const userId = req.session.userId || req.body.userId;
+      if (!userId) {
+        return res.status(401).json({ message: "Not authenticated" });
+      }
+
+      const { currentPassword, newPassword } = req.body;
+      if (!currentPassword || !newPassword) {
+        return res.status(400).json({ message: "Current and new password are required" });
+      }
+
+      const user = await storage.getUser(userId);
+      if (!user) {
+        return res.status(404).json({ message: "User not found" });
+      }
+
+      const valid = await bcrypt.compare(currentPassword, user.password);
+      if (!valid) {
+        return res.status(401).json({ message: "Mevcut şifre hatalı" });
+      }
+
+      const hashedPassword = await bcrypt.hash(newPassword, 10);
+      await storage.updateUser(userId, { password: hashedPassword });
+
+      return res.json({ message: "Şifre başarıyla değiştirildi" });
+    } catch (error) {
+      console.error('Change password error:', error);
+      return res.status(500).json({ message: "Server error" });
+    }
+  });
+
   app.post("/api/auth/register", async (req: Request, res: Response) => {
     try {
       const data = insertUserSchema.parse(req.body);

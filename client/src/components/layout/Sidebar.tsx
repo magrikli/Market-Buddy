@@ -11,15 +11,27 @@ import {
   LogOut,
   User,
   ChevronLeft,
-  ChevronRight
+  ChevronRight,
+  Key,
+  Loader2
 } from "lucide-react";
 import { useState } from "react";
 import { Button } from "@/components/ui/button";
+import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from "@/components/ui/dialog";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
+import { toast } from "sonner";
+import * as api from "@/lib/api";
 
 export function Sidebar() {
   const [location] = useLocation();
   const { currentUser, logout } = useStore();
   const [collapsed, setCollapsed] = useState(false);
+  const [isPasswordDialogOpen, setIsPasswordDialogOpen] = useState(false);
+  const [currentPassword, setCurrentPassword] = useState("");
+  const [newPassword, setNewPassword] = useState("");
+  const [confirmPassword, setConfirmPassword] = useState("");
+  const [isChangingPassword, setIsChangingPassword] = useState(false);
 
   if (!currentUser) return null;
 
@@ -32,18 +44,45 @@ export function Sidebar() {
     ...(currentUser.role === 'admin' ? [{ href: "/admin", label: "Yönetim Paneli", icon: Settings }] : []),
   ];
 
+  const handleChangePassword = async () => {
+    if (!currentPassword || !newPassword) {
+      toast.error("Tüm alanları doldurun");
+      return;
+    }
+    if (newPassword !== confirmPassword) {
+      toast.error("Yeni şifreler eşleşmiyor");
+      return;
+    }
+    if (newPassword.length < 4) {
+      toast.error("Yeni şifre en az 4 karakter olmalı");
+      return;
+    }
+
+    setIsChangingPassword(true);
+    try {
+      await api.changePassword(currentUser.id, currentPassword, newPassword);
+      toast.success("Şifre başarıyla değiştirildi");
+      setIsPasswordDialogOpen(false);
+      setCurrentPassword("");
+      setNewPassword("");
+      setConfirmPassword("");
+    } catch (error: any) {
+      toast.error("Hata", { description: error.message });
+    } finally {
+      setIsChangingPassword(false);
+    }
+  };
+
   return (
     <div className={cn(
       "h-screen bg-sidebar border-r border-sidebar-border flex flex-col transition-all duration-300",
       collapsed ? "w-16" : "w-64"
     )}>
-      {/* Header */}
       <div className="h-16 flex items-center px-4 border-b border-sidebar-border">
         {!collapsed && <span className="font-bold text-xl text-primary tracking-tight">FinFlow</span>}
         {collapsed && <span className="font-bold text-xl text-primary mx-auto">FF</span>}
       </div>
 
-      {/* Navigation */}
       <div className="flex-1 py-4 flex flex-col gap-1 px-2">
         {navItems.map((item) => {
           const isActive = location === item.href;
@@ -67,7 +106,6 @@ export function Sidebar() {
         })}
       </div>
 
-      {/* User & Footer */}
       <div className="p-4 border-t border-sidebar-border">
         <div className={cn("flex items-center gap-3 mb-4", collapsed && "justify-center")}>
             <div className="h-8 w-8 rounded-full bg-primary/10 flex items-center justify-center text-primary border border-primary/20">
@@ -84,12 +122,24 @@ export function Sidebar() {
         <div className="flex items-center gap-2">
           <Button 
               variant="outline" 
+              size="icon"
+              className="h-8 w-8 text-muted-foreground hover:text-foreground"
+              onClick={() => setIsPasswordDialogOpen(true)}
+              title="Şifre Değiştir"
+              data-testid="button-change-password"
+          >
+              <Key className="h-4 w-4" />
+          </Button>
+
+          <Button 
+              variant="outline" 
               size={collapsed ? "icon" : "sm"} 
               className={cn("flex-1 justify-start text-muted-foreground hover:text-destructive hover:bg-destructive/10 hover:border-destructive/20", collapsed && "justify-center")}
               onClick={() => {
                   logout();
                   window.location.href = '/login';
               }}
+              data-testid="button-logout"
           >
               <LogOut className="h-4 w-4 mr-2" />
               {!collapsed && "Çıkış Yap"}
@@ -105,6 +155,57 @@ export function Sidebar() {
           </Button>
         </div>
       </div>
+
+      <Dialog open={isPasswordDialogOpen} onOpenChange={setIsPasswordDialogOpen}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>Şifre Değiştir</DialogTitle>
+            <DialogDescription>Güvenliğiniz için şifrenizi düzenli olarak değiştirin.</DialogDescription>
+          </DialogHeader>
+          <div className="space-y-4 py-4">
+            <div className="space-y-2">
+              <Label htmlFor="current-password">Mevcut Şifre</Label>
+              <Input 
+                id="current-password" 
+                type="password" 
+                value={currentPassword} 
+                onChange={(e) => setCurrentPassword(e.target.value)} 
+                placeholder="••••••••"
+                data-testid="input-current-password"
+              />
+            </div>
+            <div className="space-y-2">
+              <Label htmlFor="new-password">Yeni Şifre</Label>
+              <Input 
+                id="new-password" 
+                type="password" 
+                value={newPassword} 
+                onChange={(e) => setNewPassword(e.target.value)} 
+                placeholder="••••••••"
+                data-testid="input-new-password"
+              />
+            </div>
+            <div className="space-y-2">
+              <Label htmlFor="confirm-password">Yeni Şifre (Tekrar)</Label>
+              <Input 
+                id="confirm-password" 
+                type="password" 
+                value={confirmPassword} 
+                onChange={(e) => setConfirmPassword(e.target.value)} 
+                placeholder="••••••••"
+                data-testid="input-confirm-password"
+              />
+            </div>
+          </div>
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setIsPasswordDialogOpen(false)}>İptal</Button>
+            <Button onClick={handleChangePassword} disabled={isChangingPassword} data-testid="button-save-password">
+              {isChangingPassword && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
+              Kaydet
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }
