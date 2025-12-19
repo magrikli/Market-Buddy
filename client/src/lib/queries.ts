@@ -5,6 +5,7 @@ import type { User } from './store';
 // Query keys
 export const queryKeys = {
   user: ['user'] as const,
+  users: ['users'] as const,
   departmentGroups: ['departmentGroups'] as const,
   departments: (year: number) => ['departments', year] as const,
   projects: (year: number) => ['projects', year] as const,
@@ -20,6 +21,45 @@ export function useLogin() {
       api.login(username, password),
     onSuccess: (data) => {
       queryClient.setQueryData(queryKeys.user, data.user);
+    },
+  });
+}
+
+// === USERS ===
+
+export function useUsers() {
+  return useQuery({
+    queryKey: queryKeys.users,
+    queryFn: () => api.getUsers(),
+  });
+}
+
+export function useCreateUser() {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: (data: { username: string; password: string; name: string; role?: string }) => api.createUser(data),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: queryKeys.users });
+    },
+  });
+}
+
+export function useUpdateUser() {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: ({ id, data }: { id: string; data: { name?: string; role?: string; password?: string } }) => api.updateUser(id, data),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: queryKeys.users });
+    },
+  });
+}
+
+export function useDeleteUser() {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: (id: string) => api.deleteUser(id),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: queryKeys.users });
     },
   });
 }

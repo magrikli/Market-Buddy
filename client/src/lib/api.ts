@@ -47,6 +47,41 @@ export async function logout(): Promise<void> {
   });
 }
 
+// === USERS ===
+
+export interface UserWithAssignments {
+  id: string;
+  username: string;
+  name: string;
+  role: string;
+  assignedDepartmentIds: string[];
+  assignedProjectIds: string[];
+}
+
+export async function getUsers(): Promise<UserWithAssignments[]> {
+  return fetchAPI('/users');
+}
+
+export async function createUser(data: { username: string; password: string; name: string; role?: string }): Promise<UserWithAssignments> {
+  return fetchAPI('/users', {
+    method: 'POST',
+    body: JSON.stringify(data),
+  });
+}
+
+export async function updateUser(id: string, data: { name?: string; role?: string; password?: string }): Promise<UserWithAssignments> {
+  return fetchAPI(`/users/${id}`, {
+    method: 'PUT',
+    body: JSON.stringify(data),
+  });
+}
+
+export async function deleteUser(id: string): Promise<void> {
+  return fetchAPI(`/users/${id}`, {
+    method: 'DELETE',
+  });
+}
+
 // === DEPARTMENT GROUPS ===
 
 export async function getDepartmentGroups(): Promise<DepartmentGroup[]> {

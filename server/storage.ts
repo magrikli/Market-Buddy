@@ -14,7 +14,10 @@ export interface IStorage {
   // Users
   getUser(id: string): Promise<User | undefined>;
   getUserByUsername(username: string): Promise<User | undefined>;
+  getAllUsers(): Promise<User[]>;
   createUser(user: InsertUser): Promise<User>;
+  updateUser(id: string, updates: Partial<Omit<User, 'id'>>): Promise<User | undefined>;
+  deleteUser(id: string): Promise<void>;
   getUserDepartments(userId: string): Promise<string[]>;
   getUserProjects(userId: string): Promise<string[]>;
   assignUserToDepartment(userId: string, departmentId: string): Promise<void>;
@@ -84,9 +87,27 @@ export class DatabaseStorage implements IStorage {
     return result[0];
   }
 
+  async getAllUsers(): Promise<User[]> {
+    return await db.select().from(users);
+  }
+
   async createUser(user: InsertUser): Promise<User> {
     const result = await db.insert(users).values(user).returning();
     return result[0];
+  }
+
+  async updateUser(id: string, updates: Partial<Omit<User, 'id'>>): Promise<User | undefined> {
+    const result = await db.update(users)
+      .set(updates)
+      .where(eq(users.id, id))
+      .returning();
+    return result[0];
+  }
+
+  async deleteUser(id: string): Promise<void> {
+    await db.delete(userDepartmentAssignments).where(eq(userDepartmentAssignments.userId, id));
+    await db.delete(userProjectAssignments).where(eq(userProjectAssignments.userId, id));
+    await db.delete(users).where(eq(users.id, id));
   }
 
   async getUserDepartments(userId: string): Promise<string[]> {

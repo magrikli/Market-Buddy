@@ -609,9 +609,75 @@ export async function registerRoutes(server: Server, app: Express): Promise<Serv
   
   app.get("/api/users", async (req: Request, res: Response) => {
     try {
-      // In a real app, this would need proper authorization
-      // For now, return mock data or implement properly
-      return res.json([]);
+      const allUsers = await storage.getAllUsers();
+      const usersWithAssignments = await Promise.all(
+        allUsers.map(async (user) => {
+          const assignedDepartmentIds = await storage.getUserDepartments(user.id);
+          const assignedProjectIds = await storage.getUserProjects(user.id);
+          return {
+            ...user,
+            password: undefined,
+            assignedDepartmentIds,
+            assignedProjectIds,
+          };
+        })
+      );
+      return res.json(usersWithAssignments);
+    } catch (error) {
+      return res.status(500).json({ message: "Server error" });
+    }
+  });
+
+  app.post("/api/users", async (req: Request, res: Response) => {
+    try {
+      const { username, password, name, role } = req.body;
+      if (!username || !password || !name) {
+        return res.status(400).json({ message: "Username, password, and name are required" });
+      }
+      const existingUser = await storage.getUserByUsername(username);
+      if (existingUser) {
+        return res.status(400).json({ message: "Username already exists" });
+      }
+      const bcrypt = await import('bcrypt');
+      const hashedPassword = await bcrypt.hash(password, 10);
+      const user = await storage.createUser({
+        username,
+        password: hashedPassword,
+        name,
+        role: role || 'user',
+      });
+      return res.status(201).json({ ...user, password: undefined });
+    } catch (error) {
+      return res.status(500).json({ message: "Server error" });
+    }
+  });
+
+  app.put("/api/users/:id", async (req: Request, res: Response) => {
+    try {
+      const { id } = req.params;
+      const { name, role, password } = req.body;
+      const updates: any = {};
+      if (name) updates.name = name;
+      if (role) updates.role = role;
+      if (password) {
+        const bcrypt = await import('bcrypt');
+        updates.password = await bcrypt.hash(password, 10);
+      }
+      const user = await storage.updateUser(id, updates);
+      if (!user) {
+        return res.status(404).json({ message: "User not found" });
+      }
+      return res.json({ ...user, password: undefined });
+    } catch (error) {
+      return res.status(500).json({ message: "Server error" });
+    }
+  });
+
+  app.delete("/api/users/:id", async (req: Request, res: Response) => {
+    try {
+      const { id } = req.params;
+      await storage.deleteUser(id);
+      return res.json({ success: true });
     } catch (error) {
       return res.status(500).json({ message: "Server error" });
     }

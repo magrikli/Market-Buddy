@@ -3,34 +3,106 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from "@/components/ui/dialog";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { useStore } from "@/lib/store";
-import { useDepartments, useApproveBudgetItem } from "@/lib/queries";
-import { Search, UserPlus, Settings, Shield, CheckCheck } from "lucide-react";
+import { useDepartments, useApproveBudgetItem, useUsers, useCreateUser, useUpdateUser, useDeleteUser } from "@/lib/queries";
+import { Search, UserPlus, Settings, Shield, CheckCheck, Pencil, Trash2, Loader2 } from "lucide-react";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
-import { Badge } from "@/components/ui/badge";
 import { toast } from "sonner";
+import { useState } from "react";
 
 export default function Admin() {
   const { currentYear } = useStore();
   const { data: departments = [] } = useDepartments(currentYear);
+  const { data: users = [], isLoading: usersLoading } = useUsers();
   const approveBudgetItemMutation = useApproveBudgetItem();
+  const createUserMutation = useCreateUser();
+  const updateUserMutation = useUpdateUser();
+  const deleteUserMutation = useDeleteUser();
+
+  const [isNewUserOpen, setIsNewUserOpen] = useState(false);
+  const [isEditUserOpen, setIsEditUserOpen] = useState(false);
+  const [editingUser, setEditingUser] = useState<{ id: string; name: string; username: string; role: string } | null>(null);
+  
+  const [newUsername, setNewUsername] = useState("");
+  const [newPassword, setNewPassword] = useState("");
+  const [newName, setNewName] = useState("");
+  const [newRole, setNewRole] = useState("user");
+  
+  const [editName, setEditName] = useState("");
+  const [editRole, setEditRole] = useState("");
+  const [editPassword, setEditPassword] = useState("");
 
   const handleBulkApprove = () => {
-      toast.success("5 adet bütçe kalemi onaylandı");
+    toast.success("5 adet bütçe kalemi onaylandı");
   };
 
-  // Mock pending items aggregation
-  const pendingItems = [
-      { id: 1, dept: 'Bilgi Teknolojileri', group: 'Personel', item: 'Yeni Yazılımcı Maaşı', amount: 45000, date: '2025-01-10' },
-      { id: 2, dept: 'İnsan Kaynakları', group: 'Eğitim', item: 'Liderlik Eğitimi', amount: 5000, date: '2025-01-12' },
-      { id: 3, dept: 'Bilgi Teknolojileri', group: 'Altyapı', item: 'Yedekleme Sunucusu', amount: 2000, date: '2025-01-14' },
-  ];
+  const handleCreateUser = async () => {
+    if (!newUsername || !newPassword || !newName) {
+      toast.error("Tüm alanları doldurun");
+      return;
+    }
+    try {
+      await createUserMutation.mutateAsync({
+        username: newUsername,
+        password: newPassword,
+        name: newName,
+        role: newRole,
+      });
+      toast.success("Kullanıcı oluşturuldu", { description: newName });
+      setIsNewUserOpen(false);
+      setNewUsername("");
+      setNewPassword("");
+      setNewName("");
+      setNewRole("user");
+    } catch (error: any) {
+      toast.error("Hata", { description: error.message });
+    }
+  };
 
-  // Mock users for display
-  const users = [
-    { id: 'u-1', username: 'admin', name: 'Sistem Yöneticisi', role: 'admin', assignedDepartmentIds: ['1', '2'], assignedProjectIds: ['1'] },
-    { id: 'u-2', username: 'it_manager', name: 'Ahmet Yılmaz', role: 'user', assignedDepartmentIds: ['1'], assignedProjectIds: ['1'] },
-    { id: 'u-3', username: 'ik_manager', name: 'Ayşe Demir', role: 'user', assignedDepartmentIds: ['2'], assignedProjectIds: [] },
+  const handleEditUser = async () => {
+    if (!editingUser) return;
+    try {
+      const data: any = {};
+      if (editName) data.name = editName;
+      if (editRole) data.role = editRole;
+      if (editPassword) data.password = editPassword;
+      
+      await updateUserMutation.mutateAsync({ id: editingUser.id, data });
+      toast.success("Kullanıcı güncellendi");
+      setIsEditUserOpen(false);
+      setEditingUser(null);
+      setEditName("");
+      setEditRole("");
+      setEditPassword("");
+    } catch (error: any) {
+      toast.error("Hata", { description: error.message });
+    }
+  };
+
+  const handleDeleteUser = async (id: string, name: string) => {
+    if (!confirm(`"${name}" kullanıcısını silmek istediğinize emin misiniz?`)) return;
+    try {
+      await deleteUserMutation.mutateAsync(id);
+      toast.success("Kullanıcı silindi", { description: name });
+    } catch (error: any) {
+      toast.error("Hata", { description: error.message });
+    }
+  };
+
+  const openEditDialog = (user: any) => {
+    setEditingUser(user);
+    setEditName(user.name);
+    setEditRole(user.role);
+    setEditPassword("");
+    setIsEditUserOpen(true);
+  };
+
+  const pendingItems = [
+    { id: 1, dept: 'Bilgi Teknolojileri', group: 'Personel', item: 'Yeni Yazılımcı Maaşı', amount: 45000, date: '2025-01-10' },
+    { id: 2, dept: 'İnsan Kaynakları', group: 'Eğitim', item: 'Liderlik Eğitimi', amount: 5000, date: '2025-01-12' },
+    { id: 3, dept: 'Bilgi Teknolojileri', group: 'Altyapı', item: 'Yedekleme Sunucusu', amount: 2000, date: '2025-01-14' },
   ];
 
   return (
@@ -40,134 +112,228 @@ export default function Admin() {
         <p className="text-muted-foreground mt-1">Sistem ayarları ve kullanıcı yetkilendirme.</p>
       </div>
 
+      <Dialog open={isNewUserOpen} onOpenChange={setIsNewUserOpen}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>Yeni Kullanıcı Ekle</DialogTitle>
+            <DialogDescription>Sisteme yeni bir kullanıcı tanımlayın.</DialogDescription>
+          </DialogHeader>
+          <div className="space-y-4 py-4">
+            <div className="space-y-2">
+              <Label htmlFor="username">Kullanıcı Adı</Label>
+              <Input id="username" value={newUsername} onChange={(e) => setNewUsername(e.target.value)} placeholder="ornek_kullanici" />
+            </div>
+            <div className="space-y-2">
+              <Label htmlFor="name">Ad Soyad</Label>
+              <Input id="name" value={newName} onChange={(e) => setNewName(e.target.value)} placeholder="Ahmet Yılmaz" />
+            </div>
+            <div className="space-y-2">
+              <Label htmlFor="password">Şifre</Label>
+              <Input id="password" type="password" value={newPassword} onChange={(e) => setNewPassword(e.target.value)} placeholder="••••••••" />
+            </div>
+            <div className="space-y-2">
+              <Label htmlFor="role">Rol</Label>
+              <Select value={newRole} onValueChange={setNewRole}>
+                <SelectTrigger>
+                  <SelectValue placeholder="Rol seçin" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="user">Kullanıcı</SelectItem>
+                  <SelectItem value="admin">Yönetici</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
+          </div>
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setIsNewUserOpen(false)}>İptal</Button>
+            <Button onClick={handleCreateUser} disabled={createUserMutation.isPending}>
+              {createUserMutation.isPending && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
+              Oluştur
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      <Dialog open={isEditUserOpen} onOpenChange={setIsEditUserOpen}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>Kullanıcı Düzenle</DialogTitle>
+            <DialogDescription>Kullanıcı bilgilerini güncelleyin.</DialogDescription>
+          </DialogHeader>
+          <div className="space-y-4 py-4">
+            <div className="space-y-2">
+              <Label htmlFor="edit-name">Ad Soyad</Label>
+              <Input id="edit-name" value={editName} onChange={(e) => setEditName(e.target.value)} />
+            </div>
+            <div className="space-y-2">
+              <Label htmlFor="edit-role">Rol</Label>
+              <Select value={editRole} onValueChange={setEditRole}>
+                <SelectTrigger>
+                  <SelectValue placeholder="Rol seçin" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="user">Kullanıcı</SelectItem>
+                  <SelectItem value="admin">Yönetici</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
+            <div className="space-y-2">
+              <Label htmlFor="edit-password">Yeni Şifre (opsiyonel)</Label>
+              <Input id="edit-password" type="password" value={editPassword} onChange={(e) => setEditPassword(e.target.value)} placeholder="Değiştirmek için yeni şifre girin" />
+            </div>
+          </div>
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setIsEditUserOpen(false)}>İptal</Button>
+            <Button onClick={handleEditUser} disabled={updateUserMutation.isPending}>
+              {updateUserMutation.isPending && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
+              Kaydet
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
       <Tabs defaultValue="approvals" className="w-full">
         <TabsList className="grid w-full max-w-lg grid-cols-3 mb-6">
-            <TabsTrigger value="approvals">Onay Bekleyenler</TabsTrigger>
-            <TabsTrigger value="users">Kullanıcı Yönetimi</TabsTrigger>
-            <TabsTrigger value="settings">Sistem Ayarları</TabsTrigger>
+          <TabsTrigger value="approvals">Onay Bekleyenler</TabsTrigger>
+          <TabsTrigger value="users">Kullanıcı Yönetimi</TabsTrigger>
+          <TabsTrigger value="settings">Sistem Ayarları</TabsTrigger>
         </TabsList>
 
         <TabsContent value="approvals">
-            <Card className="shadow-md">
-                <CardHeader className="flex flex-row items-center justify-between">
-                    <div>
-                        <CardTitle>Toplu Onay</CardTitle>
-                        <CardDescription>Departmanlardan gelen onay bekleyen bütçe kalemleri</CardDescription>
-                    </div>
-                    <Button onClick={handleBulkApprove} className="bg-emerald-600 hover:bg-emerald-700">
-                        <CheckCheck className="mr-2 h-4 w-4" />
-                        Tümünü Onayla
-                    </Button>
-                </CardHeader>
-                <CardContent>
-                    <Table>
-                        <TableHeader>
-                            <TableRow>
-                                <TableHead>Departman</TableHead>
-                                <TableHead>Grup</TableHead>
-                                <TableHead>Kalem</TableHead>
-                                <TableHead className="text-right">Tutar</TableHead>
-                                <TableHead>Tarih</TableHead>
-                                <TableHead className="text-center">İşlem</TableHead>
-                            </TableRow>
-                        </TableHeader>
-                        <TableBody>
-                            {pendingItems.map((item) => (
-                                <TableRow key={item.id}>
-                                    <TableCell className="font-medium">{item.dept}</TableCell>
-                                    <TableCell>{item.group}</TableCell>
-                                    <TableCell>{item.item}</TableCell>
-                                    <TableCell className="text-right tabular-nums">€ {item.amount}</TableCell>
-                                    <TableCell className="text-xs text-muted-foreground">{item.date}</TableCell>
-                                    <TableCell className="text-center">
-                                        <Button size="sm" variant="ghost" className="text-emerald-600 hover:text-emerald-700 hover:bg-emerald-50">Onayla</Button>
-                                    </TableCell>
-                                </TableRow>
-                            ))}
-                        </TableBody>
-                    </Table>
-                </CardContent>
-            </Card>
+          <Card className="shadow-md">
+            <CardHeader className="flex flex-row items-center justify-between">
+              <div>
+                <CardTitle>Toplu Onay</CardTitle>
+                <CardDescription>Departmanlardan gelen onay bekleyen bütçe kalemleri</CardDescription>
+              </div>
+              <Button onClick={handleBulkApprove} className="bg-emerald-600 hover:bg-emerald-700">
+                <CheckCheck className="mr-2 h-4 w-4" />
+                Tümünü Onayla
+              </Button>
+            </CardHeader>
+            <CardContent>
+              <Table>
+                <TableHeader>
+                  <TableRow>
+                    <TableHead>Departman</TableHead>
+                    <TableHead>Grup</TableHead>
+                    <TableHead>Kalem</TableHead>
+                    <TableHead className="text-right">Tutar</TableHead>
+                    <TableHead>Tarih</TableHead>
+                    <TableHead className="text-center">İşlem</TableHead>
+                  </TableRow>
+                </TableHeader>
+                <TableBody>
+                  {pendingItems.map((item) => (
+                    <TableRow key={item.id}>
+                      <TableCell className="font-medium">{item.dept}</TableCell>
+                      <TableCell>{item.group}</TableCell>
+                      <TableCell>{item.item}</TableCell>
+                      <TableCell className="text-right tabular-nums">€ {item.amount}</TableCell>
+                      <TableCell className="text-xs text-muted-foreground">{item.date}</TableCell>
+                      <TableCell className="text-center">
+                        <Button size="sm" variant="ghost" className="text-emerald-600 hover:text-emerald-700 hover:bg-emerald-50">Onayla</Button>
+                      </TableCell>
+                    </TableRow>
+                  ))}
+                </TableBody>
+              </Table>
+            </CardContent>
+          </Card>
         </TabsContent>
 
         <TabsContent value="users">
-            <Card className="shadow-md">
-                <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-4">
-                    <div className="space-y-1">
-                        <CardTitle>Kullanıcılar</CardTitle>
-                        <CardDescription>Sisteme erişimi olan personelleri yönetin</CardDescription>
-                    </div>
-                    <Button className="bg-primary hover:bg-primary/90">
-                        <UserPlus className="mr-2 h-4 w-4" />
-                        Yeni Kullanıcı
-                    </Button>
-                </CardHeader>
-                <CardContent>
-                    <div className="flex items-center gap-2 mb-4">
-                        <div className="relative flex-1">
-                            <Search className="absolute left-2.5 top-2.5 h-4 w-4 text-muted-foreground" />
-                            <Input
-                                placeholder="İsim veya e-posta ile ara..."
-                                className="pl-9"
-                            />
-                        </div>
-                    </div>
+          <Card className="shadow-md">
+            <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-4">
+              <div className="space-y-1">
+                <CardTitle>Kullanıcılar</CardTitle>
+                <CardDescription>Sisteme erişimi olan personelleri yönetin</CardDescription>
+              </div>
+              <Button className="bg-primary hover:bg-primary/90" onClick={() => setIsNewUserOpen(true)}>
+                <UserPlus className="mr-2 h-4 w-4" />
+                Yeni Kullanıcı
+              </Button>
+            </CardHeader>
+            <CardContent>
+              <div className="flex items-center gap-2 mb-4">
+                <div className="relative flex-1">
+                  <Search className="absolute left-2.5 top-2.5 h-4 w-4 text-muted-foreground" />
+                  <Input placeholder="İsim veya kullanıcı adı ile ara..." className="pl-9" />
+                </div>
+              </div>
 
-                    <div className="space-y-4">
-                        {users.map((user) => (
-                            <div key={user.id} className="flex items-center justify-between p-4 border rounded-lg hover:bg-muted/30 transition-colors">
-                                <div className="flex items-center gap-4">
-                                    <div className="h-10 w-10 rounded-full bg-primary/10 flex items-center justify-center text-primary font-medium">
-                                        {user.name.charAt(0)}
-                                    </div>
-                                    <div>
-                                        <p className="font-medium text-sm text-foreground">{user.name}</p>
-                                        <p className="text-xs text-muted-foreground">@{user.username}</p>
-                                    </div>
-                                </div>
-                                <div className="flex items-center gap-4">
-                                    <div className="flex flex-col items-end gap-1">
-                                        <span className={`text-xs px-2 py-0.5 rounded-full border ${user.role === 'admin' ? 'bg-indigo-50 text-indigo-700 border-indigo-200' : 'bg-slate-50 text-slate-700 border-slate-200'}`}>
-                                            {user.role === 'admin' ? 'Yönetici' : 'Kullanıcı'}
-                                        </span>
-                                        <span className="text-[10px] text-muted-foreground">
-                                            {user.assignedDepartmentIds.length} Departman, {user.assignedProjectIds.length} Proje
-                                        </span>
-                                    </div>
-                                    <Button variant="ghost" size="sm">Düzenle</Button>
-                                </div>
-                            </div>
-                        ))}
+              {usersLoading ? (
+                <div className="flex items-center justify-center p-8">
+                  <Loader2 className="h-8 w-8 animate-spin text-primary" />
+                </div>
+              ) : users.length === 0 ? (
+                <div className="text-center p-8 bg-muted/10 rounded-lg border border-dashed">
+                  <p className="text-muted-foreground">Henüz kullanıcı bulunmuyor.</p>
+                </div>
+              ) : (
+                <div className="space-y-4">
+                  {users.map((user) => (
+                    <div key={user.id} className="flex items-center justify-between p-4 border rounded-lg hover:bg-muted/30 transition-colors">
+                      <div className="flex items-center gap-4">
+                        <div className="h-10 w-10 rounded-full bg-primary/10 flex items-center justify-center text-primary font-medium">
+                          {user.name.charAt(0)}
+                        </div>
+                        <div>
+                          <p className="font-medium text-sm text-foreground">{user.name}</p>
+                          <p className="text-xs text-muted-foreground">@{user.username}</p>
+                        </div>
+                      </div>
+                      <div className="flex items-center gap-4">
+                        <div className="flex flex-col items-end gap-1">
+                          <span className={`text-xs px-2 py-0.5 rounded-full border ${user.role === 'admin' ? 'bg-indigo-50 text-indigo-700 border-indigo-200' : 'bg-slate-50 text-slate-700 border-slate-200'}`}>
+                            {user.role === 'admin' ? 'Yönetici' : 'Kullanıcı'}
+                          </span>
+                          <span className="text-[10px] text-muted-foreground">
+                            {user.assignedDepartmentIds.length} Departman, {user.assignedProjectIds.length} Proje
+                          </span>
+                        </div>
+                        <div className="flex gap-1">
+                          <Button variant="ghost" size="icon" className="h-8 w-8" onClick={() => openEditDialog(user)}>
+                            <Pencil className="h-4 w-4" />
+                          </Button>
+                          <Button variant="ghost" size="icon" className="h-8 w-8 text-destructive hover:text-destructive" onClick={() => handleDeleteUser(user.id, user.name)}>
+                            <Trash2 className="h-4 w-4" />
+                          </Button>
+                        </div>
+                      </div>
                     </div>
-                </CardContent>
-            </Card>
+                  ))}
+                </div>
+              )}
+            </CardContent>
+          </Card>
         </TabsContent>
 
         <TabsContent value="settings">
-            <Card>
-                <CardHeader>
-                    <CardTitle>Genel Ayarlar</CardTitle>
-                    <CardDescription>Bütçe yılı ve para birimi ayarları</CardDescription>
-                </CardHeader>
-                <CardContent className="space-y-4">
-                    <div className="grid grid-cols-2 gap-4">
-                        <div className="space-y-2">
-                            <Label>Aktif Bütçe Yılı</Label>
-                            <Input value="2025" readOnly />
-                        </div>
-                        <div className="space-y-2">
-                            <Label>Para Birimi</Label>
-                            <Input value="EUR (€)" readOnly />
-                        </div>
-                    </div>
-                    <div className="pt-4">
-                        <Button variant="outline">
-                            <Settings className="mr-2 h-4 w-4" />
-                            Sistem Parametrelerini Düzenle
-                        </Button>
-                    </div>
-                </CardContent>
-            </Card>
+          <Card>
+            <CardHeader>
+              <CardTitle>Genel Ayarlar</CardTitle>
+              <CardDescription>Bütçe yılı ve para birimi ayarları</CardDescription>
+            </CardHeader>
+            <CardContent className="space-y-4">
+              <div className="grid grid-cols-2 gap-4">
+                <div className="space-y-2">
+                  <Label>Aktif Bütçe Yılı</Label>
+                  <Input value="2025" readOnly />
+                </div>
+                <div className="space-y-2">
+                  <Label>Para Birimi</Label>
+                  <Input value="EUR (€)" readOnly />
+                </div>
+              </div>
+              <div className="pt-4">
+                <Button variant="outline">
+                  <Settings className="mr-2 h-4 w-4" />
+                  Sistem Parametrelerini Düzenle
+                </Button>
+              </div>
+            </CardContent>
+          </Card>
         </TabsContent>
       </Tabs>
     </div>
