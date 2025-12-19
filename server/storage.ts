@@ -55,6 +55,7 @@ export interface IStorage {
   createBudgetItem(item: InsertBudgetItem): Promise<BudgetItem>;
   updateBudgetItem(id: string, updates: Partial<BudgetItem>): Promise<BudgetItem | undefined>;
   approveBudgetItem(id: string): Promise<BudgetItem | undefined>;
+  revertBudgetItem(id: string): Promise<BudgetItem | undefined>;
   deleteBudgetItem(id: string): Promise<void>;
   
   // Budget Revisions
@@ -234,6 +235,25 @@ export class DatabaseStorage implements IStorage {
   async approveBudgetItem(id: string): Promise<BudgetItem | undefined> {
     const result = await db.update(budgetItems)
       .set({ status: 'approved', previousApprovedValues: null, updatedAt: new Date() })
+      .where(eq(budgetItems.id, id))
+      .returning();
+    return result[0];
+  }
+
+  async revertBudgetItem(id: string): Promise<BudgetItem | undefined> {
+    const item = await this.getBudgetItem(id);
+    if (!item || !item.previousApprovedValues || item.status === 'approved') {
+      return undefined;
+    }
+    
+    const result = await db.update(budgetItems)
+      .set({ 
+        monthlyValues: item.previousApprovedValues,
+        previousApprovedValues: null,
+        status: 'approved',
+        currentRevision: Math.max(0, item.currentRevision - 1),
+        updatedAt: new Date() 
+      })
       .where(eq(budgetItems.id, id))
       .returning();
     return result[0];
