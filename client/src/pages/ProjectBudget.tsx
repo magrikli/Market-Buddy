@@ -12,11 +12,12 @@ import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/com
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from "@/components/ui/dropdown-menu";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { PlusCircle, Download, Filter, Loader2, Plus, MoreHorizontal, Pencil, Trash2, FolderGit2, Layers } from "lucide-react";
+import { PlusCircle, Download, Filter, Loader2, Plus, MoreHorizontal, Pencil, Trash2, FolderGit2, Layers, Clock, DollarSign } from "lucide-react";
 import { useState } from "react";
 import { AddEntityDialog, AddBudgetItemDialog } from "@/components/budget/AddEntityDialogs";
 import { toast } from "sonner";
 import type { BudgetMonthValues } from "@/lib/store";
+import ProjectProcessesTab from "@/components/ProjectProcessesTab";
 
 export default function ProjectBudget() {
   const { currentYear, setYear, currentUser, selectedCompanyId } = useStore();
@@ -46,6 +47,9 @@ export default function ProjectBudget() {
   const [editPhaseOpen, setEditPhaseOpen] = useState(false);
   const [editingProject, setEditingProject] = useState<{id: string; name: string} | null>(null);
   const [editingPhase, setEditingPhase] = useState<{id: string; name: string} | null>(null);
+  
+  const [mainTab, setMainTab] = useState<string>("budget");
+  const [selectedProcessProject, setSelectedProcessProject] = useState<string | null>(null);
 
   const formatMoney = (amount: number) => {
     return new Intl.NumberFormat('tr-TR', { minimumFractionDigits: 0 }).format(amount);
@@ -272,7 +276,7 @@ export default function ProjectBudget() {
           <Button variant="outline" size="icon">
             <Download className="h-4 w-4" />
           </Button>
-          {currentUser?.role === 'admin' && (
+          {currentUser?.role === 'admin' && mainTab === 'budget' && (
             <Button 
               className="bg-primary hover:bg-primary/90" 
               onClick={() => setIsNewProjectOpen(true)}
@@ -286,60 +290,19 @@ export default function ProjectBudget() {
         </div>
       </div>
 
-      <AddEntityDialog 
-        isOpen={isNewProjectOpen} 
-        onClose={() => setIsNewProjectOpen(false)} 
-        onSave={handleAddProject}
-        title="Yeni Proje Ekle"
-        description="Bütçe sistemine yeni bir proje tanımlayın."
-        placeholder="Örn: E-Ticaret Platformu"
-      />
+      <Tabs value={mainTab} onValueChange={setMainTab} className="w-full">
+        <TabsList className="grid w-full max-w-md grid-cols-2">
+          <TabsTrigger value="budget" className="flex items-center gap-2">
+            <DollarSign className="h-4 w-4" />
+            Bütçe
+          </TabsTrigger>
+          <TabsTrigger value="processes" className="flex items-center gap-2">
+            <Clock className="h-4 w-4" />
+            Süreçler
+          </TabsTrigger>
+        </TabsList>
 
-      <AddEntityDialog 
-        isOpen={isNewPhaseOpen} 
-        onClose={() => { setIsNewPhaseOpen(false); setActiveProjectForPhase(null); }} 
-        onSave={handleAddPhase}
-        title="Yeni Faz Ekle"
-        description="Seçili proje altına yeni bir faz ekleyin."
-        placeholder="Örn: Faz 1: Tasarım"
-      />
-
-      <AddBudgetItemDialog 
-        isOpen={isNewCostItemOpen} 
-        onClose={() => { setIsNewCostItemOpen(false); setActivePhaseForItem(null); }} 
-        onSave={handleAddCostItem}
-        title="Yeni Gider Kalemi"
-        description="Seçili faz altına yeni bir gider kalemi ekleyin."
-      />
-
-      <AddBudgetItemDialog 
-        isOpen={isNewRevenueItemOpen} 
-        onClose={() => { setIsNewRevenueItemOpen(false); setActivePhaseForItem(null); }} 
-        onSave={handleAddRevenueItem}
-        title="Yeni Gelir Kalemi"
-        description="Seçili faz altına yeni bir gelir kalemi ekleyin."
-      />
-
-      <AddEntityDialog 
-        isOpen={editProjectOpen} 
-        onClose={() => { setEditProjectOpen(false); setEditingProject(null); }} 
-        onSave={handleEditProject}
-        title="Proje Düzenle"
-        description="Proje adını güncelleyin."
-        placeholder="Proje adı"
-        defaultValue={editingProject?.name}
-      />
-
-      <AddEntityDialog 
-        isOpen={editPhaseOpen} 
-        onClose={() => { setEditPhaseOpen(false); setEditingPhase(null); }} 
-        onSave={handleEditPhase}
-        title="Faz Düzenle"
-        description="Faz adını güncelleyin."
-        placeholder="Faz adı"
-        defaultValue={editingPhase?.name}
-      />
-
+        <TabsContent value="budget" className="mt-6 space-y-6">
       <div className="grid grid-cols-1 md:grid-cols-3 gap-4 justify-end ml-auto">
         <Card className="bg-primary/5 border-primary/20 shadow-sm">
           <CardHeader className="pb-2 text-right">
@@ -620,6 +583,104 @@ export default function ProjectBudget() {
           )}
         </CardContent>
       </Card>
+        </TabsContent>
+
+        <TabsContent value="processes" className="mt-6">
+          <Card>
+            <CardHeader className="bg-muted/30 border-b border-border/50">
+              <div className="flex items-center justify-between">
+                <CardTitle className="text-xl flex items-center gap-2">
+                  <Clock className="h-5 w-5 text-primary" />
+                  Proje Süreçleri
+                </CardTitle>
+                <Select 
+                  value={selectedProcessProject || ""} 
+                  onValueChange={(v) => setSelectedProcessProject(v || null)}
+                >
+                  <SelectTrigger className="w-[250px]">
+                    <SelectValue placeholder="Proje seçin..." />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {visibleProjects.map(p => (
+                      <SelectItem key={p.id} value={p.id}>{p.name}</SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
+            </CardHeader>
+            <CardContent className="p-6">
+              {!selectedProcessProject ? (
+                <div className="text-center p-12 bg-muted/20 rounded-lg border border-dashed">
+                  <Clock className="h-12 w-12 mx-auto text-muted-foreground opacity-50 mb-4" />
+                  <h3 className="text-lg font-medium text-foreground">Proje Seçin</h3>
+                  <p className="text-muted-foreground">
+                    Süreç yönetimi için yukarıdan bir proje seçin.
+                  </p>
+                </div>
+              ) : (
+                <ProjectProcessesTab 
+                  projectId={selectedProcessProject}
+                  projectName={visibleProjects.find(p => p.id === selectedProcessProject)?.name || ""}
+                />
+              )}
+            </CardContent>
+          </Card>
+        </TabsContent>
+      </Tabs>
+
+      <AddEntityDialog 
+        isOpen={isNewProjectOpen} 
+        onClose={() => setIsNewProjectOpen(false)} 
+        onSave={handleAddProject}
+        title="Yeni Proje Ekle"
+        description="Bütçe sistemine yeni bir proje tanımlayın."
+        placeholder="Örn: E-Ticaret Platformu"
+      />
+
+      <AddEntityDialog 
+        isOpen={isNewPhaseOpen} 
+        onClose={() => { setIsNewPhaseOpen(false); setActiveProjectForPhase(null); }} 
+        onSave={handleAddPhase}
+        title="Yeni Faz Ekle"
+        description="Seçili proje altına yeni bir faz ekleyin."
+        placeholder="Örn: Faz 1: Tasarım"
+      />
+
+      <AddBudgetItemDialog 
+        isOpen={isNewCostItemOpen} 
+        onClose={() => { setIsNewCostItemOpen(false); setActivePhaseForItem(null); }} 
+        onSave={handleAddCostItem}
+        title="Yeni Gider Kalemi"
+        description="Seçili faz altına yeni bir gider kalemi ekleyin."
+      />
+
+      <AddBudgetItemDialog 
+        isOpen={isNewRevenueItemOpen} 
+        onClose={() => { setIsNewRevenueItemOpen(false); setActivePhaseForItem(null); }} 
+        onSave={handleAddRevenueItem}
+        title="Yeni Gelir Kalemi"
+        description="Seçili faz altına yeni bir gelir kalemi ekleyin."
+      />
+
+      <AddEntityDialog 
+        isOpen={editProjectOpen} 
+        onClose={() => { setEditProjectOpen(false); setEditingProject(null); }} 
+        onSave={handleEditProject}
+        title="Proje Düzenle"
+        description="Proje adını güncelleyin."
+        placeholder="Proje adı"
+        defaultValue={editingProject?.name}
+      />
+
+      <AddEntityDialog 
+        isOpen={editPhaseOpen} 
+        onClose={() => { setEditPhaseOpen(false); setEditingPhase(null); }} 
+        onSave={handleEditPhase}
+        title="Faz Düzenle"
+        description="Faz adını güncelleyin."
+        placeholder="Faz adı"
+        defaultValue={editingPhase?.name}
+      />
     </div>
   );
 }

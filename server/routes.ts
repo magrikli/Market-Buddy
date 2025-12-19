@@ -728,6 +728,164 @@ export async function registerRoutes(server: Server, app: Express): Promise<Serv
     }
   });
 
+  // ===== PROJECT PROCESSES =====
+  
+  app.get("/api/project-processes/:projectId", async (req: Request, res: Response) => {
+    try {
+      const { projectId } = req.params;
+      const processes = await storage.getProcessesByProject(projectId);
+      
+      // Fetch revisions for each process
+      const processesWithRevisions = await Promise.all(
+        processes.map(async (process) => {
+          const revisions = await storage.getRevisionsByProcess(process.id);
+          return {
+            ...process,
+            history: revisions.map(rev => ({
+              revision: rev.revisionNumber,
+              date: rev.createdAt.toISOString(),
+              startDate: rev.startDate.toISOString(),
+              endDate: rev.endDate.toISOString(),
+              revisionReason: rev.revisionReason,
+              editor: rev.editorName,
+            })),
+          };
+        })
+      );
+      
+      return res.json(processesWithRevisions);
+    } catch (error) {
+      console.error('Get processes error:', error);
+      return res.status(500).json({ message: "Server error" });
+    }
+  });
+
+  app.post("/api/project-processes", async (req: Request, res: Response) => {
+    try {
+      const { name, projectId, parentId, startDate, endDate, sortOrder } = req.body;
+      if (!name || !projectId || !startDate || !endDate) {
+        return res.status(400).json({ message: "Name, projectId, startDate, and endDate are required" });
+      }
+      
+      const process = await storage.createProcess({
+        name,
+        projectId,
+        parentId: parentId || null,
+        startDate: new Date(startDate),
+        endDate: new Date(endDate),
+        sortOrder: sortOrder || 0,
+        status: 'draft',
+        currentRevision: 0,
+      });
+      return res.status(201).json(process);
+    } catch (error) {
+      console.error('Create process error:', error);
+      return res.status(500).json({ message: "Server error" });
+    }
+  });
+
+  app.patch("/api/project-processes/:id", async (req: Request, res: Response) => {
+    try {
+      const { id } = req.params;
+      const { name, startDate, endDate, parentId, sortOrder, status } = req.body;
+      
+      const updates: any = {};
+      if (name !== undefined) updates.name = name;
+      if (startDate !== undefined) updates.startDate = new Date(startDate);
+      if (endDate !== undefined) updates.endDate = new Date(endDate);
+      if (parentId !== undefined) updates.parentId = parentId;
+      if (sortOrder !== undefined) updates.sortOrder = sortOrder;
+      if (status !== undefined) updates.status = status;
+      
+      const updated = await storage.updateProcess(id, updates);
+      
+      if (!updated) {
+        return res.status(404).json({ message: "Process not found" });
+      }
+
+      return res.json(updated);
+    } catch (error) {
+      console.error('Update process error:', error);
+      return res.status(500).json({ message: "Server error" });
+    }
+  });
+
+  app.post("/api/project-processes/:id/approve", async (req: Request, res: Response) => {
+    try {
+      const { id } = req.params;
+      const approved = await storage.approveProcess(id);
+      
+      if (!approved) {
+        return res.status(404).json({ message: "Process not found" });
+      }
+
+      return res.json(approved);
+    } catch (error) {
+      return res.status(500).json({ message: "Server error" });
+    }
+  });
+
+  app.post("/api/project-processes/:id/revise", async (req: Request, res: Response) => {
+    try {
+      const { id } = req.params;
+      const { editorName, revisionReason } = req.body;
+      
+      const currentProcess = await storage.getProcess(id);
+      if (!currentProcess) {
+        return res.status(404).json({ message: "Process not found" });
+      }
+
+      // Save current state as a revision
+      await storage.createProcessRevision({
+        processId: id,
+        revisionNumber: currentProcess.currentRevision,
+        startDate: currentProcess.startDate,
+        endDate: currentProcess.endDate,
+        revisionReason: revisionReason || null,
+        editorName: editorName || 'Unknown',
+      });
+
+      // Update process to new revision
+      const updated = await storage.updateProcess(id, {
+        currentRevision: currentProcess.currentRevision + 1,
+        status: 'draft',
+        previousStartDate: currentProcess.startDate,
+        previousEndDate: currentProcess.endDate,
+      });
+
+      return res.json(updated);
+    } catch (error) {
+      console.error('Revise process error:', error);
+      return res.status(500).json({ message: "Server error" });
+    }
+  });
+
+  app.post("/api/project-processes/:id/revert", async (req: Request, res: Response) => {
+    try {
+      const { id } = req.params;
+      const reverted = await storage.revertProcess(id);
+      
+      if (!reverted) {
+        return res.status(400).json({ message: "Cannot revert: process has no previous approved values or is already approved" });
+      }
+
+      return res.json(reverted);
+    } catch (error) {
+      console.error('Revert process error:', error);
+      return res.status(500).json({ message: "Server error" });
+    }
+  });
+
+  app.delete("/api/project-processes/:id", async (req: Request, res: Response) => {
+    try {
+      const { id } = req.params;
+      await storage.deleteProcess(id);
+      return res.json({ success: true });
+    } catch (error) {
+      return res.status(500).json({ message: "Server error" });
+    }
+  });
+
   // ===== TRANSACTIONS =====
   
   app.get("/api/transactions", async (req: Request, res: Response) => {

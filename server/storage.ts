@@ -2,13 +2,15 @@ import { db } from './db';
 import { 
   users, departments, costGroups, projects, projectPhases, budgetItems, budgetRevisions, 
   transactions, userDepartmentAssignments, userProjectAssignments, departmentGroups,
-  companies, userCompanyAssignments,
+  companies, userCompanyAssignments, projectProcesses, processRevisions,
   type User, type InsertUser, type Department, type InsertDepartment,
   type CostGroup, type InsertCostGroup, type Project, type InsertProject,
   type ProjectPhase, type InsertProjectPhase, type BudgetItem, type InsertBudgetItem,
   type BudgetRevision, type InsertBudgetRevision, type Transaction, type InsertTransaction,
   type DepartmentGroup, type InsertDepartmentGroup,
-  type Company, type InsertCompany
+  type Company, type InsertCompany,
+  type ProjectProcess, type InsertProjectProcess,
+  type ProcessRevision, type InsertProcessRevision
 } from '@shared/schema';
 import { eq, and, sql, inArray } from 'drizzle-orm';
 
@@ -86,6 +88,19 @@ export interface IStorage {
   createTransaction(transaction: InsertTransaction): Promise<Transaction>;
   getAllTransactions(limit?: number): Promise<Transaction[]>;
   getTransactionsByBudgetItem(budgetItemId: string): Promise<Transaction[]>;
+  
+  // Project Processes
+  getProcessesByProject(projectId: string): Promise<ProjectProcess[]>;
+  getProcess(id: string): Promise<ProjectProcess | undefined>;
+  createProcess(process: InsertProjectProcess): Promise<ProjectProcess>;
+  updateProcess(id: string, updates: Partial<ProjectProcess>): Promise<ProjectProcess | undefined>;
+  approveProcess(id: string): Promise<ProjectProcess | undefined>;
+  revertProcess(id: string): Promise<ProjectProcess | undefined>;
+  deleteProcess(id: string): Promise<void>;
+  
+  // Process Revisions
+  createProcessRevision(revision: InsertProcessRevision): Promise<ProcessRevision>;
+  getRevisionsByProcess(processId: string): Promise<ProcessRevision[]>;
 }
 
 export class DatabaseStorage implements IStorage {
@@ -413,6 +428,76 @@ export class DatabaseStorage implements IStorage {
     return await db.select().from(transactions)
       .where(eq(transactions.budgetItemId, budgetItemId))
       .orderBy(transactions.date);
+  }
+
+  // === PROJECT PROCESSES ===
+  async getProcessesByProject(projectId: string): Promise<ProjectProcess[]> {
+    return await db.select().from(projectProcesses)
+      .where(eq(projectProcesses.projectId, projectId))
+      .orderBy(projectProcesses.sortOrder);
+  }
+
+  async getProcess(id: string): Promise<ProjectProcess | undefined> {
+    const result = await db.select().from(projectProcesses).where(eq(projectProcesses.id, id)).limit(1);
+    return result[0];
+  }
+
+  async createProcess(process: InsertProjectProcess): Promise<ProjectProcess> {
+    const result = await db.insert(projectProcesses).values(process).returning();
+    return result[0];
+  }
+
+  async updateProcess(id: string, updates: Partial<ProjectProcess>): Promise<ProjectProcess | undefined> {
+    const result = await db.update(projectProcesses)
+      .set({ ...updates, updatedAt: new Date() })
+      .where(eq(projectProcesses.id, id))
+      .returning();
+    return result[0];
+  }
+
+  async approveProcess(id: string): Promise<ProjectProcess | undefined> {
+    const result = await db.update(projectProcesses)
+      .set({ status: 'approved', previousStartDate: null, previousEndDate: null, updatedAt: new Date() })
+      .where(eq(projectProcesses.id, id))
+      .returning();
+    return result[0];
+  }
+
+  async revertProcess(id: string): Promise<ProjectProcess | undefined> {
+    const process = await this.getProcess(id);
+    if (!process || !process.previousStartDate || !process.previousEndDate || process.status === 'approved') {
+      return undefined;
+    }
+    
+    const result = await db.update(projectProcesses)
+      .set({ 
+        startDate: process.previousStartDate,
+        endDate: process.previousEndDate,
+        previousStartDate: null,
+        previousEndDate: null,
+        status: 'approved',
+        currentRevision: Math.max(0, process.currentRevision - 1),
+        updatedAt: new Date() 
+      })
+      .where(eq(projectProcesses.id, id))
+      .returning();
+    return result[0];
+  }
+
+  async deleteProcess(id: string): Promise<void> {
+    await db.delete(projectProcesses).where(eq(projectProcesses.id, id));
+  }
+
+  // === PROCESS REVISIONS ===
+  async createProcessRevision(revision: InsertProcessRevision): Promise<ProcessRevision> {
+    const result = await db.insert(processRevisions).values(revision).returning();
+    return result[0];
+  }
+
+  async getRevisionsByProcess(processId: string): Promise<ProcessRevision[]> {
+    return await db.select().from(processRevisions)
+      .where(eq(processRevisions.processId, processId))
+      .orderBy(processRevisions.revisionNumber);
   }
 }
 

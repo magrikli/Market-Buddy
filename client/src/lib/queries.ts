@@ -407,3 +407,88 @@ export function useUpdateUserCompanyAssignments() {
     },
   });
 }
+
+// === PROJECT PROCESSES ===
+
+export function useProjectProcesses(projectId: string | null) {
+  return useQuery({
+    queryKey: ['projectProcesses', projectId],
+    queryFn: () => projectId ? api.getProjectProcesses(projectId) : Promise.resolve([]),
+    enabled: !!projectId,
+  });
+}
+
+export function useCreateProjectProcess() {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: (data: {
+      name: string;
+      projectId: string;
+      parentId?: string | null;
+      startDate: string;
+      endDate: string;
+      sortOrder?: number;
+    }) => api.createProjectProcess(data),
+    onSuccess: (_, variables) => {
+      queryClient.invalidateQueries({ queryKey: ['projectProcesses', variables.projectId] });
+    },
+  });
+}
+
+export function useUpdateProjectProcess() {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: ({ id, projectId, data }: { id: string; projectId: string; data: {
+      name?: string;
+      startDate?: string;
+      endDate?: string;
+      parentId?: string | null;
+      sortOrder?: number;
+      status?: string;
+    }}) => api.updateProjectProcess(id, data),
+    onSuccess: (_, variables) => {
+      queryClient.invalidateQueries({ queryKey: ['projectProcesses', variables.projectId] });
+    },
+  });
+}
+
+export function useApproveProcess() {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: ({ id, projectId }: { id: string; projectId: string }) => api.approveProcess(id),
+    onSuccess: (_, variables) => {
+      queryClient.invalidateQueries({ queryKey: ['projectProcesses', variables.projectId] });
+    },
+  });
+}
+
+export function useReviseProcess() {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: ({ id, projectId, editorName, revisionReason }: { id: string; projectId: string; editorName: string; revisionReason?: string }) =>
+      api.reviseProcess(id, editorName, revisionReason),
+    onSuccess: (_, variables) => {
+      queryClient.invalidateQueries({ queryKey: ['projectProcesses', variables.projectId] });
+    },
+  });
+}
+
+export function useRevertProcess() {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: ({ id, projectId }: { id: string; projectId: string }) => api.revertProcess(id),
+    onSuccess: (_, variables) => {
+      queryClient.invalidateQueries({ queryKey: ['projectProcesses', variables.projectId] });
+    },
+  });
+}
+
+export function useDeleteProjectProcess() {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: ({ id, projectId }: { id: string; projectId: string }) => api.deleteProjectProcess(id),
+    onSuccess: (_, variables) => {
+      queryClient.invalidateQueries({ queryKey: ['projectProcesses', variables.projectId] });
+    },
+  });
+}

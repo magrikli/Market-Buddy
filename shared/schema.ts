@@ -135,6 +135,50 @@ export const insertBudgetRevisionSchema = createInsertSchema(budgetRevisions).om
 export type InsertBudgetRevision = z.infer<typeof insertBudgetRevisionSchema>;
 export type BudgetRevision = typeof budgetRevisions.$inferSelect;
 
+// ===== PROJECT PROCESSES (Süreçler) =====
+export const projectProcesses = pgTable("project_processes", {
+  id: varchar("id", { length: 255 }).primaryKey().default(sql`gen_random_uuid()`),
+  name: text("name").notNull(),
+  projectId: varchar("project_id", { length: 255 }).notNull().references(() => projects.id, { onDelete: 'cascade' }),
+  parentId: varchar("parent_id", { length: 255 }), // Self-reference for tree structure
+  
+  startDate: timestamp("start_date").notNull(),
+  endDate: timestamp("end_date").notNull(),
+  
+  status: varchar("status", { length: 50 }).notNull().default('draft'), // 'draft', 'pending', 'approved', 'rejected'
+  currentRevision: integer("current_revision").notNull().default(0),
+  
+  // Previous approved dates for comparison during revision
+  previousStartDate: timestamp("previous_start_date"),
+  previousEndDate: timestamp("previous_end_date"),
+  
+  sortOrder: integer("sort_order").notNull().default(0),
+  
+  createdAt: timestamp("created_at").defaultNow().notNull(),
+  updatedAt: timestamp("updated_at").defaultNow().notNull(),
+});
+
+export const insertProjectProcessSchema = createInsertSchema(projectProcesses).omit({ id: true, createdAt: true, updatedAt: true });
+export type InsertProjectProcess = z.infer<typeof insertProjectProcessSchema>;
+export type ProjectProcess = typeof projectProcesses.$inferSelect;
+
+// ===== PROCESS REVISIONS =====
+export const processRevisions = pgTable("process_revisions", {
+  id: varchar("id", { length: 255 }).primaryKey().default(sql`gen_random_uuid()`),
+  processId: varchar("process_id", { length: 255 }).notNull().references(() => projectProcesses.id, { onDelete: 'cascade' }),
+  revisionNumber: integer("revision_number").notNull(),
+  startDate: timestamp("start_date").notNull(),
+  endDate: timestamp("end_date").notNull(),
+  revisionReason: text("revision_reason"),
+  editorId: varchar("editor_id", { length: 255 }).references(() => users.id),
+  editorName: text("editor_name").notNull(),
+  createdAt: timestamp("created_at").defaultNow().notNull(),
+});
+
+export const insertProcessRevisionSchema = createInsertSchema(processRevisions).omit({ id: true, createdAt: true });
+export type InsertProcessRevision = z.infer<typeof insertProcessRevisionSchema>;
+export type ProcessRevision = typeof processRevisions.$inferSelect;
+
 // ===== TRANSACTIONS =====
 export const transactions = pgTable("transactions", {
   id: varchar("id", { length: 255 }).primaryKey().default(sql`gen_random_uuid()`),

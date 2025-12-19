@@ -324,3 +324,88 @@ export async function updateUserCompanyAssignments(id: string, companyIds: strin
     body: JSON.stringify({ companyIds }),
   });
 }
+
+// === PROJECT PROCESSES ===
+
+export interface ProjectProcessHistory {
+  revision: number;
+  date: string;
+  startDate: string;
+  endDate: string;
+  revisionReason?: string;
+  editor: string;
+}
+
+export interface ProjectProcess {
+  id: string;
+  name: string;
+  projectId: string;
+  parentId: string | null;
+  startDate: string;
+  endDate: string;
+  status: 'draft' | 'pending' | 'approved' | 'rejected';
+  currentRevision: number;
+  previousStartDate: string | null;
+  previousEndDate: string | null;
+  sortOrder: number;
+  createdAt: string;
+  updatedAt: string;
+  history: ProjectProcessHistory[];
+}
+
+export async function getProjectProcesses(projectId: string): Promise<ProjectProcess[]> {
+  return fetchAPI(`/project-processes/${projectId}`);
+}
+
+export async function createProjectProcess(data: {
+  name: string;
+  projectId: string;
+  parentId?: string | null;
+  startDate: string;
+  endDate: string;
+  sortOrder?: number;
+}): Promise<ProjectProcess> {
+  return fetchAPI('/project-processes', {
+    method: 'POST',
+    body: JSON.stringify(data),
+  });
+}
+
+export async function updateProjectProcess(id: string, data: {
+  name?: string;
+  startDate?: string;
+  endDate?: string;
+  parentId?: string | null;
+  sortOrder?: number;
+  status?: string;
+}): Promise<ProjectProcess> {
+  return fetchAPI(`/project-processes/${id}`, {
+    method: 'PATCH',
+    body: JSON.stringify(data),
+  });
+}
+
+export async function approveProcess(id: string): Promise<ProjectProcess> {
+  return fetchAPI(`/project-processes/${id}/approve`, {
+    method: 'POST',
+  });
+}
+
+export async function reviseProcess(id: string, editorName: string, revisionReason?: string): Promise<ProjectProcess> {
+  return fetchAPI(`/project-processes/${id}/revise`, {
+    method: 'POST',
+    body: JSON.stringify({ editorName, revisionReason }),
+  });
+}
+
+export async function revertProcess(id: string): Promise<ProjectProcess> {
+  return fetchAPI(`/project-processes/${id}/revert`, {
+    method: 'POST',
+  });
+}
+
+export async function deleteProjectProcess(id: string): Promise<void> {
+  return fetchAPI(`/project-processes/${id}`, {
+    method: 'DELETE',
+  });
+}
