@@ -214,6 +214,16 @@ const mockUsers: User[] = [
 
 // --- STORE ---
 
+// Helper to load user from localStorage
+const loadUserFromStorage = (): User | null => {
+  try {
+    const stored = localStorage.getItem('finflow_user');
+    return stored ? JSON.parse(stored) : null;
+  } catch {
+    return null;
+  }
+};
+
 interface AppState {
   currentUser: User | null;
   currentYear: number;
@@ -225,12 +235,22 @@ interface AppState {
 }
 
 export const useStore = create<AppState>((set) => ({
-  currentUser: null,
+  currentUser: loadUserFromStorage(),
   currentYear: 2025,
 
-  setUser: (user) => set({ currentUser: user }),
+  setUser: (user) => {
+    if (user) {
+      localStorage.setItem('finflow_user', JSON.stringify(user));
+    } else {
+      localStorage.removeItem('finflow_user');
+    }
+    set({ currentUser: user });
+  },
 
-  logout: () => set({ currentUser: null }),
+  logout: () => {
+    localStorage.removeItem('finflow_user');
+    set({ currentUser: null });
+  },
   
   setYear: (year) => set({ currentYear: year }),
 }));
