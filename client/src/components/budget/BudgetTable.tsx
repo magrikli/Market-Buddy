@@ -1,7 +1,7 @@
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
+import { Table, TableBody, TableCell, TableRow } from "@/components/ui/table";
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from "@/components/ui/dropdown-menu";
 import { cn } from "@/lib/utils";
 import { Save, X, History, Lock, CheckCircle, Trash2, MoreHorizontal, Edit2 } from "lucide-react";
@@ -75,17 +75,6 @@ export function BudgetTable({ items, onSave, onRevise, onApprove, onDelete, isAd
       <div className="rounded-b-md border-x border-b border-border overflow-hidden bg-card">
         <div className="overflow-x-auto">
           <Table className="text-xs">
-            <TableHeader className="bg-muted/50">
-              <TableRow>
-                <TableHead className="w-[200px] font-semibold sticky left-0 bg-muted/50 z-10">Kalem Adı</TableHead>
-                {months.map((m) => (
-                  <TableHead key={m} className="text-right min-w-[80px] font-medium text-muted-foreground text-[10px]">{m}</TableHead>
-                ))}
-                <TableHead className="text-right font-bold w-[100px] bg-muted/50 text-[10px]">Toplam</TableHead>
-                <TableHead className="w-[120px] text-center text-[10px]">Durum</TableHead>
-                <TableHead className="w-[100px] text-center sticky right-0 bg-muted/50 z-10 text-[10px]">İşlemler</TableHead>
-              </TableRow>
-            </TableHeader>
             <TableBody>
               {items.map((item) => {
                 const isEditing = editingId === item.id;
