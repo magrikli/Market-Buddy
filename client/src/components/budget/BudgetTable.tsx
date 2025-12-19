@@ -111,7 +111,7 @@ export function BudgetTable({ items, onSave, onRevise, onApprove, onDelete, isAd
                       </TableCell>
                     ))}
                     <TableCell className="w-[120px] text-right font-bold tabular-nums bg-muted/10 p-2">
-                      <div className="flex items-center justify-end gap-1">
+                      <div className="flex items-center justify-end gap-2">
                         <span>€ {formatMoney(total)}</span>
                         {isEditing ? (
                           <>
