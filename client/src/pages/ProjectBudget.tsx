@@ -273,7 +273,12 @@ export default function ProjectBudget() {
             <Download className="h-4 w-4" />
           </Button>
           {currentUser?.role === 'admin' && (
-            <Button className="bg-primary hover:bg-primary/90" onClick={() => setIsNewProjectOpen(true)}>
+            <Button 
+              className="bg-primary hover:bg-primary/90" 
+              onClick={() => setIsNewProjectOpen(true)}
+              disabled={!selectedCompanyId}
+              title={!selectedCompanyId ? "Lütfen önce bir şirket seçin" : undefined}
+            >
               <PlusCircle className="mr-2 h-4 w-4" />
               Yeni Proje
             </Button>

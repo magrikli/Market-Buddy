@@ -133,6 +133,12 @@ export default function Transactions() {
             <CardDescription>Harcama veya gelir ekleyin</CardDescription>
           </CardHeader>
           <CardContent className="pt-6">
+            {!selectedCompanyId ? (
+              <div className="text-center py-8 text-muted-foreground">
+                <p className="font-medium">Şirket Seçimi Gerekli</p>
+                <p className="text-sm mt-1">Kayıt ekleyebilmek için lütfen önce sol menüden bir şirket seçin.</p>
+              </div>
+            ) : (
             <Form {...form}>
               <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-4">
                 <FormField
@@ -314,6 +320,7 @@ export default function Transactions() {
                 </Button>
               </form>
             </Form>
+            )}
           </CardContent>
         </Card>
 

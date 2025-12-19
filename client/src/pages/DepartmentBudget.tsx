@@ -303,7 +303,11 @@ export default function DepartmentBudget() {
           {currentUser?.role === 'admin' && (
             <DropdownMenu>
               <DropdownMenuTrigger asChild>
-                <Button className="bg-primary hover:bg-primary/90">
+                <Button 
+                  className="bg-primary hover:bg-primary/90"
+                  disabled={!selectedCompanyId}
+                  title={!selectedCompanyId ? "Lütfen önce bir şirket seçin" : undefined}
+                >
                   <PlusCircle className="mr-2 h-4 w-4" />
                   Ekle
                 </Button>
