@@ -305,6 +305,10 @@ export default function DepartmentBudget() {
                                                     </Button>
                                                 </DropdownMenuTrigger>
                                                 <DropdownMenuContent align="end">
+                                                    <DropdownMenuItem onClick={(e) => { e.stopPropagation(); setActiveDeptForGroup(dept.id); setIsNewGroupOpen(true); }}>
+                                                        <PlusCircle className="mr-2 h-4 w-4" />
+                                                        Yeni Grup Ekle
+                                                    </DropdownMenuItem>
                                                     <DropdownMenuItem onClick={(e) => { e.stopPropagation(); setEditingDept({ id: dept.id, name: dept.name }); setEditDeptOpen(true); }}>
                                                         <Pencil className="mr-2 h-4 w-4" />
                                                         Düzenle
