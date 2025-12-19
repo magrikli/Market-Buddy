@@ -506,6 +506,22 @@ export async function registerRoutes(server: Server, app: Express): Promise<Serv
     }
   });
 
+  app.post("/api/budget-items/:id/revert", async (req: Request, res: Response) => {
+    try {
+      const { id } = req.params;
+      const reverted = await storage.revertBudgetItem(id);
+      
+      if (!reverted) {
+        return res.status(400).json({ message: "Cannot revert: item has no previous approved values or is already approved" });
+      }
+
+      return res.json(reverted);
+    } catch (error) {
+      console.error('Revert error:', error);
+      return res.status(500).json({ message: "Server error" });
+    }
+  });
+
   app.delete("/api/budget-items/:id", async (req: Request, res: Response) => {
     try {
       const { id } = req.params;

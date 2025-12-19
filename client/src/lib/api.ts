@@ -187,6 +187,12 @@ export async function reviseBudgetItem(id: string, editorName: string, revisionR
   });
 }
 
+export async function revertBudgetItem(id: string): Promise<any> {
+  return fetchAPI(`/budget-items/${id}/revert`, {
+    method: 'POST',
+  });
+}
+
 // === TRANSACTIONS ===
 
 export async function getTransactions(limit?: number): Promise<any[]> {
