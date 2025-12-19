@@ -18,6 +18,7 @@ import {
 import { useState } from "react";
 import { Button } from "@/components/ui/button";
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from "@/components/ui/dialog";
+import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuSeparator, DropdownMenuTrigger } from "@/components/ui/dropdown-menu";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { toast } from "sonner";
@@ -73,6 +74,11 @@ export function Sidebar() {
     }
   };
 
+  const handleLogout = () => {
+    logout();
+    window.location.href = '/login';
+  };
+
   return (
     <div className={cn(
       "h-screen bg-sidebar border-r border-sidebar-border flex flex-col transition-all duration-300",
@@ -107,51 +113,49 @@ export function Sidebar() {
       </div>
 
       <div className="p-4 border-t border-sidebar-border">
-        <div className={cn("flex items-center gap-3 mb-4", collapsed && "justify-center")}>
-            <div className="h-8 w-8 rounded-full bg-primary/10 flex items-center justify-center text-primary border border-primary/20">
-                <User className="h-4 w-4" />
-            </div>
-            {!collapsed && (
-                <div className="flex flex-col overflow-hidden">
+        <div className="flex items-center gap-2">
+          <DropdownMenu>
+            <DropdownMenuTrigger asChild>
+              <Button 
+                variant="ghost" 
+                className={cn(
+                  "flex-1 justify-start gap-3 h-auto py-2 px-2 hover:bg-sidebar-accent/50",
+                  collapsed && "justify-center px-0"
+                )}
+                data-testid="button-user-menu"
+              >
+                <div className="h-8 w-8 rounded-full bg-primary/10 flex items-center justify-center text-primary border border-primary/20 shrink-0">
+                  <User className="h-4 w-4" />
+                </div>
+                {!collapsed && (
+                  <div className="flex flex-col items-start overflow-hidden">
                     <span className="text-sm font-medium truncate">{currentUser.name}</span>
                     <span className="text-xs text-muted-foreground capitalize">{currentUser.role === 'admin' ? 'Yönetici' : 'Kullanıcı'}</span>
-                </div>
-            )}
-        </div>
-        
-        <div className="flex items-center gap-2">
-          <Button 
-              variant="outline" 
-              size="icon"
-              className="h-8 w-8 text-muted-foreground hover:text-foreground"
-              onClick={() => setIsPasswordDialogOpen(true)}
-              title="Şifre Değiştir"
-              data-testid="button-change-password"
-          >
-              <Key className="h-4 w-4" />
-          </Button>
-
-          <Button 
-              variant="outline" 
-              size={collapsed ? "icon" : "sm"} 
-              className={cn("flex-1 justify-start text-muted-foreground hover:text-destructive hover:bg-destructive/10 hover:border-destructive/20", collapsed && "justify-center")}
-              onClick={() => {
-                  logout();
-                  window.location.href = '/login';
-              }}
-              data-testid="button-logout"
-          >
-              <LogOut className="h-4 w-4 mr-2" />
-              {!collapsed && "Çıkış Yap"}
-          </Button>
+                  </div>
+                )}
+              </Button>
+            </DropdownMenuTrigger>
+            <DropdownMenuContent align="end" className="w-48">
+              <DropdownMenuItem onClick={() => setIsPasswordDialogOpen(true)} data-testid="menu-change-password">
+                <Key className="h-4 w-4 mr-2" />
+                Şifre Değiştir
+              </DropdownMenuItem>
+              <DropdownMenuSeparator />
+              <DropdownMenuItem onClick={handleLogout} className="text-destructive focus:text-destructive" data-testid="menu-logout">
+                <LogOut className="h-4 w-4 mr-2" />
+                Çıkış Yap
+              </DropdownMenuItem>
+            </DropdownMenuContent>
+          </DropdownMenu>
 
           <Button
-              variant="outline"
-              size="icon"
-              className="h-8 w-8 text-muted-foreground hover:text-foreground"
-              onClick={() => setCollapsed(!collapsed)}
+            variant="outline"
+            size="icon"
+            className="h-8 w-8 text-muted-foreground hover:text-foreground shrink-0"
+            onClick={() => setCollapsed(!collapsed)}
+            data-testid="button-toggle-sidebar"
           >
-              {collapsed ? <ChevronRight className="h-4 w-4" /> : <ChevronLeft className="h-4 w-4" />}
+            {collapsed ? <ChevronRight className="h-4 w-4" /> : <ChevronLeft className="h-4 w-4" />}
           </Button>
         </div>
       </div>
