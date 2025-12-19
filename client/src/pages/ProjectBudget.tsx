@@ -12,7 +12,7 @@ import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/com
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from "@/components/ui/dropdown-menu";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { PlusCircle, Download, Filter, Loader2, Plus, MoreHorizontal, Pencil, Trash2, FolderGit2, Layers, Clock, DollarSign } from "lucide-react";
+import { PlusCircle, Download, Filter, Loader2, Plus, MoreHorizontal, Pencil, Trash2, FolderGit2, Layers, Clock } from "lucide-react";
 import { useState } from "react";
 import { AddEntityDialog, AddBudgetItemDialog } from "@/components/budget/AddEntityDialogs";
 import { toast } from "sonner";
@@ -47,9 +47,6 @@ export default function ProjectBudget() {
   const [editPhaseOpen, setEditPhaseOpen] = useState(false);
   const [editingProject, setEditingProject] = useState<{id: string; name: string} | null>(null);
   const [editingPhase, setEditingPhase] = useState<{id: string; name: string} | null>(null);
-  
-  const [mainTab, setMainTab] = useState<string>("budget");
-  const [selectedProcessProject, setSelectedProcessProject] = useState<string | null>(null);
 
   const formatMoney = (amount: number) => {
     return new Intl.NumberFormat('tr-TR', { minimumFractionDigits: 0 }).format(amount);
@@ -276,7 +273,7 @@ export default function ProjectBudget() {
           <Button variant="outline" size="icon">
             <Download className="h-4 w-4" />
           </Button>
-          {currentUser?.role === 'admin' && mainTab === 'budget' && (
+          {currentUser?.role === 'admin' && (
             <Button 
               className="bg-primary hover:bg-primary/90" 
               onClick={() => setIsNewProjectOpen(true)}
@@ -290,19 +287,6 @@ export default function ProjectBudget() {
         </div>
       </div>
 
-      <Tabs value={mainTab} onValueChange={setMainTab} className="w-full">
-        <TabsList className="grid w-full max-w-md grid-cols-2">
-          <TabsTrigger value="budget" className="flex items-center gap-2">
-            <DollarSign className="h-4 w-4" />
-            Bütçe
-          </TabsTrigger>
-          <TabsTrigger value="processes" className="flex items-center gap-2">
-            <Clock className="h-4 w-4" />
-            Süreçler
-          </TabsTrigger>
-        </TabsList>
-
-        <TabsContent value="budget" className="mt-6 space-y-6">
       <div className="grid grid-cols-1 md:grid-cols-3 gap-4 justify-end ml-auto">
         <Card className="bg-primary/5 border-primary/20 shadow-sm">
           <CardHeader className="pb-2 text-right">
@@ -408,9 +392,13 @@ export default function ProjectBudget() {
                         </div>
                       ) : (
                         <Tabs defaultValue="costs" className="w-full">
-                          <TabsList className="grid w-full max-w-md grid-cols-2 mb-6">
+                          <TabsList className="grid w-full max-w-md grid-cols-3 mb-6">
                             <TabsTrigger value="costs">Giderler</TabsTrigger>
                             <TabsTrigger value="revenue">Gelirler</TabsTrigger>
+                            <TabsTrigger value="processes" className="flex items-center gap-1">
+                              <Clock className="h-3 w-3" />
+                              Süreçler
+                            </TabsTrigger>
                           </TabsList>
 
                           <TabsContent value="costs" className="space-y-4">
@@ -573,6 +561,13 @@ export default function ProjectBudget() {
                               })}
                             </div>
                           </TabsContent>
+                          
+                          <TabsContent value="processes">
+                            <ProjectProcessesTab 
+                              projectId={project.id}
+                              projectName={project.name}
+                            />
+                          </TabsContent>
                         </Tabs>
                       )}
                     </AccordionContent>
@@ -583,50 +578,6 @@ export default function ProjectBudget() {
           )}
         </CardContent>
       </Card>
-        </TabsContent>
-
-        <TabsContent value="processes" className="mt-6">
-          <Card>
-            <CardHeader className="bg-muted/30 border-b border-border/50">
-              <div className="flex items-center justify-between">
-                <CardTitle className="text-xl flex items-center gap-2">
-                  <Clock className="h-5 w-5 text-primary" />
-                  Proje Süreçleri
-                </CardTitle>
-                <Select 
-                  value={selectedProcessProject || ""} 
-                  onValueChange={(v) => setSelectedProcessProject(v || null)}
-                >
-                  <SelectTrigger className="w-[250px]">
-                    <SelectValue placeholder="Proje seçin..." />
-                  </SelectTrigger>
-                  <SelectContent>
-                    {visibleProjects.map(p => (
-                      <SelectItem key={p.id} value={p.id}>{p.name}</SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
-              </div>
-            </CardHeader>
-            <CardContent className="p-6">
-              {!selectedProcessProject ? (
-                <div className="text-center p-12 bg-muted/20 rounded-lg border border-dashed">
-                  <Clock className="h-12 w-12 mx-auto text-muted-foreground opacity-50 mb-4" />
-                  <h3 className="text-lg font-medium text-foreground">Proje Seçin</h3>
-                  <p className="text-muted-foreground">
-                    Süreç yönetimi için yukarıdan bir proje seçin.
-                  </p>
-                </div>
-              ) : (
-                <ProjectProcessesTab 
-                  projectId={selectedProcessProject}
-                  projectName={visibleProjects.find(p => p.id === selectedProcessProject)?.name || ""}
-                />
-              )}
-            </CardContent>
-          </Card>
-        </TabsContent>
-      </Tabs>
 
       <AddEntityDialog 
         isOpen={isNewProjectOpen} 
