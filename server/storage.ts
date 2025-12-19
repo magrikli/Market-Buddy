@@ -43,10 +43,14 @@ export interface IStorage {
   getAllProjects(): Promise<Project[]>;
   getProject(id: string): Promise<Project | undefined>;
   createProject(project: InsertProject): Promise<Project>;
+  updateProject(id: string, updates: Partial<Project>): Promise<Project | undefined>;
+  deleteProject(id: string): Promise<void>;
   
   // Project Phases
   getPhasesByProject(projectId: string): Promise<ProjectPhase[]>;
   createProjectPhase(phase: InsertProjectPhase): Promise<ProjectPhase>;
+  updateProjectPhase(id: string, updates: Partial<ProjectPhase>): Promise<ProjectPhase | undefined>;
+  deleteProjectPhase(id: string): Promise<void>;
   
   // Budget Items
   getBudgetItemsByCostGroup(costGroupId: string, year: number): Promise<BudgetItem[]>;
@@ -193,6 +197,22 @@ export class DatabaseStorage implements IStorage {
     return result[0];
   }
 
+  async updateProject(id: string, updates: Partial<Project>): Promise<Project | undefined> {
+    const result = await db.update(projects)
+      .set(updates)
+      .where(eq(projects.id, id))
+      .returning();
+    return result[0];
+  }
+
+  async deleteProject(id: string): Promise<void> {
+    const phases = await this.getPhasesByProject(id);
+    for (const phase of phases) {
+      await this.deleteProjectPhase(phase.id);
+    }
+    await db.delete(projects).where(eq(projects.id, id));
+  }
+
   // === PROJECT PHASES ===
   async getPhasesByProject(projectId: string): Promise<ProjectPhase[]> {
     return await db.select().from(projectPhases).where(eq(projectPhases.projectId, projectId));
@@ -201,6 +221,19 @@ export class DatabaseStorage implements IStorage {
   async createProjectPhase(phase: InsertProjectPhase): Promise<ProjectPhase> {
     const result = await db.insert(projectPhases).values(phase).returning();
     return result[0];
+  }
+
+  async updateProjectPhase(id: string, updates: Partial<ProjectPhase>): Promise<ProjectPhase | undefined> {
+    const result = await db.update(projectPhases)
+      .set(updates)
+      .where(eq(projectPhases.id, id))
+      .returning();
+    return result[0];
+  }
+
+  async deleteProjectPhase(id: string): Promise<void> {
+    await db.delete(budgetItems).where(eq(budgetItems.projectPhaseId, id));
+    await db.delete(projectPhases).where(eq(projectPhases.id, id));
   }
 
   // === BUDGET ITEMS ===

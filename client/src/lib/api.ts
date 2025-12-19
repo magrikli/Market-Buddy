@@ -132,10 +132,36 @@ export async function createProject(name: string): Promise<Project> {
   });
 }
 
+export async function updateProject(id: string, name: string): Promise<Project> {
+  return fetchAPI(`/projects/${id}`, {
+    method: 'PUT',
+    body: JSON.stringify({ name }),
+  });
+}
+
+export async function deleteProject(id: string): Promise<void> {
+  return fetchAPI(`/projects/${id}`, {
+    method: 'DELETE',
+  });
+}
+
 export async function createProjectPhase(data: { name: string; projectId: string }): Promise<any> {
   return fetchAPI('/project-phases', {
     method: 'POST',
     body: JSON.stringify(data),
+  });
+}
+
+export async function updateProjectPhase(id: string, name: string): Promise<any> {
+  return fetchAPI(`/project-phases/${id}`, {
+    method: 'PUT',
+    body: JSON.stringify({ name }),
+  });
+}
+
+export async function deleteProjectPhase(id: string): Promise<void> {
+  return fetchAPI(`/project-phases/${id}`, {
+    method: 'DELETE',
   });
 }
 

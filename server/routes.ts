@@ -409,6 +409,30 @@ export async function registerRoutes(server: Server, app: Express): Promise<Serv
     }
   });
 
+  app.put("/api/projects/:id", async (req: Request, res: Response) => {
+    try {
+      const { id } = req.params;
+      const { name } = req.body;
+      const updated = await storage.updateProject(id, { name });
+      if (!updated) {
+        return res.status(404).json({ message: "Project not found" });
+      }
+      return res.json(updated);
+    } catch (error) {
+      return res.status(500).json({ message: "Server error" });
+    }
+  });
+
+  app.delete("/api/projects/:id", async (req: Request, res: Response) => {
+    try {
+      const { id } = req.params;
+      await storage.deleteProject(id);
+      return res.status(204).send();
+    } catch (error) {
+      return res.status(500).json({ message: "Server error" });
+    }
+  });
+
   app.post("/api/project-phases", async (req: Request, res: Response) => {
     try {
       const data = insertProjectPhaseSchema.parse(req.body);
@@ -418,6 +442,30 @@ export async function registerRoutes(server: Server, app: Express): Promise<Serv
       if (error instanceof z.ZodError) {
         return res.status(400).json({ message: "Validation error", errors: error.errors });
       }
+      return res.status(500).json({ message: "Server error" });
+    }
+  });
+
+  app.put("/api/project-phases/:id", async (req: Request, res: Response) => {
+    try {
+      const { id } = req.params;
+      const { name } = req.body;
+      const updated = await storage.updateProjectPhase(id, { name });
+      if (!updated) {
+        return res.status(404).json({ message: "Phase not found" });
+      }
+      return res.json(updated);
+    } catch (error) {
+      return res.status(500).json({ message: "Server error" });
+    }
+  });
+
+  app.delete("/api/project-phases/:id", async (req: Request, res: Response) => {
+    try {
+      const { id } = req.params;
+      await storage.deleteProjectPhase(id);
+      return res.status(204).send();
+    } catch (error) {
       return res.status(500).json({ message: "Server error" });
     }
   });

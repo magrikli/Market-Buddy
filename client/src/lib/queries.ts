@@ -152,10 +152,50 @@ export function useCreateProject() {
   });
 }
 
+export function useUpdateProject() {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: ({ id, name }: { id: string; name: string }) => api.updateProject(id, name),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: queryKeys.projects(2025) });
+    },
+  });
+}
+
+export function useDeleteProject() {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: (id: string) => api.deleteProject(id),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: queryKeys.projects(2025) });
+    },
+  });
+}
+
 export function useCreateProjectPhase() {
   const queryClient = useQueryClient();
   return useMutation({
     mutationFn: (data: { name: string; projectId: string }) => api.createProjectPhase(data),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: queryKeys.projects(2025) });
+    },
+  });
+}
+
+export function useUpdateProjectPhase() {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: ({ id, name }: { id: string; name: string }) => api.updateProjectPhase(id, name),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: queryKeys.projects(2025) });
+    },
+  });
+}
+
+export function useDeleteProjectPhase() {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: (id: string) => api.deleteProjectPhase(id),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: queryKeys.projects(2025) });
     },
