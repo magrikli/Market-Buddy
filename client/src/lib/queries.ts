@@ -64,6 +64,16 @@ export function useDeleteUser() {
   });
 }
 
+export function useUpdateUserAssignments() {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: ({ id, data }: { id: string; data: { departmentIds?: string[]; projectIds?: string[] } }) => api.updateUserAssignments(id, data),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: queryKeys.users });
+    },
+  });
+}
+
 // === DEPARTMENT GROUPS ===
 
 export function useDepartmentGroups() {

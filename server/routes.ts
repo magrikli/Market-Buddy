@@ -683,5 +683,26 @@ export async function registerRoutes(server: Server, app: Express): Promise<Serv
     }
   });
 
+  app.put("/api/users/:id/assignments", async (req: Request, res: Response) => {
+    try {
+      const { id } = req.params;
+      const { departmentIds, projectIds } = req.body;
+      
+      if (departmentIds !== undefined) {
+        await storage.setUserDepartments(id, departmentIds);
+      }
+      if (projectIds !== undefined) {
+        await storage.setUserProjects(id, projectIds);
+      }
+      
+      const assignedDepartmentIds = await storage.getUserDepartments(id);
+      const assignedProjectIds = await storage.getUserProjects(id);
+      
+      return res.json({ assignedDepartmentIds, assignedProjectIds });
+    } catch (error) {
+      return res.status(500).json({ message: "Server error" });
+    }
+  });
+
   return server;
 }

@@ -82,6 +82,13 @@ export async function deleteUser(id: string): Promise<void> {
   });
 }
 
+export async function updateUserAssignments(id: string, data: { departmentIds?: string[]; projectIds?: string[] }): Promise<{ assignedDepartmentIds: string[]; assignedProjectIds: string[] }> {
+  return fetchAPI(`/users/${id}/assignments`, {
+    method: 'PUT',
+    body: JSON.stringify(data),
+  });
+}
+
 // === DEPARTMENT GROUPS ===
 
 export async function getDepartmentGroups(): Promise<DepartmentGroup[]> {

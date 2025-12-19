@@ -22,6 +22,8 @@ export interface IStorage {
   getUserProjects(userId: string): Promise<string[]>;
   assignUserToDepartment(userId: string, departmentId: string): Promise<void>;
   assignUserToProject(userId: string, projectId: string): Promise<void>;
+  setUserDepartments(userId: string, departmentIds: string[]): Promise<void>;
+  setUserProjects(userId: string, projectIds: string[]): Promise<void>;
   
   // Department Groups
   getAllDepartmentGroups(): Promise<DepartmentGroup[]>;
@@ -130,6 +132,20 @@ export class DatabaseStorage implements IStorage {
 
   async assignUserToProject(userId: string, projectId: string): Promise<void> {
     await db.insert(userProjectAssignments).values({ userId, projectId }).onConflictDoNothing();
+  }
+
+  async setUserDepartments(userId: string, departmentIds: string[]): Promise<void> {
+    await db.delete(userDepartmentAssignments).where(eq(userDepartmentAssignments.userId, userId));
+    if (departmentIds.length > 0) {
+      await db.insert(userDepartmentAssignments).values(departmentIds.map(departmentId => ({ userId, departmentId })));
+    }
+  }
+
+  async setUserProjects(userId: string, projectIds: string[]): Promise<void> {
+    await db.delete(userProjectAssignments).where(eq(userProjectAssignments.userId, userId));
+    if (projectIds.length > 0) {
+      await db.insert(userProjectAssignments).values(projectIds.map(projectId => ({ userId, projectId })));
+    }
   }
 
   // === DEPARTMENT GROUPS ===

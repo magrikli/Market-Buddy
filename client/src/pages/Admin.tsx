@@ -5,9 +5,10 @@ import { Label } from "@/components/ui/label";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { Checkbox } from "@/components/ui/checkbox";
 import { useStore } from "@/lib/store";
-import { useDepartments, useApproveBudgetItem, useUsers, useCreateUser, useUpdateUser, useDeleteUser } from "@/lib/queries";
-import { Search, UserPlus, Settings, Shield, CheckCheck, Pencil, Trash2, Loader2 } from "lucide-react";
+import { useDepartments, useProjects, useUsers, useCreateUser, useUpdateUser, useDeleteUser, useUpdateUserAssignments } from "@/lib/queries";
+import { Search, UserPlus, Settings, CheckCheck, Pencil, Trash2, Loader2, Users } from "lucide-react";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { toast } from "sonner";
 import { useState } from "react";
@@ -15,15 +16,18 @@ import { useState } from "react";
 export default function Admin() {
   const { currentYear } = useStore();
   const { data: departments = [] } = useDepartments(currentYear);
+  const { data: projects = [] } = useProjects(currentYear);
   const { data: users = [], isLoading: usersLoading } = useUsers();
-  const approveBudgetItemMutation = useApproveBudgetItem();
   const createUserMutation = useCreateUser();
   const updateUserMutation = useUpdateUser();
   const deleteUserMutation = useDeleteUser();
+  const updateAssignmentsMutation = useUpdateUserAssignments();
 
   const [isNewUserOpen, setIsNewUserOpen] = useState(false);
   const [isEditUserOpen, setIsEditUserOpen] = useState(false);
+  const [isAssignOpen, setIsAssignOpen] = useState(false);
   const [editingUser, setEditingUser] = useState<{ id: string; name: string; username: string; role: string } | null>(null);
+  const [assigningUser, setAssigningUser] = useState<{ id: string; name: string; assignedDepartmentIds: string[]; assignedProjectIds: string[] } | null>(null);
   
   const [newUsername, setNewUsername] = useState("");
   const [newPassword, setNewPassword] = useState("");
@@ -33,6 +37,9 @@ export default function Admin() {
   const [editName, setEditName] = useState("");
   const [editRole, setEditRole] = useState("");
   const [editPassword, setEditPassword] = useState("");
+
+  const [selectedDepartments, setSelectedDepartments] = useState<string[]>([]);
+  const [selectedProjects, setSelectedProjects] = useState<string[]>([]);
 
   const handleBulkApprove = () => {
     toast.success("5 adet bütçe kalemi onaylandı");
@@ -99,6 +106,43 @@ export default function Admin() {
     setIsEditUserOpen(true);
   };
 
+  const openAssignDialog = (user: any) => {
+    setAssigningUser(user);
+    setSelectedDepartments(user.assignedDepartmentIds || []);
+    setSelectedProjects(user.assignedProjectIds || []);
+    setIsAssignOpen(true);
+  };
+
+  const handleSaveAssignments = async () => {
+    if (!assigningUser) return;
+    try {
+      await updateAssignmentsMutation.mutateAsync({
+        id: assigningUser.id,
+        data: {
+          departmentIds: selectedDepartments,
+          projectIds: selectedProjects,
+        },
+      });
+      toast.success("Atamalar güncellendi", { description: assigningUser.name });
+      setIsAssignOpen(false);
+      setAssigningUser(null);
+    } catch (error: any) {
+      toast.error("Hata", { description: error.message });
+    }
+  };
+
+  const toggleDepartment = (deptId: string) => {
+    setSelectedDepartments(prev =>
+      prev.includes(deptId) ? prev.filter(id => id !== deptId) : [...prev, deptId]
+    );
+  };
+
+  const toggleProject = (projectId: string) => {
+    setSelectedProjects(prev =>
+      prev.includes(projectId) ? prev.filter(id => id !== projectId) : [...prev, projectId]
+    );
+  };
+
   const pendingItems = [
     { id: 1, dept: 'Bilgi Teknolojileri', group: 'Personel', item: 'Yeni Yazılımcı Maaşı', amount: 45000, date: '2025-01-10' },
     { id: 2, dept: 'İnsan Kaynakları', group: 'Eğitim', item: 'Liderlik Eğitimi', amount: 5000, date: '2025-01-12' },
@@ -121,20 +165,20 @@ export default function Admin() {
           <div className="space-y-4 py-4">
             <div className="space-y-2">
               <Label htmlFor="username">Kullanıcı Adı</Label>
-              <Input id="username" value={newUsername} onChange={(e) => setNewUsername(e.target.value)} placeholder="ornek_kullanici" />
+              <Input id="username" value={newUsername} onChange={(e) => setNewUsername(e.target.value)} placeholder="ornek_kullanici" data-testid="input-new-username" />
             </div>
             <div className="space-y-2">
               <Label htmlFor="name">Ad Soyad</Label>
-              <Input id="name" value={newName} onChange={(e) => setNewName(e.target.value)} placeholder="Ahmet Yılmaz" />
+              <Input id="name" value={newName} onChange={(e) => setNewName(e.target.value)} placeholder="Ahmet Yılmaz" data-testid="input-new-name" />
             </div>
             <div className="space-y-2">
               <Label htmlFor="password">Şifre</Label>
-              <Input id="password" type="password" value={newPassword} onChange={(e) => setNewPassword(e.target.value)} placeholder="••••••••" />
+              <Input id="password" type="password" value={newPassword} onChange={(e) => setNewPassword(e.target.value)} placeholder="••••••••" data-testid="input-new-password" />
             </div>
             <div className="space-y-2">
               <Label htmlFor="role">Rol</Label>
               <Select value={newRole} onValueChange={setNewRole}>
-                <SelectTrigger>
+                <SelectTrigger data-testid="select-new-role">
                   <SelectValue placeholder="Rol seçin" />
                 </SelectTrigger>
                 <SelectContent>
@@ -146,7 +190,7 @@ export default function Admin() {
           </div>
           <DialogFooter>
             <Button variant="outline" onClick={() => setIsNewUserOpen(false)}>İptal</Button>
-            <Button onClick={handleCreateUser} disabled={createUserMutation.isPending}>
+            <Button onClick={handleCreateUser} disabled={createUserMutation.isPending} data-testid="button-create-user">
               {createUserMutation.isPending && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
               Oluştur
             </Button>
@@ -163,12 +207,12 @@ export default function Admin() {
           <div className="space-y-4 py-4">
             <div className="space-y-2">
               <Label htmlFor="edit-name">Ad Soyad</Label>
-              <Input id="edit-name" value={editName} onChange={(e) => setEditName(e.target.value)} />
+              <Input id="edit-name" value={editName} onChange={(e) => setEditName(e.target.value)} data-testid="input-edit-name" />
             </div>
             <div className="space-y-2">
               <Label htmlFor="edit-role">Rol</Label>
               <Select value={editRole} onValueChange={setEditRole}>
-                <SelectTrigger>
+                <SelectTrigger data-testid="select-edit-role">
                   <SelectValue placeholder="Rol seçin" />
                 </SelectTrigger>
                 <SelectContent>
@@ -179,13 +223,77 @@ export default function Admin() {
             </div>
             <div className="space-y-2">
               <Label htmlFor="edit-password">Yeni Şifre (opsiyonel)</Label>
-              <Input id="edit-password" type="password" value={editPassword} onChange={(e) => setEditPassword(e.target.value)} placeholder="Değiştirmek için yeni şifre girin" />
+              <Input id="edit-password" type="password" value={editPassword} onChange={(e) => setEditPassword(e.target.value)} placeholder="Değiştirmek için yeni şifre girin" data-testid="input-edit-password" />
             </div>
           </div>
           <DialogFooter>
             <Button variant="outline" onClick={() => setIsEditUserOpen(false)}>İptal</Button>
-            <Button onClick={handleEditUser} disabled={updateUserMutation.isPending}>
+            <Button onClick={handleEditUser} disabled={updateUserMutation.isPending} data-testid="button-save-user">
               {updateUserMutation.isPending && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
+              Kaydet
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      <Dialog open={isAssignOpen} onOpenChange={setIsAssignOpen}>
+        <DialogContent className="max-w-lg">
+          <DialogHeader>
+            <DialogTitle>Departman ve Proje Ataması</DialogTitle>
+            <DialogDescription>
+              {assigningUser?.name} için erişim yetkilerini belirleyin.
+            </DialogDescription>
+          </DialogHeader>
+          <div className="space-y-6 py-4 max-h-[60vh] overflow-y-auto">
+            <div className="space-y-3">
+              <Label className="text-sm font-semibold">Departmanlar</Label>
+              {departments.length === 0 ? (
+                <p className="text-sm text-muted-foreground">Henüz departman bulunmuyor.</p>
+              ) : (
+                <div className="space-y-2 border rounded-lg p-3">
+                  {departments.map((dept) => (
+                    <div key={dept.id} className="flex items-center gap-2">
+                      <Checkbox
+                        id={`dept-${dept.id}`}
+                        checked={selectedDepartments.includes(dept.id)}
+                        onCheckedChange={() => toggleDepartment(dept.id)}
+                        data-testid={`checkbox-dept-${dept.id}`}
+                      />
+                      <label htmlFor={`dept-${dept.id}`} className="text-sm cursor-pointer flex-1">
+                        {dept.name}
+                      </label>
+                    </div>
+                  ))}
+                </div>
+              )}
+            </div>
+            <div className="space-y-3">
+              <Label className="text-sm font-semibold">Projeler</Label>
+              {projects.length === 0 ? (
+                <p className="text-sm text-muted-foreground">Henüz proje bulunmuyor.</p>
+              ) : (
+                <div className="space-y-2 border rounded-lg p-3">
+                  {projects.map((project) => (
+                    <div key={project.id} className="flex items-center gap-2">
+                      <Checkbox
+                        id={`project-${project.id}`}
+                        checked={selectedProjects.includes(project.id)}
+                        onCheckedChange={() => toggleProject(project.id)}
+                        data-testid={`checkbox-project-${project.id}`}
+                      />
+                      <label htmlFor={`project-${project.id}`} className="text-sm cursor-pointer flex-1">
+                        {project.name}
+                      </label>
+                    </div>
+                  ))}
+                </div>
+              )}
+            </div>
+          </div>
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setIsAssignOpen(false)}>İptal</Button>
+            <Button onClick={handleSaveAssignments} disabled={updateAssignmentsMutation.isPending} data-testid="button-save-assignments">
+              {updateAssignmentsMutation.isPending && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
               Kaydet
             </Button>
           </DialogFooter>
@@ -194,9 +302,9 @@ export default function Admin() {
 
       <Tabs defaultValue="approvals" className="w-full">
         <TabsList className="grid w-full max-w-lg grid-cols-3 mb-6">
-          <TabsTrigger value="approvals">Onay Bekleyenler</TabsTrigger>
-          <TabsTrigger value="users">Kullanıcı Yönetimi</TabsTrigger>
-          <TabsTrigger value="settings">Sistem Ayarları</TabsTrigger>
+          <TabsTrigger value="approvals" data-testid="tab-approvals">Onay Bekleyenler</TabsTrigger>
+          <TabsTrigger value="users" data-testid="tab-users">Kullanıcı Yönetimi</TabsTrigger>
+          <TabsTrigger value="settings" data-testid="tab-settings">Sistem Ayarları</TabsTrigger>
         </TabsList>
 
         <TabsContent value="approvals">
@@ -206,7 +314,7 @@ export default function Admin() {
                 <CardTitle>Toplu Onay</CardTitle>
                 <CardDescription>Departmanlardan gelen onay bekleyen bütçe kalemleri</CardDescription>
               </div>
-              <Button onClick={handleBulkApprove} className="bg-emerald-600 hover:bg-emerald-700">
+              <Button onClick={handleBulkApprove} className="bg-emerald-600 hover:bg-emerald-700" data-testid="button-bulk-approve">
                 <CheckCheck className="mr-2 h-4 w-4" />
                 Tümünü Onayla
               </Button>
@@ -249,7 +357,7 @@ export default function Admin() {
                 <CardTitle>Kullanıcılar</CardTitle>
                 <CardDescription>Sisteme erişimi olan personelleri yönetin</CardDescription>
               </div>
-              <Button className="bg-primary hover:bg-primary/90" onClick={() => setIsNewUserOpen(true)}>
+              <Button className="bg-primary hover:bg-primary/90" onClick={() => setIsNewUserOpen(true)} data-testid="button-new-user">
                 <UserPlus className="mr-2 h-4 w-4" />
                 Yeni Kullanıcı
               </Button>
@@ -258,7 +366,7 @@ export default function Admin() {
               <div className="flex items-center gap-2 mb-4">
                 <div className="relative flex-1">
                   <Search className="absolute left-2.5 top-2.5 h-4 w-4 text-muted-foreground" />
-                  <Input placeholder="İsim veya kullanıcı adı ile ara..." className="pl-9" />
+                  <Input placeholder="İsim veya kullanıcı adı ile ara..." className="pl-9" data-testid="input-search-users" />
                 </div>
               </div>
 
@@ -273,7 +381,7 @@ export default function Admin() {
               ) : (
                 <div className="space-y-4">
                   {users.map((user) => (
-                    <div key={user.id} className="flex items-center justify-between p-4 border rounded-lg hover:bg-muted/30 transition-colors">
+                    <div key={user.id} className="flex items-center justify-between p-4 border rounded-lg hover:bg-muted/30 transition-colors" data-testid={`row-user-${user.id}`}>
                       <div className="flex items-center gap-4">
                         <div className="h-10 w-10 rounded-full bg-primary/10 flex items-center justify-center text-primary font-medium">
                           {user.name.charAt(0)}
@@ -293,10 +401,13 @@ export default function Admin() {
                           </span>
                         </div>
                         <div className="flex gap-1">
-                          <Button variant="ghost" size="icon" className="h-8 w-8" onClick={() => openEditDialog(user)}>
+                          <Button variant="ghost" size="icon" className="h-8 w-8" onClick={() => openAssignDialog(user)} title="Atamalar" data-testid={`button-assign-${user.id}`}>
+                            <Users className="h-4 w-4" />
+                          </Button>
+                          <Button variant="ghost" size="icon" className="h-8 w-8" onClick={() => openEditDialog(user)} title="Düzenle" data-testid={`button-edit-${user.id}`}>
                             <Pencil className="h-4 w-4" />
                           </Button>
-                          <Button variant="ghost" size="icon" className="h-8 w-8 text-destructive hover:text-destructive" onClick={() => handleDeleteUser(user.id, user.name)}>
+                          <Button variant="ghost" size="icon" className="h-8 w-8 text-destructive hover:text-destructive" onClick={() => handleDeleteUser(user.id, user.name)} title="Sil" data-testid={`button-delete-${user.id}`}>
                             <Trash2 className="h-4 w-4" />
                           </Button>
                         </div>
