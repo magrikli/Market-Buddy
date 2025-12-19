@@ -35,15 +35,23 @@ export async function registerRoutes(server: Server, app: Express): Promise<Serv
       req.session.username = user.username;
       req.session.role = user.role;
 
-      return res.json({
-        user: {
-          id: user.id,
-          username: user.username,
-          name: user.name,
-          role: user.role,
-          assignedDepartmentIds: departmentIds,
-          assignedProjectIds: projectIds,
+      // Explicitly save session to database
+      req.session.save((err) => {
+        if (err) {
+          console.error('Session save error:', err);
+          return res.status(500).json({ message: "Session error" });
         }
+        
+        return res.json({
+          user: {
+            id: user.id,
+            username: user.username,
+            name: user.name,
+            role: user.role,
+            assignedDepartmentIds: departmentIds,
+            assignedProjectIds: projectIds,
+          }
+        });
       });
     } catch (error) {
       console.error('Login error:', error);

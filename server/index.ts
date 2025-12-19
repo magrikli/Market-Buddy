@@ -41,7 +41,7 @@ declare module "http" {
 
 declare module "express-session" {
   interface SessionData {
-    userId: number;
+    userId: string;
     username: string;
     role: string;
   }
