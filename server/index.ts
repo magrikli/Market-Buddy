@@ -1,10 +1,9 @@
 import express, { type Request, Response, NextFunction } from "express";
 import session from "express-session";
-import connectPgSimple from "connect-pg-simple";
+import MemoryStore from "memorystore";
 import { registerRoutes } from "./routes";
 import { serveStatic } from "./static";
 import { createServer } from "http";
-import { pool } from "./db";
 
 const app = express();
 const httpServer = createServer(app);
@@ -12,20 +11,18 @@ const httpServer = createServer(app);
 // Trust the proxy (Replit terminates HTTPS before forwarding to the app)
 app.set('trust proxy', 1);
 
-const PgSession = connectPgSimple(session);
+const MemoryStoreSession = MemoryStore(session);
 
 app.use(
   session({
-    store: new PgSession({
-      pool,
-      tableName: 'session',
-      createTableIfMissing: true,
+    store: new MemoryStoreSession({
+      checkPeriod: 86400000, // prune expired entries every 24h
     }),
     secret: process.env.SESSION_SECRET || 'finflow-secret-key-2025',
     resave: false,
     saveUninitialized: false,
     cookie: {
-      secure: process.env.NODE_ENV === 'production',
+      secure: false, // Allow cookies over HTTP for development
       httpOnly: true,
       maxAge: 30 * 24 * 60 * 60 * 1000, // 30 days
       sameSite: 'lax',
