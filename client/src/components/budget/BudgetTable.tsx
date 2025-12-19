@@ -2,9 +2,9 @@ import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
-import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip";
+import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from "@/components/ui/dropdown-menu";
 import { cn } from "@/lib/utils";
-import { Edit2, Save, X, History, Lock, CheckCircle, Trash2 } from "lucide-react";
+import { Save, X, History, Lock, CheckCircle, Trash2, MoreHorizontal, Edit2 } from "lucide-react";
 import { useState } from "react";
 import { CostItem, RevenueItem, BudgetMonthValues } from "@/lib/store";
 import { RevisionHistoryDialog } from "./RevisionHistoryDialog";
@@ -137,58 +137,45 @@ export function BudgetTable({ items, onSave, onRevise, onApprove, onDelete, isAd
                             </Button>
                           </>
                         ) : (
-                          <>
-                            {item.status === 'approved' ? (
-                              <Tooltip>
-                                <TooltipTrigger asChild>
-                                  <Button size="icon" variant="ghost" className="h-6 w-6 text-amber-600 hover:text-amber-700 hover:bg-amber-50" onClick={() => onRevise(item.id)}>
-                                      <Lock className="h-3 w-3" />
-                                  </Button>
-                                </TooltipTrigger>
-                                <TooltipContent>Onaylandı - Revize Et</TooltipContent>
-                              </Tooltip>
-                            ) : (
-                              <Tooltip>
-                                  <TooltipTrigger asChild>
-                                      <Button size="icon" variant="ghost" className="h-6 w-6 text-primary hover:text-primary hover:bg-primary/10" onClick={() => startEditing(item)}>
-                                          <Edit2 className="h-3 w-3" />
-                                      </Button>
-                                  </TooltipTrigger>
-                                  <TooltipContent>Düzenle</TooltipContent>
-                              </Tooltip>
-                            )}
-                            
-                            {isAdmin && item.status === 'pending' && onApprove && (
-                               <Tooltip>
-                                  <TooltipTrigger asChild>
-                                      <Button size="icon" variant="ghost" className="h-6 w-6 text-emerald-600 hover:text-emerald-700" onClick={() => onApprove(item.id)}>
-                                          <CheckCircle className="h-3 w-3" />
-                                      </Button>
-                                  </TooltipTrigger>
-                                  <TooltipContent>Onayla</TooltipContent>
-                               </Tooltip>
-                            )}
+                          <DropdownMenu>
+                            <DropdownMenuTrigger asChild>
+                              <Button variant="ghost" size="icon" className="h-6 w-6">
+                                <MoreHorizontal className="h-3 w-3" />
+                              </Button>
+                            </DropdownMenuTrigger>
+                            <DropdownMenuContent align="end">
+                              {item.status === 'approved' ? (
+                                <DropdownMenuItem onClick={() => onRevise(item.id)}>
+                                  <Lock className="mr-2 h-4 w-4 text-amber-600" />
+                                  Revize Et
+                                </DropdownMenuItem>
+                              ) : (
+                                <DropdownMenuItem onClick={() => startEditing(item)}>
+                                  <Edit2 className="mr-2 h-4 w-4" />
+                                  Düzenle
+                                </DropdownMenuItem>
+                              )}
+                              
+                              {isAdmin && item.status === 'pending' && onApprove && (
+                                <DropdownMenuItem onClick={() => onApprove(item.id)}>
+                                  <CheckCircle className="mr-2 h-4 w-4 text-emerald-600" />
+                                  Onayla
+                                </DropdownMenuItem>
+                              )}
 
-                            <Tooltip>
-                              <TooltipTrigger asChild>
-                                  <Button size="icon" variant="ghost" className="h-6 w-6 text-muted-foreground hover:text-foreground" onClick={() => openHistory(item)}>
-                                      <History className="h-3 w-3" />
-                                  </Button>
-                              </TooltipTrigger>
-                              <TooltipContent>Geçmiş</TooltipContent>
-                            </Tooltip>
-                            
-                            {isAdmin && onDelete && (
-                              <Tooltip>
-                                <TooltipTrigger asChild>
-                                    <Button size="icon" variant="ghost" className="h-6 w-6 text-destructive hover:text-destructive hover:bg-destructive/10" onClick={() => onDelete(item.id, item.name)}>
-                                        <Trash2 className="h-3 w-3" />
-                                    </Button>
-                                </TooltipTrigger>
-                                <TooltipContent>Sil</TooltipContent>
-                              </Tooltip>
-                            )}
-                          </>
+                              <DropdownMenuItem onClick={() => openHistory(item)}>
+                                <History className="mr-2 h-4 w-4" />
+                                Geçmiş
+                              </DropdownMenuItem>
+                              
+                              {isAdmin && onDelete && (
+                                <DropdownMenuItem onClick={() => onDelete(item.id, item.name)} className="text-destructive">
+                                  <Trash2 className="mr-2 h-4 w-4" />
+                                  Sil
+                                </DropdownMenuItem>
+                              )}
+                            </DropdownMenuContent>
+                          </DropdownMenu>
                         )}
                       </div>
                     </TableCell>
