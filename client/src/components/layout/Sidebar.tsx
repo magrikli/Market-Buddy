@@ -23,6 +23,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { toast } from "sonner";
 import * as api from "@/lib/api";
+import { CompanySelector } from "./CompanySelector";
 
 export function Sidebar() {
   const [location] = useLocation();
@@ -87,6 +88,10 @@ export function Sidebar() {
       <div className="h-16 flex items-center px-4 border-b border-sidebar-border">
         {!collapsed && <span className="font-bold text-xl text-primary tracking-tight">FinFlow</span>}
         {collapsed && <span className="font-bold text-xl text-primary mx-auto">FF</span>}
+      </div>
+
+      <div className={cn("px-2 py-3 border-b border-sidebar-border", collapsed && "px-1")}>
+        <CompanySelector collapsed={collapsed} />
       </div>
 
       <div className="flex-1 py-4 flex flex-col gap-1 px-2">

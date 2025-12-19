@@ -19,8 +19,8 @@ import { toast } from "sonner";
 import type { BudgetMonthValues } from "@/lib/store";
 
 export default function ProjectBudget() {
-  const { currentYear, setYear, currentUser } = useStore();
-  const { data: projects = [], isLoading } = useProjects(currentYear);
+  const { currentYear, setYear, currentUser, selectedCompanyId } = useStore();
+  const { data: projects = [], isLoading } = useProjects(currentYear, selectedCompanyId);
   
   const createProjectMutation = useCreateProject();
   const updateProjectMutation = useUpdateProject();

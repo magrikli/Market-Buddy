@@ -28,9 +28,9 @@ const formSchema = z.object({
 });
 
 export default function Transactions() {
-  const { currentYear, currentUser } = useStore();
-  const { data: allDepartments = [] } = useDepartments(currentYear);
-  const { data: allProjects = [] } = useProjects(currentYear);
+  const { currentYear, currentUser, selectedCompanyId } = useStore();
+  const { data: allDepartments = [] } = useDepartments(currentYear, selectedCompanyId);
+  const { data: allProjects = [] } = useProjects(currentYear, selectedCompanyId);
   const createTransactionMutation = useCreateTransaction();
   const [loading, setLoading] = useState(false);
 

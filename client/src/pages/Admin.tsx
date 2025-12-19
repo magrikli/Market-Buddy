@@ -7,8 +7,8 @@ import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, D
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Checkbox } from "@/components/ui/checkbox";
 import { useStore } from "@/lib/store";
-import { useDepartments, useProjects, useUsers, useCreateUser, useUpdateUser, useDeleteUser, useUpdateUserAssignments } from "@/lib/queries";
-import { Search, UserPlus, Settings, CheckCheck, Pencil, Trash2, Loader2, Users } from "lucide-react";
+import { useDepartments, useProjects, useUsers, useCreateUser, useUpdateUser, useDeleteUser, useUpdateUserAssignments, useCompanies, useCreateCompany, useUpdateCompany, useDeleteCompany, useUpdateUserCompanyAssignments } from "@/lib/queries";
+import { Search, UserPlus, Settings, CheckCheck, Pencil, Trash2, Loader2, Users, Building2, Plus } from "lucide-react";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { toast } from "sonner";
 import { useState } from "react";
@@ -18,10 +18,15 @@ export default function Admin() {
   const { data: departments = [] } = useDepartments(currentYear);
   const { data: projects = [] } = useProjects(currentYear);
   const { data: users = [], isLoading: usersLoading } = useUsers();
+  const { data: companies = [], isLoading: companiesLoading } = useCompanies();
   const createUserMutation = useCreateUser();
   const updateUserMutation = useUpdateUser();
   const deleteUserMutation = useDeleteUser();
   const updateAssignmentsMutation = useUpdateUserAssignments();
+  const updateCompanyAssignmentsMutation = useUpdateUserCompanyAssignments();
+  const createCompanyMutation = useCreateCompany();
+  const updateCompanyMutation = useUpdateCompany();
+  const deleteCompanyMutation = useDeleteCompany();
 
   const [isNewUserOpen, setIsNewUserOpen] = useState(false);
   const [isEditUserOpen, setIsEditUserOpen] = useState(false);
@@ -40,6 +45,15 @@ export default function Admin() {
 
   const [selectedDepartments, setSelectedDepartments] = useState<string[]>([]);
   const [selectedProjects, setSelectedProjects] = useState<string[]>([]);
+  const [selectedCompanies, setSelectedCompanies] = useState<string[]>([]);
+
+  const [isNewCompanyOpen, setIsNewCompanyOpen] = useState(false);
+  const [isEditCompanyOpen, setIsEditCompanyOpen] = useState(false);
+  const [editingCompany, setEditingCompany] = useState<{ id: string; name: string; code: string } | null>(null);
+  const [newCompanyName, setNewCompanyName] = useState("");
+  const [newCompanyCode, setNewCompanyCode] = useState("");
+  const [editCompanyName, setEditCompanyName] = useState("");
+  const [editCompanyCode, setEditCompanyCode] = useState("");
 
   const handleBulkApprove = () => {
     toast.success("5 adet bütçe kalemi onaylandı");
@@ -110,6 +124,7 @@ export default function Admin() {
     setAssigningUser(user);
     setSelectedDepartments(user.assignedDepartmentIds || []);
     setSelectedProjects(user.assignedProjectIds || []);
+    setSelectedCompanies(user.assignedCompanyIds || []);
     setIsAssignOpen(true);
   };
 
@@ -122,6 +137,10 @@ export default function Admin() {
           departmentIds: selectedDepartments,
           projectIds: selectedProjects,
         },
+      });
+      await updateCompanyAssignmentsMutation.mutateAsync({
+        id: assigningUser.id,
+        companyIds: selectedCompanies,
       });
       toast.success("Atamalar güncellendi", { description: assigningUser.name });
       setIsAssignOpen(false);
@@ -141,6 +160,63 @@ export default function Admin() {
     setSelectedProjects(prev =>
       prev.includes(projectId) ? prev.filter(id => id !== projectId) : [...prev, projectId]
     );
+  };
+
+  const toggleCompany = (companyId: string) => {
+    setSelectedCompanies(prev =>
+      prev.includes(companyId) ? prev.filter(id => id !== companyId) : [...prev, companyId]
+    );
+  };
+
+  const handleCreateCompany = async () => {
+    if (!newCompanyName || !newCompanyCode) {
+      toast.error("Tüm alanları doldurun");
+      return;
+    }
+    try {
+      await createCompanyMutation.mutateAsync({
+        name: newCompanyName,
+        code: newCompanyCode,
+      });
+      toast.success("Şirket oluşturuldu", { description: newCompanyName });
+      setIsNewCompanyOpen(false);
+      setNewCompanyName("");
+      setNewCompanyCode("");
+    } catch (error: any) {
+      toast.error("Hata", { description: error.message });
+    }
+  };
+
+  const openEditCompanyDialog = (company: any) => {
+    setEditingCompany(company);
+    setEditCompanyName(company.name);
+    setEditCompanyCode(company.code);
+    setIsEditCompanyOpen(true);
+  };
+
+  const handleEditCompany = async () => {
+    if (!editingCompany) return;
+    try {
+      await updateCompanyMutation.mutateAsync({
+        id: editingCompany.id,
+        data: { name: editCompanyName, code: editCompanyCode },
+      });
+      toast.success("Şirket güncellendi");
+      setIsEditCompanyOpen(false);
+      setEditingCompany(null);
+    } catch (error: any) {
+      toast.error("Hata", { description: error.message });
+    }
+  };
+
+  const handleDeleteCompany = async (id: string, name: string) => {
+    if (!confirm(`"${name}" şirketini silmek istediğinize emin misiniz?`)) return;
+    try {
+      await deleteCompanyMutation.mutateAsync(id);
+      toast.success("Şirket silindi", { description: name });
+    } catch (error: any) {
+      toast.error("Hata", { description: error.message });
+    }
   };
 
   const pendingItems = [
@@ -239,12 +315,34 @@ export default function Admin() {
       <Dialog open={isAssignOpen} onOpenChange={setIsAssignOpen}>
         <DialogContent className="max-w-lg">
           <DialogHeader>
-            <DialogTitle>Departman ve Proje Ataması</DialogTitle>
+            <DialogTitle>Şirket, Departman ve Proje Ataması</DialogTitle>
             <DialogDescription>
               {assigningUser?.name} için erişim yetkilerini belirleyin.
             </DialogDescription>
           </DialogHeader>
           <div className="space-y-6 py-4 max-h-[60vh] overflow-y-auto">
+            <div className="space-y-3">
+              <Label className="text-sm font-semibold">Şirketler</Label>
+              {companies.length === 0 ? (
+                <p className="text-sm text-muted-foreground">Henüz şirket bulunmuyor.</p>
+              ) : (
+                <div className="space-y-2 border rounded-lg p-3">
+                  {companies.map((company) => (
+                    <div key={company.id} className="flex items-center gap-2">
+                      <Checkbox
+                        id={`company-${company.id}`}
+                        checked={selectedCompanies.includes(company.id)}
+                        onCheckedChange={() => toggleCompany(company.id)}
+                        data-testid={`checkbox-company-${company.id}`}
+                      />
+                      <label htmlFor={`company-${company.id}`} className="text-sm cursor-pointer flex-1">
+                        {company.name} <span className="text-muted-foreground">({company.code})</span>
+                      </label>
+                    </div>
+                  ))}
+                </div>
+              )}
+            </div>
             <div className="space-y-3">
               <Label className="text-sm font-semibold">Departmanlar</Label>
               {departments.length === 0 ? (
@@ -301,10 +399,11 @@ export default function Admin() {
       </Dialog>
 
       <Tabs defaultValue="approvals" className="w-full">
-        <TabsList className="grid w-full max-w-lg grid-cols-3 mb-6">
+        <TabsList className="grid w-full max-w-2xl grid-cols-4 mb-6">
           <TabsTrigger value="approvals" data-testid="tab-approvals">Onay Bekleyenler</TabsTrigger>
-          <TabsTrigger value="users" data-testid="tab-users">Kullanıcı Yönetimi</TabsTrigger>
-          <TabsTrigger value="settings" data-testid="tab-settings">Sistem Ayarları</TabsTrigger>
+          <TabsTrigger value="users" data-testid="tab-users">Kullanıcılar</TabsTrigger>
+          <TabsTrigger value="companies" data-testid="tab-companies">Şirketler</TabsTrigger>
+          <TabsTrigger value="settings" data-testid="tab-settings">Ayarlar</TabsTrigger>
         </TabsList>
 
         <TabsContent value="approvals">
@@ -397,7 +496,7 @@ export default function Admin() {
                             {user.role === 'admin' ? 'Yönetici' : 'Kullanıcı'}
                           </span>
                           <span className="text-[10px] text-muted-foreground">
-                            {user.assignedDepartmentIds.length} Departman, {user.assignedProjectIds.length} Proje
+                            {user.assignedCompanyIds?.length || 0} Şirket, {user.assignedDepartmentIds.length} Departman, {user.assignedProjectIds.length} Proje
                           </span>
                         </div>
                         <div className="flex gap-1">
@@ -411,6 +510,58 @@ export default function Admin() {
                             <Trash2 className="h-4 w-4" />
                           </Button>
                         </div>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              )}
+            </CardContent>
+          </Card>
+        </TabsContent>
+
+        <TabsContent value="companies">
+          <Card className="shadow-md">
+            <CardHeader className="flex flex-row items-center justify-between">
+              <div>
+                <CardTitle>Şirket Yönetimi</CardTitle>
+                <CardDescription>Sisteme kayıtlı şirketleri yönetin</CardDescription>
+              </div>
+              <Button onClick={() => setIsNewCompanyOpen(true)} data-testid="button-add-company">
+                <Plus className="mr-2 h-4 w-4" />
+                Yeni Şirket
+              </Button>
+            </CardHeader>
+            <CardContent>
+              {companiesLoading ? (
+                <div className="flex justify-center p-8">
+                  <Loader2 className="h-8 w-8 animate-spin text-muted-foreground" />
+                </div>
+              ) : companies.length === 0 ? (
+                <div className="text-center p-8 bg-muted/10 rounded-lg border border-dashed">
+                  <Building2 className="mx-auto h-12 w-12 text-muted-foreground mb-3" />
+                  <p className="text-muted-foreground">Henüz şirket bulunmuyor.</p>
+                  <p className="text-sm text-muted-foreground mt-1">İlk şirketi eklemek için "Yeni Şirket" butonunu kullanın.</p>
+                </div>
+              ) : (
+                <div className="space-y-3">
+                  {companies.map((company) => (
+                    <div key={company.id} className="flex items-center justify-between p-4 border rounded-lg hover:bg-muted/30 transition-colors" data-testid={`row-company-${company.id}`}>
+                      <div className="flex items-center gap-4">
+                        <div className="h-10 w-10 rounded-full bg-primary/10 flex items-center justify-center text-primary font-medium">
+                          <Building2 className="h-5 w-5" />
+                        </div>
+                        <div>
+                          <p className="font-medium text-sm text-foreground">{company.name}</p>
+                          <p className="text-xs text-muted-foreground">Kod: {company.code}</p>
+                        </div>
+                      </div>
+                      <div className="flex gap-1">
+                        <Button variant="ghost" size="icon" className="h-8 w-8" onClick={() => openEditCompanyDialog(company)} title="Düzenle" data-testid={`button-edit-company-${company.id}`}>
+                          <Pencil className="h-4 w-4" />
+                        </Button>
+                        <Button variant="ghost" size="icon" className="h-8 w-8 text-destructive hover:text-destructive" onClick={() => handleDeleteCompany(company.id, company.name)} title="Sil" data-testid={`button-delete-company-${company.id}`}>
+                          <Trash2 className="h-4 w-4" />
+                        </Button>
                       </div>
                     </div>
                   ))}
@@ -447,6 +598,58 @@ export default function Admin() {
           </Card>
         </TabsContent>
       </Tabs>
+
+      <Dialog open={isNewCompanyOpen} onOpenChange={setIsNewCompanyOpen}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>Yeni Şirket Ekle</DialogTitle>
+            <DialogDescription>Sisteme yeni bir şirket tanımlayın.</DialogDescription>
+          </DialogHeader>
+          <div className="space-y-4 py-4">
+            <div className="space-y-2">
+              <Label htmlFor="company-name">Şirket Adı</Label>
+              <Input id="company-name" value={newCompanyName} onChange={(e) => setNewCompanyName(e.target.value)} placeholder="Örnek Şirket A.Ş." data-testid="input-new-company-name" />
+            </div>
+            <div className="space-y-2">
+              <Label htmlFor="company-code">Şirket Kodu</Label>
+              <Input id="company-code" value={newCompanyCode} onChange={(e) => setNewCompanyCode(e.target.value)} placeholder="ORNEK" data-testid="input-new-company-code" />
+            </div>
+          </div>
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setIsNewCompanyOpen(false)}>İptal</Button>
+            <Button onClick={handleCreateCompany} disabled={createCompanyMutation.isPending} data-testid="button-create-company">
+              {createCompanyMutation.isPending && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
+              Oluştur
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      <Dialog open={isEditCompanyOpen} onOpenChange={setIsEditCompanyOpen}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>Şirket Düzenle</DialogTitle>
+            <DialogDescription>Şirket bilgilerini güncelleyin.</DialogDescription>
+          </DialogHeader>
+          <div className="space-y-4 py-4">
+            <div className="space-y-2">
+              <Label htmlFor="edit-company-name">Şirket Adı</Label>
+              <Input id="edit-company-name" value={editCompanyName} onChange={(e) => setEditCompanyName(e.target.value)} data-testid="input-edit-company-name" />
+            </div>
+            <div className="space-y-2">
+              <Label htmlFor="edit-company-code">Şirket Kodu</Label>
+              <Input id="edit-company-code" value={editCompanyCode} onChange={(e) => setEditCompanyCode(e.target.value)} data-testid="input-edit-company-code" />
+            </div>
+          </div>
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setIsEditCompanyOpen(false)}>İptal</Button>
+            <Button onClick={handleEditCompany} disabled={updateCompanyMutation.isPending} data-testid="button-save-company">
+              {updateCompanyMutation.isPending && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
+              Kaydet
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }

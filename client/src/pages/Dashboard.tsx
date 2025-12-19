@@ -5,9 +5,9 @@ import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContaine
 import { ArrowUpRight, ArrowDownRight, Clock, CheckCircle2, Loader2 } from "lucide-react";
 
 export default function Dashboard() {
-  const { currentYear } = useStore();
-  const { data: departments = [], isLoading: deptLoading } = useDepartments(currentYear);
-  const { data: projects = [], isLoading: projLoading } = useProjects(currentYear);
+  const { currentYear, selectedCompanyId } = useStore();
+  const { data: departments = [], isLoading: deptLoading } = useDepartments(currentYear, selectedCompanyId);
+  const { data: projects = [], isLoading: projLoading } = useProjects(currentYear, selectedCompanyId);
 
   // Calculate totals
   const totalDepartmentBudget = departments.reduce((acc, dep) => 

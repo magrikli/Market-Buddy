@@ -6,9 +6,10 @@ import type { User } from './store';
 export const queryKeys = {
   user: ['user'] as const,
   users: ['users'] as const,
+  companies: ['companies'] as const,
   departmentGroups: ['departmentGroups'] as const,
-  departments: (year: number) => ['departments', year] as const,
-  projects: (year: number) => ['projects', year] as const,
+  departments: (year: number, companyId?: string | null) => ['departments', year, companyId] as const,
+  projects: (year: number, companyId?: string | null) => ['projects', year, companyId] as const,
   transactions: (limit?: number) => ['transactions', limit] as const,
 };
 
@@ -115,10 +116,10 @@ export function useDeleteDepartmentGroup() {
 
 // === DEPARTMENTS ===
 
-export function useDepartments(year: number = 2025) {
+export function useDepartments(year: number = 2025, companyId?: string | null) {
   return useQuery({
-    queryKey: queryKeys.departments(year),
-    queryFn: () => api.getDepartments(year),
+    queryKey: queryKeys.departments(year, companyId),
+    queryFn: () => api.getDepartments(year, companyId),
   });
 }
 
@@ -185,10 +186,10 @@ export function useDeleteCostGroup() {
 
 // === PROJECTS ===
 
-export function useProjects(year: number = 2025) {
+export function useProjects(year: number = 2025, companyId?: string | null) {
   return useQuery({
-    queryKey: queryKeys.projects(year),
-    queryFn: () => api.getProjects(year),
+    queryKey: queryKeys.projects(year, companyId),
+    queryFn: () => api.getProjects(year, companyId),
   });
 }
 
@@ -354,6 +355,55 @@ export function useCreateTransaction() {
     }) => api.createTransaction(data),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: queryKeys.transactions() });
+    },
+  });
+}
+
+// === COMPANIES ===
+
+export function useCompanies() {
+  return useQuery({
+    queryKey: queryKeys.companies,
+    queryFn: () => api.getCompanies(),
+  });
+}
+
+export function useCreateCompany() {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: (data: { name: string; code: string }) => api.createCompany(data),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: queryKeys.companies });
+    },
+  });
+}
+
+export function useUpdateCompany() {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: ({ id, data }: { id: string; data: { name?: string; code?: string } }) => api.updateCompany(id, data),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: queryKeys.companies });
+    },
+  });
+}
+
+export function useDeleteCompany() {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: (id: string) => api.deleteCompany(id),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: queryKeys.companies });
+    },
+  });
+}
+
+export function useUpdateUserCompanyAssignments() {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: ({ id, companyIds }: { id: string; companyIds: string[] }) => api.updateUserCompanyAssignments(id, companyIds),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: queryKeys.users });
     },
   });
 }

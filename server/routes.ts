@@ -4,7 +4,8 @@ import { storage } from "./storage";
 import { 
   insertUserSchema, insertDepartmentSchema, insertCostGroupSchema, 
   insertProjectSchema, insertProjectPhaseSchema, insertBudgetItemSchema, 
-  insertTransactionSchema, insertBudgetRevisionSchema, insertDepartmentGroupSchema 
+  insertTransactionSchema, insertBudgetRevisionSchema, insertDepartmentGroupSchema,
+  insertCompanySchema
 } from "@shared/schema";
 import { z } from "zod";
 import bcrypt from "bcrypt";
@@ -29,6 +30,7 @@ export async function registerRoutes(server: Server, app: Express): Promise<Serv
       // Get user assignments
       const departmentIds = await storage.getUserDepartments(user.id);
       const projectIds = await storage.getUserProjects(user.id);
+      const companyIds = await storage.getUserCompanies(user.id);
 
       // Save session
       req.session.userId = user.id;
@@ -50,6 +52,7 @@ export async function registerRoutes(server: Server, app: Express): Promise<Serv
             role: user.role,
             assignedDepartmentIds: departmentIds,
             assignedProjectIds: projectIds,
+            assignedCompanyIds: companyIds,
           }
         });
       });
@@ -74,6 +77,7 @@ export async function registerRoutes(server: Server, app: Express): Promise<Serv
 
       const departmentIds = await storage.getUserDepartments(user.id);
       const projectIds = await storage.getUserProjects(user.id);
+      const companyIds = await storage.getUserCompanies(user.id);
 
       return res.json({
         user: {
@@ -83,6 +87,7 @@ export async function registerRoutes(server: Server, app: Express): Promise<Serv
           role: user.role,
           assignedDepartmentIds: departmentIds,
           assignedProjectIds: projectIds,
+          assignedCompanyIds: companyIds,
         }
       });
     } catch (error) {
@@ -170,6 +175,78 @@ export async function registerRoutes(server: Server, app: Express): Promise<Serv
     }
   });
 
+  // ===== COMPANIES =====
+  
+  app.get("/api/companies", async (req: Request, res: Response) => {
+    try {
+      const allCompanies = await storage.getAllCompanies();
+      
+      // For admin users, return all companies
+      // For regular users, filter to assigned companies
+      if (req.session.role === 'admin') {
+        return res.json(allCompanies);
+      } else if (req.session.userId) {
+        const userCompanyIds = await storage.getUserCompanies(req.session.userId);
+        const filtered = allCompanies.filter(c => userCompanyIds.includes(c.id));
+        return res.json(filtered);
+      }
+      
+      return res.json(allCompanies);
+    } catch (error) {
+      console.error('Get companies error:', error);
+      return res.status(500).json({ message: "Server error" });
+    }
+  });
+
+  app.post("/api/companies", async (req: Request, res: Response) => {
+    try {
+      // Admin only
+      if (req.session.role !== 'admin') {
+        return res.status(403).json({ message: "Admin access required" });
+      }
+      const data = insertCompanySchema.parse(req.body);
+      const company = await storage.createCompany(data);
+      return res.status(201).json(company);
+    } catch (error) {
+      if (error instanceof z.ZodError) {
+        return res.status(400).json({ message: "Validation error", errors: error.errors });
+      }
+      return res.status(500).json({ message: "Server error" });
+    }
+  });
+
+  app.put("/api/companies/:id", async (req: Request, res: Response) => {
+    try {
+      // Admin only
+      if (req.session.role !== 'admin') {
+        return res.status(403).json({ message: "Admin access required" });
+      }
+      const { id } = req.params;
+      const { name, code } = req.body;
+      const company = await storage.updateCompany(id, { name, code });
+      if (!company) {
+        return res.status(404).json({ message: "Company not found" });
+      }
+      return res.json(company);
+    } catch (error) {
+      return res.status(500).json({ message: "Server error" });
+    }
+  });
+
+  app.delete("/api/companies/:id", async (req: Request, res: Response) => {
+    try {
+      // Admin only
+      if (req.session.role !== 'admin') {
+        return res.status(403).json({ message: "Admin access required" });
+      }
+      const { id } = req.params;
+      await storage.deleteCompany(id);
+      return res.status(204).send();
+    } catch (error) {
+      return res.status(500).json({ message: "Server error" });
+    }
+  });
+
   // ===== DEPARTMENT GROUPS =====
   
   app.get("/api/department-groups", async (req: Request, res: Response) => {
@@ -224,7 +301,26 @@ export async function registerRoutes(server: Server, app: Express): Promise<Serv
   app.get("/api/departments", async (req: Request, res: Response) => {
     try {
       const year = parseInt(req.query.year as string) || 2025;
-      const departments = await storage.getAllDepartments();
+      const companyId = req.query.companyId as string | undefined;
+      let departments = await storage.getAllDepartments();
+      
+      // Determine allowed company IDs for the user
+      let allowedCompanyIds: string[] | null = null;
+      if (req.session.role !== 'admin' && req.session.userId) {
+        allowedCompanyIds = await storage.getUserCompanies(req.session.userId);
+      }
+      
+      // Filter by companyId if provided
+      if (companyId) {
+        // Validate that user has access to this company
+        if (allowedCompanyIds !== null && !allowedCompanyIds.includes(companyId)) {
+          return res.status(403).json({ message: "Unauthorized access to this company" });
+        }
+        departments = departments.filter(d => d.companyId === companyId);
+      } else if (allowedCompanyIds !== null) {
+        // For non-admin users without companyId filter, only show assigned companies
+        departments = departments.filter(d => d.companyId && allowedCompanyIds!.includes(d.companyId));
+      }
       
       // Fetch related data for each department
       const fullDepartments = await Promise.all(
@@ -358,7 +454,26 @@ export async function registerRoutes(server: Server, app: Express): Promise<Serv
   app.get("/api/projects", async (req: Request, res: Response) => {
     try {
       const year = parseInt(req.query.year as string) || 2025;
-      const projects = await storage.getAllProjects();
+      const companyId = req.query.companyId as string | undefined;
+      let projects = await storage.getAllProjects();
+      
+      // Determine allowed company IDs for the user
+      let allowedCompanyIds: string[] | null = null;
+      if (req.session.role !== 'admin' && req.session.userId) {
+        allowedCompanyIds = await storage.getUserCompanies(req.session.userId);
+      }
+      
+      // Filter by companyId if provided
+      if (companyId) {
+        // Validate that user has access to this company
+        if (allowedCompanyIds !== null && !allowedCompanyIds.includes(companyId)) {
+          return res.status(403).json({ message: "Unauthorized access to this company" });
+        }
+        projects = projects.filter(p => p.companyId === companyId);
+      } else if (allowedCompanyIds !== null) {
+        // For non-admin users without companyId filter, only show assigned companies
+        projects = projects.filter(p => p.companyId && allowedCompanyIds!.includes(p.companyId));
+      }
       
       const fullProjects = await Promise.all(
         projects.map(async (proj) => {
@@ -732,6 +847,27 @@ export async function registerRoutes(server: Server, app: Express): Promise<Serv
       const assignedProjectIds = await storage.getUserProjects(id);
       
       return res.json({ assignedDepartmentIds, assignedProjectIds });
+    } catch (error) {
+      return res.status(500).json({ message: "Server error" });
+    }
+  });
+
+  app.put("/api/users/:id/company-assignments", async (req: Request, res: Response) => {
+    try {
+      // Admin only
+      if (req.session.role !== 'admin') {
+        return res.status(403).json({ message: "Admin access required" });
+      }
+      const { id } = req.params;
+      const { companyIds } = req.body;
+      
+      if (companyIds !== undefined) {
+        await storage.setUserCompanies(id, companyIds);
+      }
+      
+      const assignedCompanyIds = await storage.getUserCompanies(id);
+      
+      return res.json({ assignedCompanyIds });
     } catch (error) {
       return res.status(500).json({ message: "Server error" });
     }

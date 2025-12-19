@@ -1,4 +1,4 @@
-import type { User, Department, Project, DepartmentGroup } from './store';
+import type { User, Department, Project, DepartmentGroup, Company } from './store';
 
 const API_BASE = '/api';
 
@@ -63,6 +63,7 @@ export interface UserWithAssignments {
   role: string;
   assignedDepartmentIds: string[];
   assignedProjectIds: string[];
+  assignedCompanyIds: string[];
 }
 
 export async function getUsers(): Promise<UserWithAssignments[]> {
@@ -124,8 +125,10 @@ export async function deleteDepartmentGroup(id: string): Promise<void> {
 
 // === DEPARTMENTS ===
 
-export async function getDepartments(year: number = 2025): Promise<Department[]> {
-  return fetchAPI(`/departments?year=${year}`);
+export async function getDepartments(year: number = 2025, companyId?: string | null): Promise<Department[]> {
+  const params = new URLSearchParams({ year: String(year) });
+  if (companyId) params.append('companyId', companyId);
+  return fetchAPI(`/departments?${params.toString()}`);
 }
 
 export async function createDepartment(name: string): Promise<Department> {
@@ -170,8 +173,10 @@ export async function deleteCostGroup(id: string): Promise<void> {
 
 // === PROJECTS ===
 
-export async function getProjects(year: number = 2025): Promise<Project[]> {
-  return fetchAPI(`/projects?year=${year}`);
+export async function getProjects(year: number = 2025, companyId?: string | null): Promise<Project[]> {
+  const params = new URLSearchParams({ year: String(year) });
+  if (companyId) params.append('companyId', companyId);
+  return fetchAPI(`/projects?${params.toString()}`);
 }
 
 export async function createProject(name: string): Promise<Project> {
@@ -284,5 +289,38 @@ export async function createTransaction(data: {
   return fetchAPI('/transactions', {
     method: 'POST',
     body: JSON.stringify(data),
+  });
+}
+
+// === COMPANIES ===
+
+export async function getCompanies(): Promise<Company[]> {
+  return fetchAPI('/companies');
+}
+
+export async function createCompany(data: { name: string; code: string }): Promise<Company> {
+  return fetchAPI('/companies', {
+    method: 'POST',
+    body: JSON.stringify(data),
+  });
+}
+
+export async function updateCompany(id: string, data: { name?: string; code?: string }): Promise<Company> {
+  return fetchAPI(`/companies/${id}`, {
+    method: 'PUT',
+    body: JSON.stringify(data),
+  });
+}
+
+export async function deleteCompany(id: string): Promise<void> {
+  return fetchAPI(`/companies/${id}`, {
+    method: 'DELETE',
+  });
+}
+
+export async function updateUserCompanyAssignments(id: string, companyIds: string[]): Promise<{ assignedCompanyIds: string[] }> {
+  return fetchAPI(`/users/${id}/company-assignments`, {
+    method: 'PUT',
+    body: JSON.stringify({ companyIds }),
   });
 }

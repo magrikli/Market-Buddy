@@ -3,6 +3,18 @@ import { pgTable, text, varchar, integer, timestamp, jsonb, boolean } from "driz
 import { createInsertSchema, createSelectSchema } from "drizzle-zod";
 import { z } from "zod";
 
+// ===== COMPANIES =====
+export const companies = pgTable("companies", {
+  id: varchar("id", { length: 255 }).primaryKey().default(sql`gen_random_uuid()`),
+  name: text("name").notNull(),
+  code: varchar("code", { length: 50 }), // Short code like "ABC", "XYZ"
+  createdAt: timestamp("created_at").defaultNow().notNull(),
+});
+
+export const insertCompanySchema = createInsertSchema(companies).omit({ id: true, createdAt: true });
+export type InsertCompany = z.infer<typeof insertCompanySchema>;
+export type Company = typeof companies.$inferSelect;
+
 // ===== USERS =====
 export const users = pgTable("users", {
   id: varchar("id", { length: 255 }).primaryKey().default(sql`gen_random_uuid()`),
@@ -21,6 +33,7 @@ export type User = typeof users.$inferSelect;
 export const departmentGroups = pgTable("department_groups", {
   id: varchar("id", { length: 255 }).primaryKey().default(sql`gen_random_uuid()`),
   name: text("name").notNull(),
+  companyId: varchar("company_id", { length: 255 }).references(() => companies.id, { onDelete: 'cascade' }),
   createdAt: timestamp("created_at").defaultNow().notNull(),
 });
 
@@ -33,6 +46,7 @@ export const departments = pgTable("departments", {
   id: varchar("id", { length: 255 }).primaryKey().default(sql`gen_random_uuid()`),
   name: text("name").notNull(),
   groupId: varchar("group_id", { length: 255 }).references(() => departmentGroups.id, { onDelete: 'set null' }),
+  companyId: varchar("company_id", { length: 255 }).references(() => companies.id, { onDelete: 'cascade' }),
   createdAt: timestamp("created_at").defaultNow().notNull(),
 });
 
@@ -56,6 +70,7 @@ export type CostGroup = typeof costGroups.$inferSelect;
 export const projects = pgTable("projects", {
   id: varchar("id", { length: 255 }).primaryKey().default(sql`gen_random_uuid()`),
   name: text("name").notNull(),
+  companyId: varchar("company_id", { length: 255 }).references(() => companies.id, { onDelete: 'cascade' }),
   createdAt: timestamp("created_at").defaultNow().notNull(),
 });
 
@@ -153,3 +168,12 @@ export const insertUserDepartmentAssignmentSchema = createInsertSchema(userDepar
 export const insertUserProjectAssignmentSchema = createInsertSchema(userProjectAssignments);
 export type UserDepartmentAssignment = typeof userDepartmentAssignments.$inferSelect;
 export type UserProjectAssignment = typeof userProjectAssignments.$inferSelect;
+
+// ===== USER COMPANY ASSIGNMENTS =====
+export const userCompanyAssignments = pgTable("user_company_assignments", {
+  userId: varchar("user_id", { length: 255 }).notNull().references(() => users.id, { onDelete: 'cascade' }),
+  companyId: varchar("company_id", { length: 255 }).notNull().references(() => companies.id, { onDelete: 'cascade' }),
+});
+
+export const insertUserCompanyAssignmentSchema = createInsertSchema(userCompanyAssignments);
+export type UserCompanyAssignment = typeof userCompanyAssignments.$inferSelect;

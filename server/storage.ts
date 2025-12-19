@@ -2,15 +2,26 @@ import { db } from './db';
 import { 
   users, departments, costGroups, projects, projectPhases, budgetItems, budgetRevisions, 
   transactions, userDepartmentAssignments, userProjectAssignments, departmentGroups,
+  companies, userCompanyAssignments,
   type User, type InsertUser, type Department, type InsertDepartment,
   type CostGroup, type InsertCostGroup, type Project, type InsertProject,
   type ProjectPhase, type InsertProjectPhase, type BudgetItem, type InsertBudgetItem,
   type BudgetRevision, type InsertBudgetRevision, type Transaction, type InsertTransaction,
-  type DepartmentGroup, type InsertDepartmentGroup
+  type DepartmentGroup, type InsertDepartmentGroup,
+  type Company, type InsertCompany
 } from '@shared/schema';
-import { eq, and, sql } from 'drizzle-orm';
+import { eq, and, sql, inArray } from 'drizzle-orm';
 
 export interface IStorage {
+  // Companies
+  getAllCompanies(): Promise<Company[]>;
+  getCompany(id: string): Promise<Company | undefined>;
+  createCompany(company: InsertCompany): Promise<Company>;
+  updateCompany(id: string, updates: Partial<Company>): Promise<Company | undefined>;
+  deleteCompany(id: string): Promise<void>;
+  getUserCompanies(userId: string): Promise<string[]>;
+  setUserCompanies(userId: string, companyIds: string[]): Promise<void>;
+  
   // Users
   getUser(id: string): Promise<User | undefined>;
   getUserByUsername(username: string): Promise<User | undefined>;
@@ -78,6 +89,47 @@ export interface IStorage {
 }
 
 export class DatabaseStorage implements IStorage {
+  // === COMPANIES ===
+  async getAllCompanies(): Promise<Company[]> {
+    return await db.select().from(companies);
+  }
+
+  async getCompany(id: string): Promise<Company | undefined> {
+    const result = await db.select().from(companies).where(eq(companies.id, id)).limit(1);
+    return result[0];
+  }
+
+  async createCompany(company: InsertCompany): Promise<Company> {
+    const result = await db.insert(companies).values(company).returning();
+    return result[0];
+  }
+
+  async updateCompany(id: string, updates: Partial<Company>): Promise<Company | undefined> {
+    const result = await db.update(companies)
+      .set(updates)
+      .where(eq(companies.id, id))
+      .returning();
+    return result[0];
+  }
+
+  async deleteCompany(id: string): Promise<void> {
+    await db.delete(companies).where(eq(companies.id, id));
+  }
+
+  async getUserCompanies(userId: string): Promise<string[]> {
+    const result = await db.select({ companyId: userCompanyAssignments.companyId })
+      .from(userCompanyAssignments)
+      .where(eq(userCompanyAssignments.userId, userId));
+    return result.map(r => r.companyId);
+  }
+
+  async setUserCompanies(userId: string, companyIds: string[]): Promise<void> {
+    await db.delete(userCompanyAssignments).where(eq(userCompanyAssignments.userId, userId));
+    if (companyIds.length > 0) {
+      await db.insert(userCompanyAssignments).values(companyIds.map(companyId => ({ userId, companyId })));
+    }
+  }
+
   // === USERS ===
   async getUser(id: string): Promise<User | undefined> {
     const result = await db.select().from(users).where(eq(users.id, id)).limit(1);

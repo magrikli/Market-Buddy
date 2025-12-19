@@ -11,6 +11,13 @@ export interface User {
   role: UserRole;
   assignedDepartmentIds: string[];
   assignedProjectIds: string[];
+  assignedCompanyIds: string[];
+}
+
+export interface Company {
+  id: string;
+  name: string;
+  code: string;
 }
 
 export type BudgetStatus = 'draft' | 'pending' | 'approved' | 'rejected';
@@ -85,6 +92,7 @@ const mockDepartments: Department[] = [
   {
     id: 'dep-1',
     name: 'Bilgi Teknolojileri (IT)',
+    groupId: null,
     costGroups: [
       {
         id: 'cg-1',
@@ -137,6 +145,7 @@ const mockDepartments: Department[] = [
   {
     id: 'dep-2',
     name: 'İnsan Kaynakları',
+    groupId: null,
     costGroups: [
       {
         id: 'cg-3',
@@ -200,6 +209,7 @@ const mockUsers: User[] = [
     role: 'admin',
     assignedDepartmentIds: ['dep-1', 'dep-2'],
     assignedProjectIds: ['proj-1'],
+    assignedCompanyIds: [],
   },
   {
     id: 'u-2',
@@ -208,6 +218,7 @@ const mockUsers: User[] = [
     role: 'user',
     assignedDepartmentIds: ['dep-1'],
     assignedProjectIds: ['proj-1'],
+    assignedCompanyIds: [],
   },
   {
     id: 'u-3',
@@ -216,6 +227,7 @@ const mockUsers: User[] = [
     role: 'user',
     assignedDepartmentIds: ['dep-2'],
     assignedProjectIds: [],
+    assignedCompanyIds: [],
   },
 ];
 
@@ -231,19 +243,31 @@ const loadUserFromStorage = (): User | null => {
   }
 };
 
+// Helper to load selected company from localStorage
+const loadSelectedCompanyFromStorage = (): string | null => {
+  try {
+    return localStorage.getItem('finflow_selected_company');
+  } catch {
+    return null;
+  }
+};
+
 interface AppState {
   currentUser: User | null;
   currentYear: number;
+  selectedCompanyId: string | null; // null = "Tümü" (All Companies)
   
   // Actions
   setUser: (user: User | null) => void;
   logout: () => void;
   setYear: (year: number) => void;
+  setSelectedCompanyId: (companyId: string | null) => void;
 }
 
 export const useStore = create<AppState>((set) => ({
   currentUser: loadUserFromStorage(),
   currentYear: 2025,
+  selectedCompanyId: loadSelectedCompanyFromStorage(),
 
   setUser: (user) => {
     if (user) {
@@ -256,8 +280,18 @@ export const useStore = create<AppState>((set) => ({
 
   logout: () => {
     localStorage.removeItem('finflow_user');
-    set({ currentUser: null });
+    localStorage.removeItem('finflow_selected_company');
+    set({ currentUser: null, selectedCompanyId: null });
   },
   
   setYear: (year) => set({ currentYear: year }),
+  
+  setSelectedCompanyId: (companyId) => {
+    if (companyId) {
+      localStorage.setItem('finflow_selected_company', companyId);
+    } else {
+      localStorage.removeItem('finflow_selected_company');
+    }
+    set({ selectedCompanyId: companyId });
+  },
 }));

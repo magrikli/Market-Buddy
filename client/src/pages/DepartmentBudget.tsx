@@ -14,8 +14,8 @@ import { toast } from "sonner";
 import type { BudgetMonthValues } from "@/lib/store";
 
 export default function DepartmentBudget() {
-  const { currentYear, setYear, currentUser } = useStore();
-  const { data: departments = [], isLoading } = useDepartments(currentYear);
+  const { currentYear, setYear, currentUser, selectedCompanyId } = useStore();
+  const { data: departments = [], isLoading } = useDepartments(currentYear, selectedCompanyId);
   const { data: departmentGroups = [] } = useDepartmentGroups();
   const createDepartmentMutation = useCreateDepartment();
   const createCostGroupMutation = useCreateCostGroup();
