@@ -424,11 +424,9 @@ export function useCreateProjectProcess() {
     mutationFn: (data: {
       name: string;
       projectId: string;
-      parentId?: string | null;
-      isGroup?: boolean;
+      wbs: string;
       startDate: string;
       endDate: string;
-      sortOrder?: number;
     }) => api.createProjectProcess(data),
     onSuccess: (_, variables) => {
       queryClient.invalidateQueries({ queryKey: ['projectProcesses', variables.projectId] });
@@ -443,8 +441,7 @@ export function useUpdateProjectProcess() {
       name?: string;
       startDate?: string;
       endDate?: string;
-      parentId?: string | null;
-      sortOrder?: number;
+      wbs?: string;
       status?: string;
     }}) => api.updateProjectProcess(id, data),
     onSuccess: (_, variables) => {

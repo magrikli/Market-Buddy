@@ -140,8 +140,11 @@ export const projectProcesses = pgTable("project_processes", {
   id: varchar("id", { length: 255 }).primaryKey().default(sql`gen_random_uuid()`),
   name: text("name").notNull(),
   projectId: varchar("project_id", { length: 255 }).notNull().references(() => projects.id, { onDelete: 'cascade' }),
-  parentId: varchar("parent_id", { length: 255 }), // Self-reference for tree structure
-  isGroup: boolean("is_group").notNull().default(false), // true = Group (contains processes), false = Process
+  
+  // WBS (Work Breakdown Structure) - hierarchical numbering like "1", "1.1", "1.2", "2"
+  // Hierarchy is derived from WBS: "1.1" is child of "1"
+  // Ordering is natural WBS string order
+  wbs: varchar("wbs", { length: 50 }).notNull(),
   
   startDate: timestamp("start_date").notNull(),
   endDate: timestamp("end_date").notNull(),
@@ -152,8 +155,6 @@ export const projectProcesses = pgTable("project_processes", {
   // Previous approved dates for comparison during revision
   previousStartDate: timestamp("previous_start_date"),
   previousEndDate: timestamp("previous_end_date"),
-  
-  sortOrder: integer("sort_order").notNull().default(0),
   
   createdAt: timestamp("created_at").defaultNow().notNull(),
   updatedAt: timestamp("updated_at").defaultNow().notNull(),

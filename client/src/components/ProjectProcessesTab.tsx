@@ -30,45 +30,68 @@ interface ProcessesTabProps {
 interface TreeNodeWithDates extends ProjectProcess {
   children: TreeNodeWithDates[];
   level: number;
-  wbs: string;
+  isGroup: boolean; // Derived from whether it has children
   calculatedStartDate?: string;
   calculatedEndDate?: string;
   calculatedDays?: number;
 }
 
+// Parse WBS for natural sorting (1.1 < 1.2 < 1.10)
+function parseWbs(wbs: string): number[] {
+  return wbs.split('.').map(s => parseInt(s, 10) || 0);
+}
+
+function compareWbs(a: string, b: string): number {
+  const partsA = parseWbs(a);
+  const partsB = parseWbs(b);
+  const maxLen = Math.max(partsA.length, partsB.length);
+  for (let i = 0; i < maxLen; i++) {
+    const numA = partsA[i] || 0;
+    const numB = partsB[i] || 0;
+    if (numA !== numB) return numA - numB;
+  }
+  return 0;
+}
+
+// Get parent WBS from a WBS string (e.g., "1.2.3" -> "1.2", "1" -> null)
+function getParentWbs(wbs: string): string | null {
+  const parts = wbs.split('.');
+  if (parts.length <= 1) return null;
+  return parts.slice(0, -1).join('.');
+}
+
 function buildTree(processes: ProjectProcess[]): TreeNodeWithDates[] {
-  const nodeMap = new Map<string, TreeNodeWithDates>();
+  // Sort by WBS first
+  const sorted = [...processes].sort((a, b) => compareWbs(a.wbs, b.wbs));
+  
+  // Map by WBS for parent lookup
+  const wbsToNode = new Map<string, TreeNodeWithDates>();
   const roots: TreeNodeWithDates[] = [];
 
-  processes.forEach(p => {
-    nodeMap.set(p.id, { ...p, children: [], level: 0, wbs: '' });
+  // Create nodes and store by WBS
+  sorted.forEach(p => {
+    const level = p.wbs.split('.').length - 1;
+    const node: TreeNodeWithDates = { ...p, children: [], level, isGroup: false };
+    wbsToNode.set(p.wbs, node);
   });
 
-  processes.forEach(p => {
-    const node = nodeMap.get(p.id)!;
-    if (p.parentId && nodeMap.has(p.parentId)) {
-      const parent = nodeMap.get(p.parentId)!;
-      node.level = parent.level + 1;
+  // Build tree based on WBS hierarchy
+  sorted.forEach(p => {
+    const node = wbsToNode.get(p.wbs)!;
+    const parentWbs = getParentWbs(p.wbs);
+    
+    if (parentWbs && wbsToNode.has(parentWbs)) {
+      const parent = wbsToNode.get(parentWbs)!;
       parent.children.push(node);
+      parent.isGroup = true; // Parent has children, so it's a group
     } else {
       roots.push(node);
     }
   });
 
-  // Sort siblings by sortOrder within each level
-  function sortChildren(nodes: TreeNodeWithDates[]) {
-    nodes.sort((a, b) => a.sortOrder - b.sortOrder);
-    nodes.forEach(node => {
-      if (node.children.length > 0) {
-        sortChildren(node.children);
-      }
-    });
-  }
-  sortChildren(roots);
-
   // Calculate group dates from children (bottom-up)
   function calculateGroupDates(node: TreeNodeWithDates): { start: Date; end: Date } | null {
-    if (!node.isGroup || node.children.length === 0) {
+    if (node.children.length === 0) {
       return {
         start: parseISO(node.startDate),
         end: parseISO(node.endDate)
@@ -97,18 +120,6 @@ function buildTree(processes: ProjectProcess[]): TreeNodeWithDates[] {
   }
 
   roots.forEach(calculateGroupDates);
-
-  // Calculate WBS numbers
-  function assignWbs(nodes: TreeNodeWithDates[], prefix: string = '') {
-    nodes.forEach((node, index) => {
-      node.wbs = prefix ? `${prefix}.${index + 1}` : `${index + 1}`;
-      if (node.children.length > 0) {
-        assignWbs(node.children, node.wbs);
-      }
-    });
-  }
-
-  assignWbs(roots);
 
   return roots;
 }
@@ -152,10 +163,10 @@ export default function ProjectProcessesTab({ projectId, projectName }: Processe
   const [expandedNodes, setExpandedNodes] = useState<Set<string>>(new Set());
   const [isAddDialogOpen, setIsAddDialogOpen] = useState(false);
   const [editingId, setEditingId] = useState<string | null>(null);
-  const [editData, setEditData] = useState<{ name: string; sortOrder: number; startDate: string; endDate: string } | null>(null);
+  const [editData, setEditData] = useState<{ name: string; wbs: string; startDate: string; endDate: string } | null>(null);
   const [revisionDialogProcess, setRevisionDialogProcess] = useState<ProjectProcess | null>(null);
   const [historyDialogProcess, setHistoryDialogProcess] = useState<ProjectProcess | null>(null);
-  const [newProcess, setNewProcess] = useState({ name: "", parentId: "", isGroup: false, startDate: new Date(), endDate: addDays(new Date(), 30) });
+  const [newProcess, setNewProcess] = useState({ name: "", wbs: "", startDate: new Date(), endDate: addDays(new Date(), 30) });
   const [revisionReason, setRevisionReason] = useState("");
 
   const tree = useMemo(() => buildTree(processes), [processes]);
@@ -186,23 +197,47 @@ export default function ProjectProcessesTab({ projectId, projectName }: Processe
     });
   };
 
+  // Calculate next available WBS for root level or under a parent
+  const getNextWbs = (parentWbs?: string) => {
+    const existingWbs = processes.map(p => p.wbs);
+    if (!parentWbs) {
+      // Root level - find next number
+      const rootNumbers = existingWbs
+        .filter(w => !w.includes('.'))
+        .map(w => parseInt(w, 10) || 0);
+      const maxRoot = rootNumbers.length > 0 ? Math.max(...rootNumbers) : 0;
+      return String(maxRoot + 1);
+    } else {
+      // Child level - find next number under parent
+      const prefix = parentWbs + '.';
+      const childNumbers = existingWbs
+        .filter(w => w.startsWith(prefix) && !w.substring(prefix.length).includes('.'))
+        .map(w => parseInt(w.substring(prefix.length), 10) || 0);
+      const maxChild = childNumbers.length > 0 ? Math.max(...childNumbers) : 0;
+      return `${parentWbs}.${maxChild + 1}`;
+    }
+  };
+
   const handleCreate = async () => {
     if (!newProcess.name.trim()) {
       toast.error("Süreç adı gerekli");
+      return;
+    }
+    if (!newProcess.wbs.trim()) {
+      toast.error("WBS numarası gerekli");
       return;
     }
     try {
       await createMutation.mutateAsync({
         name: newProcess.name,
         projectId,
-        parentId: newProcess.parentId || null,
-        isGroup: newProcess.isGroup,
+        wbs: newProcess.wbs,
         startDate: format(newProcess.startDate, "yyyy-MM-dd"),
         endDate: format(newProcess.endDate, "yyyy-MM-dd"),
       });
-      toast.success(newProcess.isGroup ? "Grup oluşturuldu" : "Süreç oluşturuldu");
+      toast.success("Süreç oluşturuldu");
       setIsAddDialogOpen(false);
-      setNewProcess({ name: "", parentId: "", isGroup: false, startDate: new Date(), endDate: addDays(new Date(), 30) });
+      setNewProcess({ name: "", wbs: "", startDate: new Date(), endDate: addDays(new Date(), 30) });
     } catch (error: any) {
       toast.error(error.message);
     }
@@ -212,7 +247,7 @@ export default function ProjectProcessesTab({ projectId, projectName }: Processe
     setEditingId(process.id);
     setEditData({
       name: process.name,
-      sortOrder: process.sortOrder,
+      wbs: process.wbs,
       startDate: process.startDate.substring(0, 10),
       endDate: process.endDate.substring(0, 10),
     });
@@ -231,7 +266,7 @@ export default function ProjectProcessesTab({ projectId, projectName }: Processe
         projectId,
         data: {
           name: editData.name,
-          sortOrder: editData.sortOrder,
+          wbs: editData.wbs,
           startDate: isGroup ? undefined : editData.startDate,
           endDate: isGroup ? undefined : editData.endDate,
         },
@@ -314,29 +349,17 @@ export default function ProjectProcessesTab({ projectId, projectName }: Processe
           <p className="text-sm text-muted-foreground">{projectName} projesinin süreç planlaması</p>
         </div>
         {isAdmin && (
-          <div className="flex gap-2">
-            <Button 
-              variant="outline"
-              onClick={() => {
-                setNewProcess({ name: "", parentId: "", isGroup: true, startDate: new Date(), endDate: addDays(new Date(), 30) });
-                setIsAddDialogOpen(true);
-              }} 
-              data-testid="button-add-group"
-            >
-              <Folder className="mr-2 h-4 w-4" />
-              Yeni Grup
-            </Button>
-            <Button 
-              onClick={() => {
-                setNewProcess({ name: "", parentId: "", isGroup: false, startDate: new Date(), endDate: addDays(new Date(), 30) });
-                setIsAddDialogOpen(true);
-              }} 
-              data-testid="button-add-process"
-            >
-              <Plus className="mr-2 h-4 w-4" />
-              Yeni Süreç
-            </Button>
-          </div>
+          <Button 
+            onClick={() => {
+              const nextWbs = getNextWbs();
+              setNewProcess({ name: "", wbs: nextWbs, startDate: new Date(), endDate: addDays(new Date(), 30) });
+              setIsAddDialogOpen(true);
+            }} 
+            data-testid="button-add-process"
+          >
+            <Plus className="mr-2 h-4 w-4" />
+            Yeni Süreç
+          </Button>
         )}
       </div>
 
@@ -376,15 +399,15 @@ export default function ProjectProcessesTab({ projectId, projectName }: Processe
                         <td className="p-2">
                           {isEditing ? (
                             <Input
-                              type="number"
-                              value={editData?.sortOrder ?? 0}
-                              onChange={(e) => setEditData(prev => prev ? { ...prev, sortOrder: parseInt(e.target.value) || 0 } : null)}
-                              className="w-16 h-8 text-xs font-mono"
+                              value={editData?.wbs ?? ''}
+                              onChange={(e) => setEditData(prev => prev ? { ...prev, wbs: e.target.value } : null)}
+                              className="w-20 h-8 text-xs font-mono"
+                              placeholder="1.1"
                             />
                           ) : (
                             <span className={cn(
                               "font-mono text-xs",
-                              process.children.length > 0 ? "font-bold text-amber-700" : "text-muted-foreground"
+                              process.isGroup ? "font-bold text-amber-700" : "text-muted-foreground"
                             )}>
                               {process.wbs}
                             </span>
@@ -550,90 +573,75 @@ export default function ProjectProcessesTab({ projectId, projectName }: Processe
         <DialogContent>
           <DialogHeader>
             <DialogTitle className="flex items-center gap-2">
-              {newProcess.isGroup ? (
-                <><Folder className="h-5 w-5 text-amber-500" /> Yeni Grup Ekle</>
-              ) : (
-                <><FileText className="h-5 w-5 text-blue-500" /> Yeni Süreç Ekle</>
-              )}
+              <FileText className="h-5 w-5 text-blue-500" /> Yeni Süreç Ekle
             </DialogTitle>
             <DialogDescription>
-              {newProcess.isGroup 
-                ? "Grup tarihler alt süreçlerden otomatik hesaplanır"
-                : "Proje için yeni bir süreç tanımlayın"}
+              Proje için yeni bir süreç tanımlayın. WBS numarası hiyerarşiyi belirler (örn: 1.1, 1.2, 2).
             </DialogDescription>
           </DialogHeader>
           <div className="space-y-4 py-4">
-            <div className="space-y-2">
-              <Label>{newProcess.isGroup ? 'Grup' : 'Süreç'} Adı</Label>
-              <Input
-                value={newProcess.name}
-                onChange={(e) => setNewProcess({ ...newProcess, name: e.target.value })}
-                placeholder={newProcess.isGroup ? "Örn: Tasarım Fazı" : "Örn: UI Tasarımı"}
-                data-testid="input-process-name"
-              />
-            </div>
-            <div className="space-y-2">
-              <Label>Üst Grup (Opsiyonel)</Label>
-              <Select 
-                value={newProcess.parentId || "__none__"} 
-                onValueChange={(v) => setNewProcess({ ...newProcess, parentId: v === "__none__" ? "" : v })}
-              >
-                <SelectTrigger>
-                  <SelectValue placeholder="Üst grup seçin (opsiyonel)" />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="__none__">Yok (Ana Seviye)</SelectItem>
-                  {processes.filter(p => p.isGroup).map(p => (
-                    <SelectItem key={p.id} value={p.id}>{p.name}</SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
-            </div>
-            {!newProcess.isGroup && (
-              <div className="grid grid-cols-2 gap-4">
-                <div className="space-y-2">
-                  <Label>Başlangıç Tarihi</Label>
-                  <Popover>
-                    <PopoverTrigger asChild>
-                      <Button variant="outline" className="w-full justify-start text-left font-normal">
-                        <CalendarIcon className="mr-2 h-4 w-4" />
-                        {format(newProcess.startDate, "dd.MM.yyyy")}
-                      </Button>
-                    </PopoverTrigger>
-                    <PopoverContent className="w-auto p-0">
-                      <Calendar
-                        mode="single"
-                        selected={newProcess.startDate}
-                        onSelect={(d) => d && setNewProcess({ ...newProcess, startDate: d })}
-                      />
-                    </PopoverContent>
-                  </Popover>
-                </div>
-                <div className="space-y-2">
-                  <Label>Bitiş Tarihi</Label>
-                  <Popover>
-                    <PopoverTrigger asChild>
-                      <Button variant="outline" className="w-full justify-start text-left font-normal">
-                        <CalendarIcon className="mr-2 h-4 w-4" />
-                        {format(newProcess.endDate, "dd.MM.yyyy")}
-                      </Button>
-                    </PopoverTrigger>
-                    <PopoverContent className="w-auto p-0">
-                      <Calendar
-                        mode="single"
-                        selected={newProcess.endDate}
-                        onSelect={(d) => d && setNewProcess({ ...newProcess, endDate: d })}
-                      />
-                    </PopoverContent>
-                  </Popover>
-                </div>
+            <div className="grid grid-cols-4 gap-4">
+              <div className="space-y-2">
+                <Label>WBS</Label>
+                <Input
+                  value={newProcess.wbs}
+                  onChange={(e) => setNewProcess({ ...newProcess, wbs: e.target.value })}
+                  placeholder="1.1"
+                  className="font-mono"
+                  data-testid="input-process-wbs"
+                />
               </div>
-            )}
-            {newProcess.isGroup && (
-              <div className="bg-amber-50 border border-amber-200 rounded-lg p-3 text-sm text-amber-700">
-                Grubun başlangıç ve bitiş tarihleri, içindeki süreçlerin tarihlerine göre otomatik hesaplanacaktır.
+              <div className="space-y-2 col-span-3">
+                <Label>Süreç Adı</Label>
+                <Input
+                  value={newProcess.name}
+                  onChange={(e) => setNewProcess({ ...newProcess, name: e.target.value })}
+                  placeholder="Örn: UI Tasarımı"
+                  data-testid="input-process-name"
+                />
               </div>
-            )}
+            </div>
+            <div className="grid grid-cols-2 gap-4">
+              <div className="space-y-2">
+                <Label>Başlangıç Tarihi</Label>
+                <Popover>
+                  <PopoverTrigger asChild>
+                    <Button variant="outline" className="w-full justify-start text-left font-normal">
+                      <CalendarIcon className="mr-2 h-4 w-4" />
+                      {format(newProcess.startDate, "dd.MM.yyyy")}
+                    </Button>
+                  </PopoverTrigger>
+                  <PopoverContent className="w-auto p-0">
+                    <Calendar
+                      mode="single"
+                      selected={newProcess.startDate}
+                      onSelect={(d) => d && setNewProcess({ ...newProcess, startDate: d })}
+                    />
+                  </PopoverContent>
+                </Popover>
+              </div>
+              <div className="space-y-2">
+                <Label>Bitiş Tarihi</Label>
+                <Popover>
+                  <PopoverTrigger asChild>
+                    <Button variant="outline" className="w-full justify-start text-left font-normal">
+                      <CalendarIcon className="mr-2 h-4 w-4" />
+                      {format(newProcess.endDate, "dd.MM.yyyy")}
+                    </Button>
+                  </PopoverTrigger>
+                  <PopoverContent className="w-auto p-0">
+                    <Calendar
+                      mode="single"
+                      selected={newProcess.endDate}
+                      onSelect={(d) => d && setNewProcess({ ...newProcess, endDate: d })}
+                    />
+                  </PopoverContent>
+                </Popover>
+              </div>
+            </div>
+            <div className="bg-blue-50 border border-blue-200 rounded-lg p-3 text-sm text-blue-700">
+              WBS numarası hiyerarşiyi belirler: "1" ana süreç, "1.1" ve "1.2" alt süreçlerdir. Alt süreçler olduğunda üst süreç bir grup haline gelir.
+            </div>
           </div>
           <DialogFooter>
             <Button variant="outline" onClick={() => setIsAddDialogOpen(false)}>İptal</Button>

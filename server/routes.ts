@@ -762,18 +762,17 @@ export async function registerRoutes(server: Server, app: Express): Promise<Serv
 
   app.post("/api/project-processes", async (req: Request, res: Response) => {
     try {
-      const { name, projectId, parentId, startDate, endDate, sortOrder } = req.body;
-      if (!name || !projectId || !startDate || !endDate) {
-        return res.status(400).json({ message: "Name, projectId, startDate, and endDate are required" });
+      const { name, projectId, wbs, startDate, endDate } = req.body;
+      if (!name || !projectId || !wbs || !startDate || !endDate) {
+        return res.status(400).json({ message: "Name, projectId, wbs, startDate, and endDate are required" });
       }
       
       const process = await storage.createProcess({
         name,
         projectId,
-        parentId: parentId || null,
+        wbs,
         startDate: new Date(startDate),
         endDate: new Date(endDate),
-        sortOrder: sortOrder || 0,
         status: 'draft',
         currentRevision: 0,
       });
@@ -787,14 +786,13 @@ export async function registerRoutes(server: Server, app: Express): Promise<Serv
   app.patch("/api/project-processes/:id", async (req: Request, res: Response) => {
     try {
       const { id } = req.params;
-      const { name, startDate, endDate, parentId, sortOrder, status } = req.body;
+      const { name, startDate, endDate, wbs, status } = req.body;
       
       const updates: any = {};
       if (name !== undefined) updates.name = name;
       if (startDate !== undefined) updates.startDate = new Date(startDate);
       if (endDate !== undefined) updates.endDate = new Date(endDate);
-      if (parentId !== undefined) updates.parentId = parentId;
-      if (sortOrder !== undefined) updates.sortOrder = sortOrder;
+      if (wbs !== undefined) updates.wbs = wbs;
       if (status !== undefined) updates.status = status;
       
       const updated = await storage.updateProcess(id, updates);

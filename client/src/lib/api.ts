@@ -340,15 +340,13 @@ export interface ProjectProcess {
   id: string;
   name: string;
   projectId: string;
-  parentId: string | null;
-  isGroup: boolean;
+  wbs: string; // Work Breakdown Structure - hierarchical numbering like "1", "1.1", "1.2"
   startDate: string;
   endDate: string;
   status: 'draft' | 'pending' | 'approved' | 'rejected';
   currentRevision: number;
   previousStartDate: string | null;
   previousEndDate: string | null;
-  sortOrder: number;
   createdAt: string;
   updatedAt: string;
   history: ProjectProcessHistory[];
@@ -361,11 +359,9 @@ export async function getProjectProcesses(projectId: string): Promise<ProjectPro
 export async function createProjectProcess(data: {
   name: string;
   projectId: string;
-  parentId?: string | null;
-  isGroup?: boolean;
+  wbs: string;
   startDate: string;
   endDate: string;
-  sortOrder?: number;
 }): Promise<ProjectProcess> {
   return fetchAPI('/project-processes', {
     method: 'POST',
@@ -377,8 +373,7 @@ export async function updateProjectProcess(id: string, data: {
   name?: string;
   startDate?: string;
   endDate?: string;
-  parentId?: string | null;
-  sortOrder?: number;
+  wbs?: string;
   status?: string;
 }): Promise<ProjectProcess> {
   return fetchAPI(`/project-processes/${id}`, {

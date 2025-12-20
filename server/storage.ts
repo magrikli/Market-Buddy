@@ -434,7 +434,7 @@ export class DatabaseStorage implements IStorage {
   async getProcessesByProject(projectId: string): Promise<ProjectProcess[]> {
     return await db.select().from(projectProcesses)
       .where(eq(projectProcesses.projectId, projectId))
-      .orderBy(projectProcesses.sortOrder);
+      .orderBy(projectProcesses.wbs);
   }
 
   async getProcess(id: string): Promise<ProjectProcess | undefined> {
