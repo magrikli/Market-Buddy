@@ -294,6 +294,12 @@ export async function createTransaction(data: {
   });
 }
 
+export async function deleteTransactionsByCsvFileName(fileName: string): Promise<{ deletedCount: number; fileName: string }> {
+  return fetchAPI(`/transactions/by-csv/${encodeURIComponent(fileName)}`, {
+    method: 'DELETE',
+  });
+}
+
 // === COMPANIES ===
 
 export async function getCompanies(): Promise<Company[]> {

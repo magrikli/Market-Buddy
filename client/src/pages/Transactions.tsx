@@ -6,6 +6,7 @@ import { Select, SelectContent, SelectGroup, SelectItem, SelectLabel, SelectTrig
 import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
 import { useStore } from "@/lib/store";
 import { useDepartments, useDepartmentGroups, useProjects, useCreateTransaction, useTransactions } from "@/lib/queries";
+import { deleteTransactionsByCsvFileName } from "@/lib/api";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { format } from "date-fns";
 import { Loader2, Save, Download, Upload } from "lucide-react";
@@ -276,6 +277,18 @@ export default function Transactions() {
     setImporting(true);
     let successCount = 0;
     let errorCount = 0;
+    
+    // Delete existing transactions from same CSV file first
+    if (csvFileName) {
+      try {
+        const result = await deleteTransactionsByCsvFileName(csvFileName);
+        if (result.deletedCount > 0) {
+          toast.info(`${result.deletedCount} mevcut kayıt silindi (aynı dosyadan)`);
+        }
+      } catch (err) {
+        console.error('Failed to delete existing transactions:', err);
+      }
+    }
     
     const updatedRows = [...importData];
     

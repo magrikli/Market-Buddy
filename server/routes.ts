@@ -1006,6 +1006,17 @@ export async function registerRoutes(server: Server, app: Express): Promise<Serv
     }
   });
 
+  app.delete("/api/transactions/by-csv/:fileName", async (req: Request, res: Response) => {
+    try {
+      const fileName = decodeURIComponent(req.params.fileName);
+      const deletedCount = await storage.deleteTransactionsByCsvFileName(fileName);
+      return res.json({ deletedCount, fileName });
+    } catch (error) {
+      console.error('Delete transactions by CSV error:', error);
+      return res.status(500).json({ message: "Server error" });
+    }
+  });
+
   // ===== USERS & ASSIGNMENTS =====
   
   app.get("/api/users", async (req: Request, res: Response) => {

@@ -88,6 +88,7 @@ export interface IStorage {
   createTransaction(transaction: InsertTransaction): Promise<Transaction>;
   getAllTransactions(limit?: number): Promise<Transaction[]>;
   getTransactionsByBudgetItem(budgetItemId: string): Promise<Transaction[]>;
+  deleteTransactionsByCsvFileName(csvFileName: string): Promise<number>;
   
   // Project Processes
   getProcessesByProject(projectId: string): Promise<ProjectProcess[]>;
@@ -430,6 +431,13 @@ export class DatabaseStorage implements IStorage {
     return await db.select().from(transactions)
       .where(eq(transactions.budgetItemId, budgetItemId))
       .orderBy(transactions.date);
+  }
+
+  async deleteTransactionsByCsvFileName(csvFileName: string): Promise<number> {
+    const result = await db.delete(transactions)
+      .where(eq(transactions.csvFileName, csvFileName))
+      .returning();
+    return result.length;
   }
 
   // === PROJECT PROCESSES ===
