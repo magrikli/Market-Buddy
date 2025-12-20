@@ -55,6 +55,17 @@ function buildTree(processes: ProjectProcess[]): TreeNodeWithDates[] {
     }
   });
 
+  // Sort siblings by sortOrder within each level
+  function sortChildren(nodes: TreeNodeWithDates[]) {
+    nodes.sort((a, b) => a.sortOrder - b.sortOrder);
+    nodes.forEach(node => {
+      if (node.children.length > 0) {
+        sortChildren(node.children);
+      }
+    });
+  }
+  sortChildren(roots);
+
   // Calculate group dates from children (bottom-up)
   function calculateGroupDates(node: TreeNodeWithDates): { start: Date; end: Date } | null {
     if (!node.isGroup || node.children.length === 0) {
@@ -140,7 +151,8 @@ export default function ProjectProcessesTab({ projectId, projectName }: Processe
 
   const [expandedNodes, setExpandedNodes] = useState<Set<string>>(new Set());
   const [isAddDialogOpen, setIsAddDialogOpen] = useState(false);
-  const [editingProcess, setEditingProcess] = useState<ProjectProcess | null>(null);
+  const [editingId, setEditingId] = useState<string | null>(null);
+  const [editData, setEditData] = useState<{ name: string; sortOrder: number; startDate: string; endDate: string } | null>(null);
   const [revisionDialogProcess, setRevisionDialogProcess] = useState<ProjectProcess | null>(null);
   const [historyDialogProcess, setHistoryDialogProcess] = useState<ProjectProcess | null>(null);
   const [newProcess, setNewProcess] = useState({ name: "", parentId: "", isGroup: false, startDate: new Date(), endDate: addDays(new Date(), 30) });
@@ -196,21 +208,37 @@ export default function ProjectProcessesTab({ projectId, projectName }: Processe
     }
   };
 
-  const handleUpdate = async () => {
-    if (!editingProcess) return;
+  const startEdit = (process: TreeNodeWithDates) => {
+    setEditingId(process.id);
+    setEditData({
+      name: process.name,
+      sortOrder: process.sortOrder,
+      startDate: process.startDate.substring(0, 10),
+      endDate: process.endDate.substring(0, 10),
+    });
+  };
+
+  const cancelEdit = () => {
+    setEditingId(null);
+    setEditData(null);
+  };
+
+  const saveEdit = async (processId: string, isGroup: boolean) => {
+    if (!editData) return;
     try {
       await updateMutation.mutateAsync({
-        id: editingProcess.id,
+        id: processId,
         projectId,
         data: {
-          name: editingProcess.name,
-          startDate: editingProcess.startDate,
-          endDate: editingProcess.endDate,
-          parentId: editingProcess.parentId,
+          name: editData.name,
+          sortOrder: editData.sortOrder,
+          startDate: isGroup ? undefined : editData.startDate,
+          endDate: isGroup ? undefined : editData.endDate,
         },
       });
-      toast.success("Süreç güncellendi");
-      setEditingProcess(null);
+      toast.success("Güncellendi");
+      setEditingId(null);
+      setEditData(null);
     } catch (error: any) {
       toast.error(error.message);
     }
@@ -341,127 +369,176 @@ export default function ProjectProcessesTab({ projectId, projectName }: Processe
                   </tr>
                 </thead>
                 <tbody>
-                  {flatProcesses.map(process => (
-                    <tr key={process.id} className={cn("border-b hover:bg-muted/20", process.children.length > 0 && "bg-amber-50/50")}>
-                      <td className="p-3">
-                        <span className={cn(
-                          "font-mono text-xs",
-                          process.children.length > 0 ? "font-bold text-amber-700" : "text-muted-foreground"
-                        )}>
-                          {process.wbs}
-                        </span>
-                      </td>
-                      <td className="p-3">
-                        <div className="flex items-center gap-2">
-                          <span className={cn("font-medium truncate", process.children.length > 0 && "font-semibold")} title={process.name}>
-                            {process.name}
-                          </span>
-                          {process.currentRevision > 0 && (
-                            <Badge variant="secondary" className="text-[10px] px-1 py-0">
-                              Rev {process.currentRevision}
-                            </Badge>
-                          )}
-                        </div>
-                      </td>
-                      <td className="p-3 text-muted-foreground">
-                        {process.isGroup && process.calculatedStartDate 
-                          ? format(parseISO(process.calculatedStartDate), "dd.MM.yyyy")
-                          : process.isGroup && process.children.length === 0
-                          ? <span className="text-gray-400 italic">-</span>
-                          : format(parseISO(process.startDate), "dd.MM.yyyy")}
-                      </td>
-                      <td className="p-3 text-muted-foreground">
-                        {process.isGroup && process.calculatedEndDate 
-                          ? format(parseISO(process.calculatedEndDate), "dd.MM.yyyy")
-                          : process.isGroup && process.children.length === 0
-                          ? <span className="text-gray-400 italic">-</span>
-                          : format(parseISO(process.endDate), "dd.MM.yyyy")}
-                      </td>
-                      <td className="p-3 text-center font-medium">
-                        {process.isGroup 
-                          ? (process.calculatedDays ?? <span className="text-gray-400">-</span>)
-                          : differenceInDays(parseISO(process.endDate), parseISO(process.startDate)) + 1}
-                      </td>
-                      <td className="p-3">
-                        <div className="relative h-6 bg-gray-100 rounded min-w-[200px]">
-                          {process.isGroup ? (
-                            process.calculatedStartDate && process.calculatedEndDate ? (
-                              <div
-                                className="absolute h-2 top-2 bg-gray-800 rounded-sm"
-                                style={getGanttBarStyle({ 
-                                  ...process, 
-                                  startDate: process.calculatedStartDate, 
-                                  endDate: process.calculatedEndDate 
-                                })}
-                                title={`${process.calculatedDays} gün`}
-                              />
-                            ) : null
-                          ) : (
-                            <div
-                              className={cn(
-                                "absolute h-full rounded text-[10px] flex items-center justify-center text-white font-medium",
-                                process.status === 'approved' ? 'bg-green-500' :
-                                  process.status === 'pending' ? 'bg-yellow-500' :
-                                  process.status === 'rejected' ? 'bg-red-500' : 'bg-blue-500'
-                              )}
-                              style={getGanttBarStyle(process)}
-                              title={`${differenceInDays(parseISO(process.endDate), parseISO(process.startDate)) + 1} gün`}
+                  {flatProcesses.map(process => {
+                    const isEditing = editingId === process.id;
+                    return (
+                      <tr key={process.id} className={cn("border-b hover:bg-muted/20", process.children.length > 0 && "bg-amber-50/50", isEditing && "bg-blue-50")}>
+                        <td className="p-2">
+                          {isEditing ? (
+                            <Input
+                              type="number"
+                              value={editData?.sortOrder ?? 0}
+                              onChange={(e) => setEditData(prev => prev ? { ...prev, sortOrder: parseInt(e.target.value) || 0 } : null)}
+                              className="w-16 h-8 text-xs font-mono"
                             />
+                          ) : (
+                            <span className={cn(
+                              "font-mono text-xs",
+                              process.children.length > 0 ? "font-bold text-amber-700" : "text-muted-foreground"
+                            )}>
+                              {process.wbs}
+                            </span>
                           )}
-                        </div>
-                      </td>
-                      <td className="p-3">
-                        <DropdownMenu>
-                          <DropdownMenuTrigger asChild>
-                            <Button variant="ghost" size="icon" className="h-8 w-8">
-                              <MoreHorizontal className="h-4 w-4" />
-                            </Button>
-                          </DropdownMenuTrigger>
-                          <DropdownMenuContent align="end">
-                            <DropdownMenuItem onClick={() => setHistoryDialogProcess(process)}>
-                              <History className="mr-2 h-4 w-4" />
-                              Geçmiş
-                            </DropdownMenuItem>
-                            {isAdmin && (
-                              <>
-                                {process.status === 'draft' && (
-                                  <DropdownMenuItem onClick={() => handleApprove(process)}>
-                                    <CheckCircle2 className="mr-2 h-4 w-4 text-green-600" />
-                                    Onayla
-                                  </DropdownMenuItem>
+                        </td>
+                        <td className="p-2">
+                          {isEditing ? (
+                            <Input
+                              value={editData?.name ?? ''}
+                              onChange={(e) => setEditData(prev => prev ? { ...prev, name: e.target.value } : null)}
+                              className="h-8"
+                            />
+                          ) : (
+                            <div className="flex items-center gap-2">
+                              <span className={cn("font-medium truncate", process.children.length > 0 && "font-semibold")} title={process.name}>
+                                {process.name}
+                              </span>
+                              {process.currentRevision > 0 && (
+                                <Badge variant="secondary" className="text-[10px] px-1 py-0">
+                                  Rev {process.currentRevision}
+                                </Badge>
+                              )}
+                            </div>
+                          )}
+                        </td>
+                        <td className="p-2 text-muted-foreground">
+                          {isEditing && !process.isGroup ? (
+                            <Input
+                              type="date"
+                              value={editData?.startDate?.substring(0, 10) ?? ''}
+                              onChange={(e) => setEditData(prev => prev ? { ...prev, startDate: e.target.value } : null)}
+                              className="h-8 w-32"
+                            />
+                          ) : (
+                            process.isGroup && process.calculatedStartDate 
+                              ? format(parseISO(process.calculatedStartDate), "dd.MM.yyyy")
+                              : process.isGroup && process.children.length === 0
+                              ? <span className="text-gray-400 italic">-</span>
+                              : format(parseISO(process.startDate), "dd.MM.yyyy")
+                          )}
+                        </td>
+                        <td className="p-2 text-muted-foreground">
+                          {isEditing && !process.isGroup ? (
+                            <Input
+                              type="date"
+                              value={editData?.endDate?.substring(0, 10) ?? ''}
+                              onChange={(e) => setEditData(prev => prev ? { ...prev, endDate: e.target.value } : null)}
+                              className="h-8 w-32"
+                            />
+                          ) : (
+                            process.isGroup && process.calculatedEndDate 
+                              ? format(parseISO(process.calculatedEndDate), "dd.MM.yyyy")
+                              : process.isGroup && process.children.length === 0
+                              ? <span className="text-gray-400 italic">-</span>
+                              : format(parseISO(process.endDate), "dd.MM.yyyy")
+                          )}
+                        </td>
+                        <td className="p-2 text-center font-medium">
+                          {process.isGroup 
+                            ? (process.calculatedDays ?? <span className="text-gray-400">-</span>)
+                            : differenceInDays(parseISO(process.endDate), parseISO(process.startDate)) + 1}
+                        </td>
+                        <td className="p-2">
+                          <div className="relative h-6 bg-gray-100 rounded min-w-[200px]">
+                            {process.isGroup ? (
+                              process.calculatedStartDate && process.calculatedEndDate ? (
+                                <div
+                                  className="absolute h-2 top-2 bg-gray-800 rounded-sm"
+                                  style={getGanttBarStyle({ 
+                                    ...process, 
+                                    startDate: process.calculatedStartDate, 
+                                    endDate: process.calculatedEndDate 
+                                  })}
+                                  title={`${process.calculatedDays} gün`}
+                                />
+                              ) : null
+                            ) : (
+                              <div
+                                className={cn(
+                                  "absolute h-full rounded text-[10px] flex items-center justify-center text-white font-medium",
+                                  process.status === 'approved' ? 'bg-green-500' :
+                                    process.status === 'pending' ? 'bg-yellow-500' :
+                                    process.status === 'rejected' ? 'bg-red-500' : 'bg-blue-500'
                                 )}
-                                {process.status === 'approved' && (
-                                  <DropdownMenuItem onClick={() => setRevisionDialogProcess(process)}>
-                                    <Edit2 className="mr-2 h-4 w-4 text-orange-600" />
-                                    Revize Et
-                                  </DropdownMenuItem>
-                                )}
-                                {process.status === 'draft' && process.previousStartDate && (
-                                  <DropdownMenuItem onClick={() => handleRevert(process)}>
-                                    <RotateCcw className="mr-2 h-4 w-4 text-blue-600" />
-                                    Geri Al
-                                  </DropdownMenuItem>
-                                )}
-                                {process.status === 'draft' && (
-                                  <DropdownMenuItem onClick={() => setEditingProcess(process)}>
-                                    <Edit2 className="mr-2 h-4 w-4" />
-                                    Düzenle
-                                  </DropdownMenuItem>
-                                )}
-                                <DropdownMenuItem 
-                                  onClick={() => handleDelete(process)}
-                                  className="text-destructive"
-                                >
-                                  <Trash2 className="mr-2 h-4 w-4" />
-                                  Sil
-                                </DropdownMenuItem>
-                              </>
+                                style={getGanttBarStyle(process)}
+                                title={`${differenceInDays(parseISO(process.endDate), parseISO(process.startDate)) + 1} gün`}
+                              />
                             )}
-                          </DropdownMenuContent>
-                        </DropdownMenu>
-                      </td>
-                    </tr>
-                  ))}
+                          </div>
+                        </td>
+                        <td className="p-2">
+                          {isEditing ? (
+                            <div className="flex gap-1">
+                              <Button size="sm" className="h-7 px-2" onClick={() => saveEdit(process.id, process.isGroup)}>
+                                <CheckCircle2 className="h-3.5 w-3.5" />
+                              </Button>
+                              <Button size="sm" variant="outline" className="h-7 px-2" onClick={cancelEdit}>
+                                <RotateCcw className="h-3.5 w-3.5" />
+                              </Button>
+                            </div>
+                          ) : (
+                            <DropdownMenu>
+                              <DropdownMenuTrigger asChild>
+                                <Button variant="ghost" size="icon" className="h-8 w-8">
+                                  <MoreHorizontal className="h-4 w-4" />
+                                </Button>
+                              </DropdownMenuTrigger>
+                              <DropdownMenuContent align="end">
+                                <DropdownMenuItem onClick={() => setHistoryDialogProcess(process)}>
+                                  <History className="mr-2 h-4 w-4" />
+                                  Geçmiş
+                                </DropdownMenuItem>
+                                {isAdmin && (
+                                  <>
+                                    {process.status === 'draft' && (
+                                      <DropdownMenuItem onClick={() => handleApprove(process)}>
+                                        <CheckCircle2 className="mr-2 h-4 w-4 text-green-600" />
+                                        Onayla
+                                      </DropdownMenuItem>
+                                    )}
+                                    {process.status === 'approved' && (
+                                      <DropdownMenuItem onClick={() => setRevisionDialogProcess(process)}>
+                                        <Edit2 className="mr-2 h-4 w-4 text-orange-600" />
+                                        Revize Et
+                                      </DropdownMenuItem>
+                                    )}
+                                    {process.status === 'draft' && process.previousStartDate && (
+                                      <DropdownMenuItem onClick={() => handleRevert(process)}>
+                                        <RotateCcw className="mr-2 h-4 w-4 text-blue-600" />
+                                        Geri Al
+                                      </DropdownMenuItem>
+                                    )}
+                                    {process.status === 'draft' && (
+                                      <DropdownMenuItem onClick={() => startEdit(process)}>
+                                        <Edit2 className="mr-2 h-4 w-4" />
+                                        Düzenle
+                                      </DropdownMenuItem>
+                                    )}
+                                    <DropdownMenuItem 
+                                      onClick={() => handleDelete(process)}
+                                      className="text-destructive"
+                                    >
+                                      <Trash2 className="mr-2 h-4 w-4" />
+                                      Sil
+                                    </DropdownMenuItem>
+                                  </>
+                                )}
+                              </DropdownMenuContent>
+                            </DropdownMenu>
+                          )}
+                        </td>
+                      </tr>
+                    );
+                  })}
                 </tbody>
               </table>
             </div>
@@ -565,67 +642,7 @@ export default function ProjectProcessesTab({ projectId, projectName }: Processe
         </DialogContent>
       </Dialog>
 
-      <Dialog open={!!editingProcess} onOpenChange={() => setEditingProcess(null)}>
-        <DialogContent>
-          <DialogHeader>
-            <DialogTitle>Süreç Düzenle</DialogTitle>
-          </DialogHeader>
-          {editingProcess && (
-            <div className="space-y-4 py-4">
-              <div className="space-y-2">
-                <Label>Süreç Adı</Label>
-                <Input
-                  value={editingProcess.name}
-                  onChange={(e) => setEditingProcess({ ...editingProcess, name: e.target.value })}
-                />
-              </div>
-              <div className="grid grid-cols-2 gap-4">
-                <div className="space-y-2">
-                  <Label>Başlangıç Tarihi</Label>
-                  <Popover>
-                    <PopoverTrigger asChild>
-                      <Button variant="outline" className="w-full justify-start text-left font-normal">
-                        <CalendarIcon className="mr-2 h-4 w-4" />
-                        {format(parseISO(editingProcess.startDate), "dd.MM.yyyy")}
-                      </Button>
-                    </PopoverTrigger>
-                    <PopoverContent className="w-auto p-0">
-                      <Calendar
-                        mode="single"
-                        selected={parseISO(editingProcess.startDate)}
-                        onSelect={(d) => d && setEditingProcess({ ...editingProcess, startDate: format(d, "yyyy-MM-dd'T'HH:mm:ss.SSS'Z'") })}
-                      />
-                    </PopoverContent>
-                  </Popover>
-                </div>
-                <div className="space-y-2">
-                  <Label>Bitiş Tarihi</Label>
-                  <Popover>
-                    <PopoverTrigger asChild>
-                      <Button variant="outline" className="w-full justify-start text-left font-normal">
-                        <CalendarIcon className="mr-2 h-4 w-4" />
-                        {format(parseISO(editingProcess.endDate), "dd.MM.yyyy")}
-                      </Button>
-                    </PopoverTrigger>
-                    <PopoverContent className="w-auto p-0">
-                      <Calendar
-                        mode="single"
-                        selected={parseISO(editingProcess.endDate)}
-                        onSelect={(d) => d && setEditingProcess({ ...editingProcess, endDate: format(d, "yyyy-MM-dd'T'HH:mm:ss.SSS'Z'") })}
-                      />
-                    </PopoverContent>
-                  </Popover>
-                </div>
-              </div>
-            </div>
-          )}
-          <DialogFooter>
-            <Button variant="outline" onClick={() => setEditingProcess(null)}>İptal</Button>
-            <Button onClick={handleUpdate}>Kaydet</Button>
-          </DialogFooter>
-        </DialogContent>
-      </Dialog>
-
+      
       <Dialog open={!!revisionDialogProcess} onOpenChange={() => setRevisionDialogProcess(null)}>
         <DialogContent>
           <DialogHeader>
