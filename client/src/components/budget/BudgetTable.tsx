@@ -129,7 +129,7 @@ export function BudgetTable({ items, onSave, onRevise, onApprove, onDelete, onSu
                       {months.map((_, index) => {
                         const isPastMonth = index < currentMonth;
                         return (
-                          <TableCell key={index} className={cn("min-w-[80px] text-right p-2", isPastMonth && "bg-muted/30")}>
+                          <TableCell key={index} className={cn("w-[80px] min-w-[80px] max-w-[80px] text-right p-1", isPastMonth && "bg-muted/30")}>
                             {isEditing ? (
                               isPastMonth ? (
                                 <span className="block tabular-nums text-muted-foreground">
