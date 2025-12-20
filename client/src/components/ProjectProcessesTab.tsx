@@ -415,7 +415,7 @@ export default function ProjectProcessesTab({ projectId, projectName }: Processe
                         </td>
                         <td className="p-2">
                           {isEditing ? (
-                            <div style={{ paddingLeft: `${process.level * 20}px` }}>
+                            <div style={{ paddingLeft: `${process.level * 12}px` }}>
                               <Input
                                 value={editData?.name ?? ''}
                                 onChange={(e) => setEditData(prev => prev ? { ...prev, name: e.target.value } : null)}
@@ -423,7 +423,7 @@ export default function ProjectProcessesTab({ projectId, projectName }: Processe
                               />
                             </div>
                           ) : (
-                            <div className="flex items-center gap-2" style={{ paddingLeft: `${process.level * 20}px` }}>
+                            <div className="flex items-center gap-2" style={{ paddingLeft: `${process.level * 12}px` }}>
                               <span className={cn("font-medium truncate", process.children.length > 0 && "font-semibold")} title={process.name}>
                                 {process.name}
                               </span>
