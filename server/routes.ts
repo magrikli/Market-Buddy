@@ -989,7 +989,12 @@ export async function registerRoutes(server: Server, app: Express): Promise<Serv
 
   app.post("/api/transactions", async (req: Request, res: Response) => {
     try {
-      const data = insertTransactionSchema.parse(req.body);
+      // Convert date string to Date object before validation
+      const body = {
+        ...req.body,
+        date: req.body.date ? new Date(req.body.date) : undefined,
+      };
+      const data = insertTransactionSchema.parse(body);
       const transaction = await storage.createTransaction(data);
       return res.status(201).json(transaction);
     } catch (error) {
