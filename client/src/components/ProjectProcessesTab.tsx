@@ -482,11 +482,20 @@ export default function ProjectProcessesTab({ projectId, projectName }: Processe
                               className="h-8 w-32"
                             />
                           ) : (
-                            process.isGroup && process.calculatedStartDate 
-                              ? format(parseISO(process.calculatedStartDate), "dd.MM.yyyy")
-                              : process.isGroup && process.children.length === 0
-                              ? <span className="text-gray-400 italic">-</span>
-                              : format(parseISO(process.startDate), "dd.MM.yyyy")
+                            <div>
+                              <div>
+                                {process.isGroup && process.calculatedStartDate 
+                                  ? format(parseISO(process.calculatedStartDate), "dd.MM.yyyy")
+                                  : process.isGroup && process.children.length === 0
+                                  ? <span className="text-gray-400 italic">-</span>
+                                  : format(parseISO(process.startDate), "dd.MM.yyyy")}
+                              </div>
+                              {!process.isGroup && process.actualStartDate && (
+                                <div className="text-xs text-green-600">
+                                  {format(parseISO(process.actualStartDate), "dd.MM.yyyy")}
+                                </div>
+                              )}
+                            </div>
                           )}
                         </td>
                         <td className="p-2 text-muted-foreground">
@@ -498,17 +507,39 @@ export default function ProjectProcessesTab({ projectId, projectName }: Processe
                               className="h-8 w-32"
                             />
                           ) : (
-                            process.isGroup && process.calculatedEndDate 
-                              ? format(parseISO(process.calculatedEndDate), "dd.MM.yyyy")
-                              : process.isGroup && process.children.length === 0
-                              ? <span className="text-gray-400 italic">-</span>
-                              : format(parseISO(process.endDate), "dd.MM.yyyy")
+                            <div>
+                              <div>
+                                {process.isGroup && process.calculatedEndDate 
+                                  ? format(parseISO(process.calculatedEndDate), "dd.MM.yyyy")
+                                  : process.isGroup && process.children.length === 0
+                                  ? <span className="text-gray-400 italic">-</span>
+                                  : format(parseISO(process.endDate), "dd.MM.yyyy")}
+                              </div>
+                              {!process.isGroup && process.actualStartDate && (
+                                <div className="text-xs text-green-600">
+                                  {process.actualEndDate 
+                                    ? format(parseISO(process.actualEndDate), "dd.MM.yyyy") 
+                                    : <span className="text-orange-500 italic">Devam</span>}
+                                </div>
+                              )}
+                            </div>
                           )}
                         </td>
                         <td className="p-2 text-center font-medium">
-                          {process.isGroup 
-                            ? (process.calculatedDays ?? <span className="text-gray-400">-</span>)
-                            : differenceInDays(parseISO(process.endDate), parseISO(process.startDate)) + 1}
+                          <div>
+                            <div>
+                              {process.isGroup 
+                                ? (process.calculatedDays ?? <span className="text-gray-400">-</span>)
+                                : differenceInDays(parseISO(process.endDate), parseISO(process.startDate)) + 1}
+                            </div>
+                            {!process.isGroup && process.actualStartDate && (
+                              <div className="text-xs text-green-600">
+                                {process.actualEndDate 
+                                  ? differenceInDays(parseISO(process.actualEndDate), parseISO(process.actualStartDate)) + 1
+                                  : <span className="text-orange-500">{differenceInDays(new Date(), parseISO(process.actualStartDate)) + 1}</span>}
+                              </div>
+                            )}
+                          </div>
                         </td>
                         <td className="p-2">
                           <div className="relative h-8 bg-gray-100 rounded min-w-[200px]">
@@ -627,29 +658,6 @@ export default function ProjectProcessesTab({ projectId, projectName }: Processe
                           )}
                         </td>
                       </tr>
-                      {/* Second row for actual dates - only for non-group processes */}
-                      {!process.isGroup && (process.actualStartDate || process.actualEndDate) && !isEditing && (
-                        <tr key={`${process.id}-actual`} className="border-b bg-gray-50/50">
-                          <td className="p-1 pl-2"></td>
-                          <td className="p-1 text-xs text-muted-foreground" style={{ paddingLeft: `${process.level * 12 + 8}px` }}>
-                            <span className="italic">Gerçekleşen</span>
-                          </td>
-                          <td className="p-1 text-xs text-green-600">
-                            {process.actualStartDate ? format(parseISO(process.actualStartDate), "dd.MM.yyyy") : '-'}
-                          </td>
-                          <td className="p-1 text-xs text-green-600">
-                            {process.actualEndDate ? format(parseISO(process.actualEndDate), "dd.MM.yyyy") : <span className="text-orange-500 italic">Devam</span>}
-                          </td>
-                          <td className="p-1 text-xs text-center">
-                            {process.actualStartDate && (
-                              process.actualEndDate 
-                                ? differenceInDays(parseISO(process.actualEndDate), parseISO(process.actualStartDate)) + 1
-                                : <span className="text-orange-500">{differenceInDays(new Date(), parseISO(process.actualStartDate)) + 1}</span>
-                            )}
-                          </td>
-                          <td className="p-1" colSpan={2}></td>
-                        </tr>
-                      )}
                       </Fragment>
                     );
                   })}
