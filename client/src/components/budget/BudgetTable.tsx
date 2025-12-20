@@ -137,7 +137,7 @@ export function BudgetTable({ items, onSave, onRevise, onApprove, onDelete, onSu
                                 </span>
                               ) : (
                                 <Input 
-                                  className="h-7 w-[75px] ml-auto text-right text-xs px-1 border-primary/30 focus-visible:ring-1" 
+                                  className="h-7 w-[65px] ml-auto text-right text-xs px-1 border-primary/30 focus-visible:ring-1" 
                                   value={editValues[index] || 0}
                                   onChange={(e) => handleValueChange(index, e.target.value)}
                                 />
