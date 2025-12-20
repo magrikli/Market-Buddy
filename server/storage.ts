@@ -86,6 +86,8 @@ export interface IStorage {
   
   // Transactions
   createTransaction(transaction: InsertTransaction): Promise<Transaction>;
+  updateTransaction(id: string, updates: Partial<InsertTransaction>): Promise<Transaction | undefined>;
+  getTransaction(id: string): Promise<Transaction | undefined>;
   getAllTransactions(limit?: number): Promise<Transaction[]>;
   getTransactionsByBudgetItem(budgetItemId: string): Promise<Transaction[]>;
   deleteTransactionsByCsvFileName(csvFileName: string): Promise<number>;
@@ -418,6 +420,19 @@ export class DatabaseStorage implements IStorage {
   // === TRANSACTIONS ===
   async createTransaction(transaction: InsertTransaction): Promise<Transaction> {
     const result = await db.insert(transactions).values(transaction).returning();
+    return result[0];
+  }
+
+  async updateTransaction(id: string, updates: Partial<InsertTransaction>): Promise<Transaction | undefined> {
+    const result = await db.update(transactions)
+      .set(updates)
+      .where(eq(transactions.id, id))
+      .returning();
+    return result[0];
+  }
+
+  async getTransaction(id: string): Promise<Transaction | undefined> {
+    const result = await db.select().from(transactions).where(eq(transactions.id, id)).limit(1);
     return result[0];
   }
 

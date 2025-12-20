@@ -294,6 +294,21 @@ export async function createTransaction(data: {
   });
 }
 
+export async function updateTransaction(id: string, data: {
+  type?: 'expense' | 'revenue';
+  amount?: number;
+  description?: string;
+  date?: string;
+  budgetItemId?: string;
+  csvFileName?: string;
+  csvRowNumber?: number;
+}): Promise<any> {
+  return fetchAPI(`/transactions/${id}`, {
+    method: 'PUT',
+    body: JSON.stringify(data),
+  });
+}
+
 export async function deleteTransactionsByCsvFileName(fileName: string): Promise<{ deletedCount: number; fileName: string }> {
   return fetchAPI(`/transactions/by-csv/${encodeURIComponent(fileName)}`, {
     method: 'DELETE',

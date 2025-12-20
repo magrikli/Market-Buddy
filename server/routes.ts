@@ -1006,6 +1006,38 @@ export async function registerRoutes(server: Server, app: Express): Promise<Serv
     }
   });
 
+  app.put("/api/transactions/:id", async (req: Request, res: Response) => {
+    try {
+      const { id } = req.params;
+      const body = {
+        ...req.body,
+        date: req.body.date ? new Date(req.body.date) : undefined,
+      };
+      const transaction = await storage.updateTransaction(id, body);
+      if (!transaction) {
+        return res.status(404).json({ message: "Transaction not found" });
+      }
+      return res.json(transaction);
+    } catch (error) {
+      console.error('Update transaction error:', error);
+      return res.status(500).json({ message: "Server error" });
+    }
+  });
+
+  app.get("/api/transactions/:id", async (req: Request, res: Response) => {
+    try {
+      const { id } = req.params;
+      const transaction = await storage.getTransaction(id);
+      if (!transaction) {
+        return res.status(404).json({ message: "Transaction not found" });
+      }
+      return res.json(transaction);
+    } catch (error) {
+      console.error('Get transaction error:', error);
+      return res.status(500).json({ message: "Server error" });
+    }
+  });
+
   app.delete("/api/transactions/by-csv/:fileName", async (req: Request, res: Response) => {
     try {
       const fileName = decodeURIComponent(req.params.fileName);

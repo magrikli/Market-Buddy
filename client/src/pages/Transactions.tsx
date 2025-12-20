@@ -6,7 +6,7 @@ import { Select, SelectContent, SelectGroup, SelectItem, SelectLabel, SelectTrig
 import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
 import { useStore } from "@/lib/store";
 import { useDepartments, useDepartmentGroups, useProjects, useCreateTransaction, useTransactions } from "@/lib/queries";
-import { deleteTransactionsByCsvFileName } from "@/lib/api";
+import { deleteTransactionsByCsvFileName, updateTransaction } from "@/lib/api";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { format } from "date-fns";
 import { Loader2, Save, Download, Upload } from "lucide-react";
@@ -48,6 +48,7 @@ export default function Transactions() {
   // Types for import rows
   type ImportRow = {
     rowNumber: number;
+    transactionId?: string;
     date: string;
     type: string;
     departmentName: string;
@@ -59,6 +60,7 @@ export default function Transactions() {
     matchedItemId?: string;
     matches?: { id: string; name: string; context: string }[];
     errorMessage?: string;
+    isUpdate?: boolean;
   };
 
   // Find matching items by name
@@ -116,12 +118,13 @@ export default function Transactions() {
     const lines: string[] = [];
     
     // Main data headers
-    lines.push("Sıra,Tarih,Tür,Departman,Proje,Kalem,Tutar,Açıklama");
-    lines.push("1,2025-12-20,expense,Bilgi Teknolojileri,,Yazılım Ekibi Maaşları,55000,Aralık maaş");
-    lines.push("2,2025-12-20,revenue,,Yeni E-Ticaret,Erken Erişim Satışları,30000,");
+    lines.push("Sıra,TransactionId,Tarih,Tür,Departman,Proje,Kalem,Tutar,Açıklama");
+    lines.push("1,,2025-12-20,expense,Bilgi Teknolojileri,,Yazılım Ekibi Maaşları,55000,Aralık maaş");
+    lines.push("2,,2025-12-20,revenue,,Yeni E-Ticaret,Erken Erişim Satışları,30000,");
     lines.push("");
     lines.push("=== AÇIKLAMA ===");
     lines.push("Sıra: Satır numarası (hata takibi için)");
+    lines.push("TransactionId: Mevcut kayıt güncellemesi için ID (boş bırakılırsa yeni kayıt oluşturulur)");
     lines.push("Tür: expense (gider) veya revenue (gelir)");
     lines.push("Departman: Departman gideri için departman adı yazın");
     lines.push("Proje: Proje gideri/geliri için proje adı yazın");
@@ -204,6 +207,7 @@ export default function Transactions() {
         if (!row["Kalem"] && !row["Tutar"]) continue;
         
         const rowNumber = parseInt(row["Sıra"]) || i;
+        const transactionId = row["TransactionId"] || "";
         const itemName = row["Kalem"] || "";
         const deptName = row["Departman"] || "";
         const projName = row["Proje"] || "";
@@ -214,6 +218,7 @@ export default function Transactions() {
         let status: ImportRow['status'] = 'pending';
         let matchedItemId: string | undefined;
         let errorMessage: string | undefined;
+        const isUpdate = !!transactionId;
         
         if (!itemName) {
           status = 'error';
@@ -231,6 +236,7 @@ export default function Transactions() {
         
         dataRows.push({
           rowNumber,
+          transactionId: transactionId || undefined,
           date: row["Tarih"] || "",
           type: row["Tür"] || "expense",
           departmentName: deptName,
@@ -242,6 +248,7 @@ export default function Transactions() {
           matchedItemId,
           matches: matches.length > 1 ? matches : undefined,
           errorMessage,
+          isUpdate,
         });
       }
       
@@ -275,11 +282,13 @@ export default function Transactions() {
     }
     
     setImporting(true);
-    let successCount = 0;
+    let insertCount = 0;
+    let updateCount = 0;
     let errorCount = 0;
     
-    // Delete existing transactions from same CSV file first
-    if (csvFileName) {
+    // Only delete by CSV filename for rows WITHOUT transactionId (new inserts)
+    const newInsertRows = importData.filter(r => !r.transactionId && r.status !== 'error');
+    if (csvFileName && newInsertRows.length > 0) {
       try {
         const result = await deleteTransactionsByCsvFileName(csvFileName);
         if (result.deletedCount > 0) {
@@ -302,20 +311,35 @@ export default function Transactions() {
       try {
         const type = row.type === "revenue" ? "revenue" : "expense";
         
-        await createTransactionMutation.mutateAsync({
-          type,
-          date: row.date,
-          amount: parseFloat(row.amount) || 0,
-          description: row.description || "",
-          budgetItemId: row.matchedItemId || undefined,
-          csvFileName,
-          csvRowNumber: row.rowNumber,
-        });
-        
-        updatedRows[i] = { ...row, status: 'success' };
-        successCount++;
+        if (row.transactionId) {
+          // Update existing transaction
+          await updateTransaction(row.transactionId, {
+            type,
+            date: row.date,
+            amount: parseFloat(row.amount) || 0,
+            description: row.description || "",
+            budgetItemId: row.matchedItemId || undefined,
+            csvFileName,
+            csvRowNumber: row.rowNumber,
+          });
+          updatedRows[i] = { ...row, status: 'success' };
+          updateCount++;
+        } else {
+          // Create new transaction
+          await createTransactionMutation.mutateAsync({
+            type,
+            date: row.date,
+            amount: parseFloat(row.amount) || 0,
+            description: row.description || "",
+            budgetItemId: row.matchedItemId || undefined,
+            csvFileName,
+            csvRowNumber: row.rowNumber,
+          });
+          updatedRows[i] = { ...row, status: 'success' };
+          insertCount++;
+        }
       } catch {
-        updatedRows[i] = { ...row, status: 'error', errorMessage: 'Kayıt oluşturulamadı' };
+        updatedRows[i] = { ...row, status: 'error', errorMessage: row.transactionId ? 'Kayıt güncellenemedi' : 'Kayıt oluşturulamadı' };
         errorCount++;
       }
     }
@@ -323,11 +347,14 @@ export default function Transactions() {
     setImportData(updatedRows);
     setImporting(false);
     
-    if (successCount > 0) {
-      toast.success(`${successCount} kayıt başarıyla eklendi`);
+    if (insertCount > 0) {
+      toast.success(`${insertCount} yeni kayıt eklendi`);
+    }
+    if (updateCount > 0) {
+      toast.success(`${updateCount} kayıt güncellendi`);
     }
     if (errorCount > 0) {
-      toast.error(`${errorCount} kayıt eklenemedi`);
+      toast.error(`${errorCount} kayıt işlenemedi`);
     }
     
     // Close dialog if all successful
@@ -701,7 +728,8 @@ export default function Transactions() {
             <DialogTitle>CSV Import Önizleme - {csvFileName}</DialogTitle>
             <DialogDescription>
               {importData.length} kayıt bulundu. 
-              {importData.filter(r => r.status === 'matched').length} eşleşti, 
+              {importData.filter(r => r.status === 'matched' && !r.transactionId).length} yeni, 
+              {importData.filter(r => r.status === 'matched' && r.transactionId).length} güncelleme, 
               {importData.filter(r => r.status === 'ambiguous').length} seçim bekliyor, 
               {importData.filter(r => r.status === 'error').length} hata.
             </DialogDescription>
@@ -737,10 +765,12 @@ export default function Transactions() {
                     </TableCell>
                     <TableCell className="font-mono">€ {row.amount}</TableCell>
                     <TableCell>
-                      {row.status === 'matched' && <span className="text-green-600 text-xs">✓ Eşleşti</span>}
+                      {row.status === 'matched' && !row.transactionId && <span className="text-green-600 text-xs">✓ Yeni kayıt</span>}
+                      {row.status === 'matched' && row.transactionId && <span className="text-blue-600 text-xs">↻ Güncelleme</span>}
                       {row.status === 'ambiguous' && <span className="text-yellow-600 text-xs">⚠ Seçim gerekli</span>}
                       {row.status === 'error' && <span className="text-red-600 text-xs">✗ {row.errorMessage}</span>}
-                      {row.status === 'success' && <span className="text-green-600 text-xs">✓ Kaydedildi</span>}
+                      {row.status === 'success' && !row.transactionId && <span className="text-green-600 text-xs">✓ Eklendi</span>}
+                      {row.status === 'success' && row.transactionId && <span className="text-blue-600 text-xs">✓ Güncellendi</span>}
                     </TableCell>
                     <TableCell>
                       {row.status === 'ambiguous' && row.matches && (
@@ -771,7 +801,7 @@ export default function Transactions() {
               disabled={importing || importData.some(r => r.status === 'ambiguous')}
             >
               {importing && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
-              {importData.filter(r => r.status === 'matched').length} Kayıt Ekle
+              {importData.filter(r => r.status === 'matched').length} Kayıt İşle
             </Button>
           </DialogFooter>
         </DialogContent>
