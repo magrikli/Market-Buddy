@@ -80,8 +80,8 @@ export default function Transactions() {
     
     // Main data headers
     lines.push("=== VERİ GİRİŞ ŞABLONU (Kısa ID Kullanın) ===");
-    lines.push("Tarih;Tür;KalemID;Tutar;Açıklama");
-    lines.push("2025-12-20;expense;abcd1234;1000;Örnek açıklama");
+    lines.push("Tarih,Tür,KalemID,Tutar,Açıklama");
+    lines.push("2025-12-20,expense,abcd1234,1000,Örnek açıklama");
     lines.push("");
     lines.push("=== TÜR SEÇENEKLERİ ===");
     lines.push("expense = Gider");
@@ -90,13 +90,13 @@ export default function Transactions() {
     
     // Department reference list
     lines.push("=== DEPARTMAN KALEMLERİ ===");
-    lines.push("Departman;Grup;Kalem;KısaID");
+    lines.push("Departman,Grup,Kalem,KısaID");
     departments.forEach(dept => {
       if (dept.costGroups && dept.costGroups.length > 0) {
         dept.costGroups.forEach((cg: any) => {
           if (cg.items && cg.items.length > 0) {
             cg.items.forEach((item: any) => {
-              lines.push(`${dept.name};${cg.name};${item.name};${shortId(item.id)}`);
+              lines.push(`${dept.name},${cg.name},${item.name},${shortId(item.id)}`);
             });
           }
         });
@@ -106,18 +106,18 @@ export default function Transactions() {
     
     // Project reference list
     lines.push("=== PROJE KALEMLERİ ===");
-    lines.push("Proje;Faz;Kalem;KısaID;Tür");
+    lines.push("Proje,Faz,Kalem,KısaID,Tür");
     projects.forEach(proj => {
       if (proj.phases && proj.phases.length > 0) {
         proj.phases.forEach((phase: any) => {
           if (phase.costItems && phase.costItems.length > 0) {
             phase.costItems.forEach((item: any) => {
-              lines.push(`${proj.name};${phase.name};${item.name};${shortId(item.id)};Gider`);
+              lines.push(`${proj.name},${phase.name},${item.name},${shortId(item.id)},Gider`);
             });
           }
           if (phase.revenueItems && phase.revenueItems.length > 0) {
             phase.revenueItems.forEach((item: any) => {
-              lines.push(`${proj.name};${phase.name};${item.name};${shortId(item.id)};Gelir`);
+              lines.push(`${proj.name},${phase.name},${item.name},${shortId(item.id)},Gelir`);
             });
           }
         });
@@ -150,9 +150,9 @@ export default function Transactions() {
         return;
       }
       
-      const headers = lines[0].split(";").map(h => h.trim());
+      const headers = lines[0].split(",").map(h => h.trim());
       const dataRows = lines.slice(1).map(line => {
-        const values = line.split(";").map(v => v.trim());
+        const values = line.split(",").map(v => v.trim());
         const row: Record<string, string> = {};
         headers.forEach((header, i) => {
           row[header] = values[i] || "";
