@@ -185,88 +185,90 @@ export default function Transactions() {
                   )}
                 />
 
-                <FormField
-                  control={form.control}
-                  name="date"
-                  render={({ field }) => (
-                    <FormItem className="flex flex-col">
-                      <FormLabel>Tarih</FormLabel>
-                      <FormControl>
-                        <Input
-                          type="date"
-                          value={field.value ? format(field.value, "yyyy-MM-dd") : ""}
-                          onChange={(e) => {
-                            if (e.target.value) {
-                              field.onChange(new Date(e.target.value));
-                            }
-                          }}
-                          max={format(new Date(), "yyyy-MM-dd")}
-                          className="w-full"
-                        />
-                      </FormControl>
-                      <FormMessage />
-                    </FormItem>
-                  )}
-                />
+                <div className="grid grid-cols-2 gap-4">
+                  <FormField
+                    control={form.control}
+                    name="date"
+                    render={({ field }) => (
+                      <FormItem className="flex flex-col">
+                        <FormLabel>Tarih</FormLabel>
+                        <FormControl>
+                          <Input
+                            type="date"
+                            value={field.value ? format(field.value, "yyyy-MM-dd") : ""}
+                            onChange={(e) => {
+                              if (e.target.value) {
+                                field.onChange(new Date(e.target.value));
+                              }
+                            }}
+                            max={format(new Date(), "yyyy-MM-dd")}
+                            className="w-full"
+                          />
+                        </FormControl>
+                        <FormMessage />
+                      </FormItem>
+                    )}
+                  />
 
-                {watchType === 'department_expense' ? (
-                   <FormField
-                    control={form.control}
-                    name="departmentId"
-                    render={({ field }) => (
-                        <FormItem>
-                        <FormLabel>Departman</FormLabel>
-                        <Select onValueChange={(val) => {
-                            field.onChange(val);
-                            form.setValue("itemId", ""); // Reset item when parent changes
-                        }} defaultValue={field.value}>
-                            <FormControl>
-                            <SelectTrigger>
-                                <SelectValue placeholder="Departman seçin" />
-                            </SelectTrigger>
-                            </FormControl>
-                            <SelectContent>
-                                {Object.entries(departmentsByGroup).map(([groupId, depts]) => (
-                                  <SelectGroup key={groupId}>
-                                    <SelectLabel>{getGroupName(groupId)}</SelectLabel>
-                                    {depts.map(d => (
-                                      <SelectItem key={d.id} value={d.id} className="pl-6">{d.name}</SelectItem>
-                                    ))}
-                                  </SelectGroup>
-                                ))}
-                            </SelectContent>
-                        </Select>
-                        <FormMessage />
-                        </FormItem>
-                    )}
-                    />
-                ) : (
+                  {watchType === 'department_expense' ? (
                     <FormField
-                    control={form.control}
-                    name="projectId"
-                    render={({ field }) => (
+                      control={form.control}
+                      name="departmentId"
+                      render={({ field }) => (
                         <FormItem>
-                        <FormLabel>Proje</FormLabel>
-                        <Select onValueChange={(val) => {
+                          <FormLabel>Departman</FormLabel>
+                          <Select onValueChange={(val) => {
                             field.onChange(val);
-                            form.setValue("itemId", ""); // Reset item when parent changes
-                        }} defaultValue={field.value}>
+                            form.setValue("itemId", "");
+                          }} defaultValue={field.value}>
                             <FormControl>
-                            <SelectTrigger>
-                                <SelectValue placeholder="Proje seçin" />
-                            </SelectTrigger>
+                              <SelectTrigger>
+                                <SelectValue placeholder="Departman seçin" />
+                              </SelectTrigger>
                             </FormControl>
                             <SelectContent>
-                                {projects.map(p => (
-                                    <SelectItem key={p.id} value={p.id}>{p.name}</SelectItem>
-                                ))}
+                              {Object.entries(departmentsByGroup).map(([groupId, depts]) => (
+                                <SelectGroup key={groupId}>
+                                  <SelectLabel>{getGroupName(groupId)}</SelectLabel>
+                                  {depts.map(d => (
+                                    <SelectItem key={d.id} value={d.id} className="pl-6">{d.name}</SelectItem>
+                                  ))}
+                                </SelectGroup>
+                              ))}
                             </SelectContent>
-                        </Select>
-                        <FormMessage />
+                          </Select>
+                          <FormMessage />
                         </FormItem>
-                    )}
+                      )}
                     />
-                )}
+                  ) : (
+                    <FormField
+                      control={form.control}
+                      name="projectId"
+                      render={({ field }) => (
+                        <FormItem>
+                          <FormLabel>Proje</FormLabel>
+                          <Select onValueChange={(val) => {
+                            field.onChange(val);
+                            form.setValue("itemId", "");
+                          }} defaultValue={field.value}>
+                            <FormControl>
+                              <SelectTrigger>
+                                <SelectValue placeholder="Proje seçin" />
+                              </SelectTrigger>
+                            </FormControl>
+                            <SelectContent>
+                              {projects.map(p => (
+                                <SelectItem key={p.id} value={p.id}>{p.name}</SelectItem>
+                              ))}
+                            </SelectContent>
+                          </Select>
+                          <FormMessage />
+                        </FormItem>
+                      )}
+                    />
+                  )}
+                </div>
 
                 <FormField
                   control={form.control}
