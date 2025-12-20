@@ -788,6 +788,12 @@ export async function registerRoutes(server: Server, app: Express): Promise<Serv
       const { id } = req.params;
       const { name, startDate, endDate, wbs, status } = req.body;
       
+      // Get current process to check if WBS is changing
+      const currentProcess = await storage.getProcess(id);
+      if (!currentProcess) {
+        return res.status(404).json({ message: "Process not found" });
+      }
+      
       const updates: any = {};
       if (name !== undefined) updates.name = name;
       if (startDate !== undefined) updates.startDate = new Date(startDate);
@@ -795,7 +801,13 @@ export async function registerRoutes(server: Server, app: Express): Promise<Serv
       if (wbs !== undefined) updates.wbs = wbs;
       if (status !== undefined) updates.status = status;
       
-      const updated = await storage.updateProcess(id, updates);
+      // If WBS is changing, update children too
+      let updated;
+      if (wbs !== undefined && wbs !== currentProcess.wbs) {
+        updated = await storage.updateProcessWithChildren(id, updates, currentProcess.wbs, wbs, currentProcess.projectId);
+      } else {
+        updated = await storage.updateProcess(id, updates);
+      }
       
       if (!updated) {
         return res.status(404).json({ message: "Process not found" });

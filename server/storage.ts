@@ -455,6 +455,32 @@ export class DatabaseStorage implements IStorage {
     return result[0];
   }
 
+  async updateProcessWithChildren(id: string, updates: Partial<ProjectProcess>, oldWbs: string, newWbs: string, projectId: string): Promise<ProjectProcess | undefined> {
+    // Update the process itself
+    const result = await db.update(projectProcesses)
+      .set({ ...updates, updatedAt: new Date() })
+      .where(eq(projectProcesses.id, id))
+      .returning();
+    
+    // If WBS changed, update all children
+    if (oldWbs !== newWbs) {
+      const allProcesses = await this.getProcessesByProject(projectId);
+      const childPrefix = oldWbs + '.';
+      
+      for (const proc of allProcesses) {
+        if (proc.wbs.startsWith(childPrefix)) {
+          // Replace old prefix with new prefix
+          const newChildWbs = newWbs + proc.wbs.substring(oldWbs.length);
+          await db.update(projectProcesses)
+            .set({ wbs: newChildWbs, updatedAt: new Date() })
+            .where(eq(projectProcesses.id, proc.id));
+        }
+      }
+    }
+    
+    return result[0];
+  }
+
   async approveProcess(id: string): Promise<ProjectProcess | undefined> {
     const result = await db.update(projectProcesses)
       .set({ status: 'approved', previousStartDate: null, previousEndDate: null, updatedAt: new Date() })
