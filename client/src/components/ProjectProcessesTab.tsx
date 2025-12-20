@@ -408,9 +408,10 @@ export default function ProjectProcessesTab({ projectId, projectName }: Processe
                     <th className="text-left p-3 font-medium w-[80px]">Gün</th>
                     <th className="text-left p-3 font-medium min-w-[300px]">
                       <div className="relative h-4 text-xs text-muted-foreground">
-                        {Array.from({ length: Math.min(Math.ceil(ganttDays.length / 7), 12) }).map((_, i) => {
+                        {Array.from({ length: Math.ceil(ganttDays.length / 7) + 1 }).map((_, i) => {
                           const totalDays = differenceInDays(ganttRange.end, ganttRange.start) + 1;
                           const offsetDays = i * 7;
+                          if (offsetDays > totalDays) return null;
                           const leftPercent = (offsetDays / totalDays) * 100;
                           return (
                             <div 
