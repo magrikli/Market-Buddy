@@ -38,12 +38,58 @@ export default function Transactions() {
   const [importing, setImporting] = useState(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
 
-  // Export CSV template
+  // Export CSV template with reference data
   const handleExportTemplate = () => {
-    const headers = ["Tarih", "Tür", "DepartmanID", "ProjeID", "KalemID", "Tutar", "Açıklama"];
-    const exampleRow = ["2025-12-20", "department_expense", "dept-id-here", "", "item-id-here", "1000", "Örnek açıklama"];
-    const csvContent = [headers.join(";"), exampleRow.join(";")].join("\n");
+    const lines: string[] = [];
     
+    // Main data headers
+    lines.push("=== VERİ GİRİŞ ŞABLONU ===");
+    lines.push("Tarih;Tür;DepartmanID;ProjeID;KalemID;Tutar;Açıklama");
+    lines.push("2025-12-20;department_expense;;;kalem-id-buraya;1000;Örnek açıklama");
+    lines.push("");
+    lines.push("=== TÜR SEÇENEKLERİ ===");
+    lines.push("department_expense = Departman Gideri");
+    lines.push("project_expense = Proje Gideri");
+    lines.push("project_revenue = Proje Geliri");
+    lines.push("");
+    
+    // Department reference list
+    lines.push("=== DEPARTMAN VE KALEM LİSTESİ ===");
+    lines.push("DepartmanAdı;DepartmanID;GrupAdı;KalemAdı;KalemID");
+    departments.forEach(dept => {
+      if (dept.costGroups && dept.costGroups.length > 0) {
+        dept.costGroups.forEach((cg: any) => {
+          if (cg.items && cg.items.length > 0) {
+            cg.items.forEach((item: any) => {
+              lines.push(`${dept.name};${dept.id};${cg.name};${item.name};${item.id}`);
+            });
+          }
+        });
+      }
+    });
+    lines.push("");
+    
+    // Project reference list
+    lines.push("=== PROJE VE KALEM LİSTESİ ===");
+    lines.push("ProjeAdı;ProjeID;FazAdı;KalemAdı;KalemID;Tür");
+    projects.forEach(proj => {
+      if (proj.phases && proj.phases.length > 0) {
+        proj.phases.forEach((phase: any) => {
+          if (phase.costItems && phase.costItems.length > 0) {
+            phase.costItems.forEach((item: any) => {
+              lines.push(`${proj.name};${proj.id};${phase.name};${item.name};${item.id};Gider`);
+            });
+          }
+          if (phase.revenueItems && phase.revenueItems.length > 0) {
+            phase.revenueItems.forEach((item: any) => {
+              lines.push(`${proj.name};${proj.id};${phase.name};${item.name};${item.id};Gelir`);
+            });
+          }
+        });
+      }
+    });
+    
+    const csvContent = lines.join("\n");
     const blob = new Blob(["\uFEFF" + csvContent], { type: "text/csv;charset=utf-8;" });
     const url = URL.createObjectURL(blob);
     const link = document.createElement("a");
@@ -51,7 +97,7 @@ export default function Transactions() {
     link.download = "transaction_template.csv";
     link.click();
     URL.revokeObjectURL(url);
-    toast.success("Şablon indirildi");
+    toast.success("Şablon indirildi - ID'ler dosya içinde");
   };
 
   // Handle file selection
