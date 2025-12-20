@@ -67,8 +67,12 @@ export default function ProjectBudget() {
   };
 
   const handleAddProject = async (name: string) => {
+    if (!selectedCompanyId) {
+      toast.error("Lütfen önce bir şirket seçin");
+      return;
+    }
     try {
-      await createProjectMutation.mutateAsync(name);
+      await createProjectMutation.mutateAsync({ name, companyId: selectedCompanyId });
       toast.success("Proje eklendi", { description: name });
       setIsNewProjectOpen(false);
     } catch (error: any) {

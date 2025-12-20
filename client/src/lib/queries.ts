@@ -196,7 +196,7 @@ export function useProjects(year: number = 2025, companyId?: string | null) {
 export function useCreateProject() {
   const queryClient = useQueryClient();
   return useMutation({
-    mutationFn: (name: string) => api.createProject(name),
+    mutationFn: ({ name, companyId }: { name: string; companyId: string }) => api.createProject(name, companyId),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: queryKeys.projects(2025) });
     },
