@@ -407,12 +407,21 @@ export default function ProjectProcessesTab({ projectId, projectName }: Processe
                     <th className="text-left p-3 font-medium w-[100px]">Bitiş</th>
                     <th className="text-left p-3 font-medium w-[80px]">Gün</th>
                     <th className="text-left p-3 font-medium min-w-[300px]">
-                      <div className="flex text-xs text-muted-foreground">
-                        {Array.from({ length: Math.min(Math.ceil(ganttDays.length / 7), 12) }).map((_, i) => (
-                          <div key={i} className="flex-1 text-center">
-                            {format(addDays(ganttRange.start, i * 7), "dd MMM", { locale: tr })}
-                          </div>
-                        ))}
+                      <div className="relative h-4 text-xs text-muted-foreground">
+                        {Array.from({ length: Math.min(Math.ceil(ganttDays.length / 7), 12) }).map((_, i) => {
+                          const totalDays = differenceInDays(ganttRange.end, ganttRange.start) + 1;
+                          const offsetDays = i * 7;
+                          const leftPercent = (offsetDays / totalDays) * 100;
+                          return (
+                            <div 
+                              key={i} 
+                              className="absolute text-center whitespace-nowrap"
+                              style={{ left: `${leftPercent}%`, transform: 'translateX(-50%)' }}
+                            >
+                              {format(addDays(ganttRange.start, offsetDays), "dd MMM", { locale: tr })}
+                            </div>
+                          );
+                        })}
                       </div>
                     </th>
                     <th className="w-[50px]"></th>
