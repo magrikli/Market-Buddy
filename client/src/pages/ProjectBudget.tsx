@@ -12,8 +12,10 @@ import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/com
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from "@/components/ui/dropdown-menu";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { PlusCircle, Download, Filter, Loader2, Plus, MoreHorizontal, Pencil, Trash2, FolderGit2, Layers, Clock } from "lucide-react";
-import { useState } from "react";
+import { PlusCircle, Download, Filter, Loader2, Plus, MoreHorizontal, Pencil, Trash2, FolderGit2, Layers, Clock, Upload } from "lucide-react";
+import { useState, useRef } from "react";
+import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from "@/components/ui/dialog";
+import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { AddEntityDialog, AddBudgetItemDialog } from "@/components/budget/AddEntityDialogs";
 import { toast } from "sonner";
 import type { BudgetMonthValues } from "@/lib/store";
@@ -49,6 +51,23 @@ export default function ProjectBudget() {
   const [editingPhase, setEditingPhase] = useState<{id: string; name: string} | null>(null);
   const [activeTabByProject, setActiveTabByProject] = useState<Record<string, string>>({});
   const [expandedProjects, setExpandedProjects] = useState<string[] | null>(null);
+
+  type ImportRow = {
+    rowNumber: number;
+    itemId: string;
+    projectName: string;
+    phaseName: string;
+    itemName: string;
+    itemType: 'cost' | 'revenue';
+    monthlyValues: number[];
+    status: 'pending' | 'update' | 'create' | 'error';
+    matchedPhaseId?: string;
+    errorMessage?: string;
+  };
+  const [isImportDialogOpen, setIsImportDialogOpen] = useState(false);
+  const [importData, setImportData] = useState<ImportRow[]>([]);
+  const [importing, setImporting] = useState(false);
+  const fileInputRef = useRef<HTMLInputElement>(null);
 
   const formatMoney = (amount: number) => {
     return new Intl.NumberFormat('tr-TR', { minimumFractionDigits: 0 }).format(amount);
@@ -236,6 +255,208 @@ export default function ProjectBudget() {
     }
   };
 
+  const handleExportBudgetItems = () => {
+    const lines: string[] = [];
+    lines.push("ItemId,Proje,Faz,Kalem,Tür,Ocak,Şubat,Mart,Nisan,Mayıs,Haziran,Temmuz,Ağustos,Eylül,Ekim,Kasım,Aralık");
+    
+    visibleProjects.forEach(project => {
+      (project.phases || []).forEach((phase: any) => {
+        const allItems = [
+          ...(phase.costItems || []).map((item: any) => ({ ...item, type: 'cost' })),
+          ...(phase.revenueItems || []).map((item: any) => ({ ...item, type: 'revenue' }))
+        ];
+        allItems.forEach((item: any) => {
+          const monthValues = months.map((_, idx) => item.values[idx] || 0);
+          const escapedName = item.name.includes(',') ? `"${item.name}"` : item.name;
+          const escapedProject = project.name.includes(',') ? `"${project.name}"` : project.name;
+          const escapedPhase = phase.name.includes(',') ? `"${phase.name}"` : phase.name;
+          lines.push(`${item.id},${escapedProject},${escapedPhase},${escapedName},${item.type},${monthValues.join(',')}`);
+        });
+      });
+    });
+    
+    const csvContent = lines.join("\n");
+    const blob = new Blob(["\uFEFF" + csvContent], { type: "text/csv;charset=utf-8;" });
+    const url = URL.createObjectURL(blob);
+    const link = document.createElement("a");
+    link.href = url;
+    link.download = `proje_butce_${currentYear}.csv`;
+    link.click();
+    URL.revokeObjectURL(url);
+    toast.success("CSV dışa aktarıldı");
+  };
+
+  const handleFileSelect = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    
+    const reader = new FileReader();
+    reader.onload = (event) => {
+      try {
+        const text = event.target?.result as string;
+        const lines = text.split("\n").filter(line => line.trim());
+        
+        if (lines.length < 2) {
+          toast.error("CSV dosyası en az bir veri satırı içermeli");
+          return;
+        }
+        
+        const headers = lines[0].split(",").map(h => h.trim());
+        const expectedHeaders = ["ItemId", "Proje", "Faz", "Kalem", "Tür"];
+        const hasValidHeaders = expectedHeaders.every(h => headers.includes(h));
+        
+        if (!hasValidHeaders) {
+          toast.error("Geçersiz CSV formatı", { description: "Başlıklar: ItemId,Proje,Faz,Kalem,Tür,Ocak,...,Aralık" });
+          return;
+        }
+        
+        const dataRows: ImportRow[] = [];
+        
+        for (let i = 1; i < lines.length; i++) {
+          const values = lines[i].match(/(".*?"|[^,]+)/g)?.map(v => v.replace(/^"|"$/g, '').trim()) || [];
+          if (values.length < 17) continue;
+          
+          const itemId = values[0] || "";
+          const projectName = values[1] || "";
+          const phaseName = values[2] || "";
+          const itemName = values[3] || "";
+          const itemType = values[4] === 'revenue' ? 'revenue' : 'cost';
+          const monthlyValues = values.slice(5, 17).map(v => parseFloat(v) || 0);
+          
+          let status: ImportRow['status'] = 'pending';
+          let matchedPhaseId: string | undefined;
+          let errorMessage: string | undefined;
+          
+          if (itemId) {
+            let found = false;
+            for (const proj of projects) {
+              for (const phase of (proj.phases || [])) {
+                const allItems = [...(phase.costItems || []), ...(phase.revenueItems || [])];
+                if (allItems.some((item: any) => item.id === itemId)) {
+                  found = true;
+                  matchedPhaseId = phase.id;
+                  break;
+                }
+              }
+              if (found) break;
+            }
+            status = found ? 'update' : 'error';
+            if (!found) errorMessage = 'ItemId bulunamadı';
+          } else {
+            if (!projectName || !phaseName || !itemName) {
+              status = 'error';
+              errorMessage = 'Yeni kayıt için Proje, Faz ve Kalem adı gerekli';
+            } else {
+              const project = projects.find(p => p.name.toLowerCase() === projectName.toLowerCase());
+              if (!project) {
+                status = 'error';
+                errorMessage = `Proje bulunamadı: ${projectName}`;
+              } else {
+                const phase = (project.phases || []).find((ph: any) => ph.name.toLowerCase() === phaseName.toLowerCase());
+                if (!phase) {
+                  status = 'error';
+                  errorMessage = `Faz bulunamadı: ${phaseName}`;
+                } else {
+                  status = 'create';
+                  matchedPhaseId = phase.id;
+                }
+              }
+            }
+          }
+          
+          dataRows.push({
+            rowNumber: i,
+            itemId,
+            projectName,
+            phaseName,
+            itemName,
+            itemType,
+            monthlyValues,
+            status,
+            matchedPhaseId,
+            errorMessage
+          });
+        }
+        
+        setImportData(dataRows);
+        setIsImportDialogOpen(true);
+      } catch (err) {
+        toast.error("CSV dosyası okunamadı");
+      }
+    };
+    reader.readAsText(file, "UTF-8");
+    e.target.value = "";
+  };
+
+  const handleImportBudgetItems = async () => {
+    if (importData.length === 0) return;
+    
+    const validRows = importData.filter(r => r.status !== 'error');
+    if (validRows.length === 0) {
+      toast.error("İçe aktarılacak geçerli satır yok");
+      return;
+    }
+    
+    setImporting(true);
+    let updateCount = 0;
+    let createCount = 0;
+    let errorCount = 0;
+    
+    for (const row of validRows) {
+      try {
+        const monthlyValuesObj: BudgetMonthValues = {};
+        row.monthlyValues.forEach((val, idx) => {
+          monthlyValuesObj[idx] = val;
+        });
+        
+        if (row.status === 'update' && row.itemId) {
+          await updateBudgetItemMutation.mutateAsync({ 
+            id: row.itemId, 
+            data: { monthlyValues: monthlyValuesObj } 
+          });
+          updateCount++;
+        } else if (row.status === 'create' && row.matchedPhaseId) {
+          await createBudgetItemMutation.mutateAsync({
+            name: row.itemName,
+            type: row.itemType,
+            projectPhaseId: row.matchedPhaseId,
+            year: currentYear
+          });
+          const newItemId = projects
+            .flatMap(p => (p.phases || []))
+            .find((ph: any) => ph.id === row.matchedPhaseId)
+            ?.[row.itemType === 'cost' ? 'costItems' : 'revenueItems']
+            ?.slice(-1)[0]?.id;
+          
+          if (newItemId) {
+            await updateBudgetItemMutation.mutateAsync({
+              id: newItemId,
+              data: { monthlyValues: monthlyValuesObj }
+            });
+          }
+          createCount++;
+        }
+      } catch (err: any) {
+        errorCount++;
+        console.error(`Row ${row.rowNumber} error:`, err);
+      }
+    }
+    
+    setImporting(false);
+    setIsImportDialogOpen(false);
+    setImportData([]);
+    
+    if (errorCount === 0) {
+      toast.success("İçe aktarma tamamlandı", { 
+        description: `${updateCount} güncellendi, ${createCount} oluşturuldu` 
+      });
+    } else {
+      toast.warning("İçe aktarma tamamlandı", { 
+        description: `${updateCount} güncellendi, ${createCount} oluşturuldu, ${errorCount} hata` 
+      });
+    }
+  };
+
   const years = [2024, 2025, 2026];
 
   const visibleProjects = currentUser?.role === 'admin' 
@@ -277,9 +498,19 @@ export default function ProjectBudget() {
           <Button variant="outline" size="icon">
             <Filter className="h-4 w-4" />
           </Button>
-          <Button variant="outline" size="icon">
+          <Button variant="outline" size="icon" onClick={handleExportBudgetItems} data-testid="button-export-csv">
             <Download className="h-4 w-4" />
           </Button>
+          <Button variant="outline" size="icon" onClick={() => fileInputRef.current?.click()} data-testid="button-import-csv">
+            <Upload className="h-4 w-4" />
+          </Button>
+          <input
+            type="file"
+            ref={fileInputRef}
+            onChange={handleFileSelect}
+            accept=".csv"
+            className="hidden"
+          />
           {currentUser?.role === 'admin' && (
             <Button 
               className="bg-primary hover:bg-primary/90" 
@@ -679,6 +910,95 @@ export default function ProjectBudget() {
         placeholder="Faz adı"
         defaultValue={editingPhase?.name}
       />
+
+      <Dialog open={isImportDialogOpen} onOpenChange={setIsImportDialogOpen}>
+        <DialogContent className="max-w-4xl max-h-[80vh] overflow-hidden flex flex-col">
+          <DialogHeader>
+            <DialogTitle>Bütçe Kalemleri İçe Aktar</DialogTitle>
+            <DialogDescription>
+              Aşağıdaki önizlemeyi kontrol edin ve içe aktarın.
+            </DialogDescription>
+          </DialogHeader>
+          <div className="flex-1 overflow-auto">
+            <Table>
+              <TableHeader>
+                <TableRow>
+                  <TableHead className="w-[50px]">#</TableHead>
+                  <TableHead>Durum</TableHead>
+                  <TableHead>Proje</TableHead>
+                  <TableHead>Faz</TableHead>
+                  <TableHead>Kalem</TableHead>
+                  <TableHead>Tür</TableHead>
+                  <TableHead className="text-right">Toplam</TableHead>
+                </TableRow>
+              </TableHeader>
+              <TableBody>
+                {importData.map((row, idx) => (
+                  <TableRow 
+                    key={idx}
+                    className={
+                      row.status === 'error' ? 'bg-red-50 dark:bg-red-950/20' :
+                      row.status === 'update' ? 'bg-blue-50 dark:bg-blue-950/20' :
+                      row.status === 'create' ? 'bg-green-50 dark:bg-green-950/20' : ''
+                    }
+                  >
+                    <TableCell className="font-mono text-xs">{row.rowNumber}</TableCell>
+                    <TableCell>
+                      {row.status === 'error' && (
+                        <span className="text-xs text-red-600 font-medium" title={row.errorMessage}>
+                          ⚠ Hata
+                        </span>
+                      )}
+                      {row.status === 'update' && (
+                        <span className="text-xs text-blue-600 font-medium">🔄 Güncelle</span>
+                      )}
+                      {row.status === 'create' && (
+                        <span className="text-xs text-green-600 font-medium">➕ Oluştur</span>
+                      )}
+                    </TableCell>
+                    <TableCell className="text-sm">{row.projectName}</TableCell>
+                    <TableCell className="text-sm">{row.phaseName}</TableCell>
+                    <TableCell className="text-sm font-medium">{row.itemName}</TableCell>
+                    <TableCell className="text-xs">
+                      {row.itemType === 'cost' ? 'Gider' : 'Gelir'}
+                    </TableCell>
+                    <TableCell className="text-right font-mono text-sm">
+                      €{formatMoney(row.monthlyValues.reduce((a, b) => a + b, 0))}
+                    </TableCell>
+                  </TableRow>
+                ))}
+              </TableBody>
+            </Table>
+            {importData.some(r => r.status === 'error') && (
+              <div className="mt-4 p-3 bg-red-50 dark:bg-red-950/30 border border-red-200 dark:border-red-800 rounded-md">
+                <p className="text-sm text-red-700 dark:text-red-400 font-medium">Hatalı Satırlar:</p>
+                <ul className="mt-1 text-xs text-red-600 dark:text-red-400 list-disc list-inside">
+                  {importData.filter(r => r.status === 'error').map((r, idx) => (
+                    <li key={idx}>Satır {r.rowNumber}: {r.errorMessage}</li>
+                  ))}
+                </ul>
+              </div>
+            )}
+          </div>
+          <DialogFooter className="mt-4">
+            <div className="flex items-center gap-2 text-xs text-muted-foreground mr-auto">
+              <span className="inline-block w-3 h-3 bg-green-100 border border-green-300 rounded"></span> Yeni
+              <span className="inline-block w-3 h-3 bg-blue-100 border border-blue-300 rounded ml-2"></span> Güncelleme
+              <span className="inline-block w-3 h-3 bg-red-100 border border-red-300 rounded ml-2"></span> Hata
+            </div>
+            <Button variant="outline" onClick={() => setIsImportDialogOpen(false)}>
+              İptal
+            </Button>
+            <Button 
+              onClick={handleImportBudgetItems} 
+              disabled={importing || importData.every(r => r.status === 'error')}
+            >
+              {importing && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
+              {importing ? 'İçe Aktarılıyor...' : 'İçe Aktar'}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }

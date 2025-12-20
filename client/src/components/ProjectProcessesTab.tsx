@@ -1,4 +1,4 @@
-import { useState, useMemo, Fragment, useEffect } from "react";
+import { useState, useMemo, Fragment, useEffect, useRef } from "react";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from "@/components/ui/dialog";
@@ -16,8 +16,9 @@ import { toast } from "sonner";
 import { 
   Plus, ChevronDown, ChevronRight, Trash2, Edit2, 
   RotateCcw, History, Save, X, MoreHorizontal, Folder, FileText, CheckCircle2,
-  Play, Flag
+  Play, Flag, Download, Upload
 } from "lucide-react";
+import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { cn } from "@/lib/utils";
 
 interface ProcessesTabProps {
@@ -169,6 +170,25 @@ export default function ProjectProcessesTab({ projectId, projectName }: Processe
   const [historyDialogProcess, setHistoryDialogProcess] = useState<ProjectProcess | null>(null);
   const [newProcess, setNewProcess] = useState({ name: "", wbs: "", startDate: new Date(), endDate: addDays(new Date(), 30) });
   const [revisionReason, setRevisionReason] = useState("");
+
+  type ImportRow = {
+    rowNumber: number;
+    processId: string;
+    wbs: string;
+    name: string;
+    startDate: string;
+    endDate: string;
+    duration: number;
+    dependencyWbs: string;
+    description: string;
+    status: 'create' | 'update' | 'error';
+    errorMessage?: string;
+  };
+
+  const [isImportDialogOpen, setIsImportDialogOpen] = useState(false);
+  const [importData, setImportData] = useState<ImportRow[]>([]);
+  const [importing, setImporting] = useState(false);
+  const fileInputRef = useRef<HTMLInputElement>(null);
 
   const tree = useMemo(() => buildTree(processes), [processes]);
   const flatProcesses = useMemo(() => flattenTree(tree), [tree]);
@@ -365,6 +385,202 @@ export default function ProjectProcessesTab({ projectId, projectName }: Processe
     }
   };
 
+  const handleExportProcesses = () => {
+    if (processes.length === 0) {
+      toast.error("Dışa aktarılacak süreç bulunmuyor");
+      return;
+    }
+
+    const headers = ["ProcessId", "WBS", "İsim", "BaşlangıçTarihi", "BitişTarihi", "Süre", "BağımlılıkWBS", "Açıklama"];
+    const rows = processes.map(p => {
+      const duration = differenceInDays(parseISO(p.endDate), parseISO(p.startDate)) + 1;
+      const processAny = p as any;
+      const dependencyWbs = processAny.dependencyId 
+        ? processes.find(dep => dep.id === processAny.dependencyId)?.wbs || ""
+        : "";
+      return [
+        p.id,
+        p.wbs,
+        p.name,
+        format(parseISO(p.startDate), "yyyy-MM-dd"),
+        format(parseISO(p.endDate), "yyyy-MM-dd"),
+        String(duration),
+        dependencyWbs,
+        processAny.description || ""
+      ].map(v => `"${String(v).replace(/"/g, '""')}"`).join(",");
+    });
+
+    const csvContent = [headers.join(","), ...rows].join("\n");
+    const blob = new Blob(["\uFEFF" + csvContent], { type: "text/csv;charset=utf-8;" });
+    const url = URL.createObjectURL(blob);
+    const link = document.createElement("a");
+    link.href = url;
+    link.download = `${projectName}_surecleri.csv`;
+    link.click();
+    URL.revokeObjectURL(url);
+    toast.success("CSV dosyası indirildi");
+  };
+
+  const handleFileSelect = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+
+    const reader = new FileReader();
+    reader.onload = (event) => {
+      const text = event.target?.result as string;
+      const lines = text.split("\n").filter(line => line.trim());
+
+      if (lines.length < 2) {
+        toast.error("CSV dosyası en az bir veri satırı içermeli");
+        return;
+      }
+
+      const headers = lines[0].split(",").map(h => h.trim().replace(/^"|"$/g, ''));
+      const dataRows: ImportRow[] = [];
+
+      for (let i = 1; i < lines.length; i++) {
+        const values: string[] = [];
+        let current = "";
+        let inQuotes = false;
+        
+        for (const char of lines[i]) {
+          if (char === '"') {
+            inQuotes = !inQuotes;
+          } else if (char === ',' && !inQuotes) {
+            values.push(current.trim());
+            current = "";
+          } else {
+            current += char;
+          }
+        }
+        values.push(current.trim());
+
+        const row: Record<string, string> = {};
+        headers.forEach((header, idx) => {
+          row[header] = values[idx]?.replace(/^"|"$/g, '') || "";
+        });
+
+        const processId = row["ProcessId"] || "";
+        const wbs = row["WBS"] || "";
+        const name = row["İsim"] || "";
+        const startDate = row["BaşlangıçTarihi"] || "";
+        const endDate = row["BitişTarihi"] || "";
+        const dependencyWbs = row["BağımlılıkWBS"] || "";
+        const description = row["Açıklama"] || "";
+
+        if (!wbs && !name) continue;
+
+        let status: 'create' | 'update' | 'error' = 'create';
+        let errorMessage = "";
+
+        if (processId) {
+          const existingProcess = processes.find(p => p.id === processId);
+          if (existingProcess) {
+            status = 'update';
+          } else {
+            status = 'error';
+            errorMessage = "ProcessId bulunamadı";
+          }
+        }
+
+        if (!wbs) {
+          status = 'error';
+          errorMessage = "WBS gerekli";
+        } else if (!name) {
+          status = 'error';
+          errorMessage = "İsim gerekli";
+        } else if (!startDate || !endDate) {
+          status = 'error';
+          errorMessage = "Tarihler gerekli";
+        } else {
+          try {
+            parseISO(startDate);
+            parseISO(endDate);
+          } catch {
+            status = 'error';
+            errorMessage = "Geçersiz tarih formatı";
+          }
+        }
+
+        const duration = startDate && endDate 
+          ? differenceInDays(parseISO(endDate), parseISO(startDate)) + 1 
+          : 0;
+
+        dataRows.push({
+          rowNumber: i,
+          processId,
+          wbs,
+          name,
+          startDate,
+          endDate,
+          duration,
+          dependencyWbs,
+          description,
+          status,
+          errorMessage
+        });
+      }
+
+      setImportData(dataRows);
+      setIsImportDialogOpen(true);
+    };
+    reader.readAsText(file, "UTF-8");
+    if (fileInputRef.current) fileInputRef.current.value = "";
+  };
+
+  const handleImportProcesses = async () => {
+    const validRows = importData.filter(r => r.status !== 'error');
+    if (validRows.length === 0) {
+      toast.error("İçe aktarılacak geçerli satır yok");
+      return;
+    }
+
+    setImporting(true);
+    let successCount = 0;
+    let errorCount = 0;
+
+    for (const row of validRows) {
+      try {
+        if (row.status === 'update' && row.processId) {
+          await updateMutation.mutateAsync({
+            id: row.processId,
+            projectId,
+            data: {
+              wbs: row.wbs,
+              name: row.name,
+              startDate: row.startDate,
+              endDate: row.endDate
+            }
+          });
+          successCount++;
+        } else if (row.status === 'create') {
+          await createMutation.mutateAsync({
+            projectId,
+            wbs: row.wbs,
+            name: row.name,
+            startDate: row.startDate,
+            endDate: row.endDate
+          });
+          successCount++;
+        }
+      } catch (error: any) {
+        errorCount++;
+        console.error(`Row ${row.rowNumber} error:`, error.message);
+      }
+    }
+
+    setImporting(false);
+    setIsImportDialogOpen(false);
+    setImportData([]);
+
+    if (successCount > 0) {
+      toast.success(`${successCount} süreç başarıyla içe aktarıldı`);
+    }
+    if (errorCount > 0) {
+      toast.error(`${errorCount} süreç içe aktarılamadı`);
+    }
+  };
+
   const getGanttBarStyle = (startDateStr: string, endDateStr: string) => {
     const start = parseISO(startDateStr);
     const end = parseISO(endDateStr);
@@ -390,6 +606,36 @@ export default function ProjectProcessesTab({ projectId, projectName }: Processe
 
   return (
     <div className="space-y-4 pl-4 border-l-2 border-border/50 ml-2">
+      <input
+        ref={fileInputRef}
+        type="file"
+        accept=".csv"
+        onChange={handleFileSelect}
+        className="hidden"
+        data-testid="input-import-csv"
+      />
+
+      <div className="flex items-center justify-end gap-2 mb-2">
+        <Button
+          variant="outline"
+          size="sm"
+          onClick={handleExportProcesses}
+          data-testid="button-export-processes"
+        >
+          <Download className="h-4 w-4 mr-2" />
+          Dışa Aktar
+        </Button>
+        <Button
+          variant="outline"
+          size="sm"
+          onClick={() => fileInputRef.current?.click()}
+          data-testid="button-import-processes"
+        >
+          <Upload className="h-4 w-4 mr-2" />
+          İçe Aktar
+        </Button>
+      </div>
+
       <div className="rounded-md border border-border overflow-hidden bg-card">
         <div className="p-0">
           {flatProcesses.length === 0 ? (
@@ -823,6 +1069,91 @@ export default function ProjectProcessesTab({ projectId, projectName }: Processe
               <div className="text-center text-muted-foreground py-8">Revizyon geçmişi bulunmuyor</div>
             )}
           </div>
+        </DialogContent>
+      </Dialog>
+
+      <Dialog open={isImportDialogOpen} onOpenChange={setIsImportDialogOpen}>
+        <DialogContent className="max-w-4xl max-h-[80vh]">
+          <DialogHeader>
+            <DialogTitle>Süreç İçe Aktar</DialogTitle>
+            <DialogDescription>
+              CSV dosyasından süreç verilerini içe aktarın. Önizlemeyi kontrol edin ve onaylayın.
+            </DialogDescription>
+          </DialogHeader>
+          <div className="py-4 overflow-auto max-h-[50vh]">
+            <div className="flex items-center gap-4 mb-4 text-sm">
+              <div className="flex items-center gap-2">
+                <div className="w-4 h-4 rounded bg-green-100 border border-green-300" />
+                <span>Yeni Oluştur ({importData.filter(r => r.status === 'create').length})</span>
+              </div>
+              <div className="flex items-center gap-2">
+                <div className="w-4 h-4 rounded bg-blue-100 border border-blue-300" />
+                <span>Güncelle ({importData.filter(r => r.status === 'update').length})</span>
+              </div>
+              <div className="flex items-center gap-2">
+                <div className="w-4 h-4 rounded bg-red-100 border border-red-300" />
+                <span>Hata ({importData.filter(r => r.status === 'error').length})</span>
+              </div>
+            </div>
+            <Table>
+              <TableHeader>
+                <TableRow>
+                  <TableHead className="w-[60px]">Satır</TableHead>
+                  <TableHead className="w-[80px]">Durum</TableHead>
+                  <TableHead className="w-[60px]">WBS</TableHead>
+                  <TableHead>İsim</TableHead>
+                  <TableHead className="w-[100px]">Başlangıç</TableHead>
+                  <TableHead className="w-[100px]">Bitiş</TableHead>
+                  <TableHead className="w-[60px]">Süre</TableHead>
+                  <TableHead>Hata</TableHead>
+                </TableRow>
+              </TableHeader>
+              <TableBody>
+                {importData.map((row, idx) => (
+                  <TableRow
+                    key={idx}
+                    className={cn(
+                      row.status === 'create' && "bg-green-50",
+                      row.status === 'update' && "bg-blue-50",
+                      row.status === 'error' && "bg-red-50"
+                    )}
+                  >
+                    <TableCell className="font-mono text-xs">{row.rowNumber}</TableCell>
+                    <TableCell>
+                      <Badge
+                        variant="outline"
+                        className={cn(
+                          row.status === 'create' && "border-green-500 text-green-700",
+                          row.status === 'update' && "border-blue-500 text-blue-700",
+                          row.status === 'error' && "border-red-500 text-red-700"
+                        )}
+                      >
+                        {row.status === 'create' ? 'Yeni' : row.status === 'update' ? 'Güncelle' : 'Hata'}
+                      </Badge>
+                    </TableCell>
+                    <TableCell className="font-mono text-xs">{row.wbs}</TableCell>
+                    <TableCell className="truncate max-w-[200px]" title={row.name}>{row.name}</TableCell>
+                    <TableCell className="text-xs">{row.startDate}</TableCell>
+                    <TableCell className="text-xs">{row.endDate}</TableCell>
+                    <TableCell className="text-center">{row.duration > 0 ? row.duration : '-'}</TableCell>
+                    <TableCell className="text-red-600 text-xs">{row.errorMessage}</TableCell>
+                  </TableRow>
+                ))}
+              </TableBody>
+            </Table>
+          </div>
+          <DialogFooter>
+            <Button variant="outline" onClick={() => { setIsImportDialogOpen(false); setImportData([]); }}>
+              İptal
+            </Button>
+            <Button 
+              onClick={handleImportProcesses} 
+              disabled={importing || importData.filter(r => r.status !== 'error').length === 0}
+              data-testid="button-confirm-import"
+            >
+              {importing ? "İçe aktarılıyor..." : `${importData.filter(r => r.status !== 'error').length} Süreç İçe Aktar`}
+            </Button>
+          </DialogFooter>
         </DialogContent>
       </Dialog>
     </div>

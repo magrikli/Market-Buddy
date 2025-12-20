@@ -7,8 +7,10 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from "@/components/ui/dropdown-menu";
-import { PlusCircle, Download, Filter, Loader2, Plus, MoreHorizontal, Pencil, Trash2, FolderOpen, Building2 } from "lucide-react";
-import { useState } from "react";
+import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from "@/components/ui/dialog";
+import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
+import { PlusCircle, Download, Filter, Loader2, Plus, MoreHorizontal, Pencil, Trash2, FolderOpen, Building2, Upload } from "lucide-react";
+import { useState, useRef } from "react";
 import { AddEntityDialog, AddBudgetItemDialog } from "@/components/budget/AddEntityDialogs";
 import { toast } from "sonner";
 import type { BudgetMonthValues } from "@/lib/store";
@@ -48,6 +50,23 @@ export default function DepartmentBudget() {
   const [editingDept, setEditingDept] = useState<{id: string; name: string} | null>(null);
   const [editingGroup, setEditingGroup] = useState<{id: string; name: string} | null>(null);
   const [editingDeptGroup, setEditingDeptGroup] = useState<{id: string; name: string} | null>(null);
+
+  // Import/Export states
+  type ImportRow = {
+    rowNumber: number;
+    itemId: string;
+    departmentName: string;
+    groupName: string;
+    itemName: string;
+    monthlyValues: number[];
+    status: 'pending' | 'update' | 'create' | 'error';
+    matchedCostGroupId?: string;
+    errorMessage?: string;
+  };
+  const [isImportDialogOpen, setIsImportDialogOpen] = useState(false);
+  const [importData, setImportData] = useState<ImportRow[]>([]);
+  const [importing, setImporting] = useState(false);
+  const fileInputRef = useRef<HTMLInputElement>(null);
 
   const formatMoney = (amount: number) => {
     return new Intl.NumberFormat('tr-TR', { minimumFractionDigits: 0 }).format(amount);
@@ -254,6 +273,199 @@ export default function DepartmentBudget() {
     }
   };
 
+  const handleExportBudgetItems = () => {
+    const lines: string[] = [];
+    lines.push("ItemId,Departman,Grup,Kalem,Ocak,Şubat,Mart,Nisan,Mayıs,Haziran,Temmuz,Ağustos,Eylül,Ekim,Kasım,Aralık");
+    
+    visibleDepartments.forEach(dept => {
+      dept.costGroups.forEach((costGroup: any) => {
+        costGroup.items.forEach((item: any) => {
+          const monthValues = months.map((_, idx) => item.values[idx] || 0);
+          const escapedName = item.name.includes(',') ? `"${item.name}"` : item.name;
+          const escapedDept = dept.name.includes(',') ? `"${dept.name}"` : dept.name;
+          const escapedGroup = costGroup.name.includes(',') ? `"${costGroup.name}"` : costGroup.name;
+          lines.push(`${item.id},${escapedDept},${escapedGroup},${escapedName},${monthValues.join(',')}`);
+        });
+      });
+    });
+    
+    const csvContent = lines.join("\n");
+    const blob = new Blob(["\uFEFF" + csvContent], { type: "text/csv;charset=utf-8;" });
+    const url = URL.createObjectURL(blob);
+    const link = document.createElement("a");
+    link.href = url;
+    link.download = `departman_butce_${currentYear}.csv`;
+    link.click();
+    URL.revokeObjectURL(url);
+    toast.success("CSV dosyası indirildi");
+  };
+
+  const handleFileSelect = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    
+    const reader = new FileReader();
+    reader.onload = (event) => {
+      const text = event.target?.result as string;
+      const lines = text.split("\n").filter(line => line.trim());
+      
+      if (lines.length < 2) {
+        toast.error("CSV dosyası en az bir veri satırı içermeli");
+        return;
+      }
+      
+      const headers = lines[0].split(",").map(h => h.trim());
+      const dataRows: ImportRow[] = [];
+      
+      for (let i = 1; i < lines.length; i++) {
+        const values = parseCSVLine(lines[i]);
+        if (values.length < 16) continue;
+        
+        const itemId = values[0] || "";
+        const deptName = values[1] || "";
+        const groupName = values[2] || "";
+        const itemName = values[3] || "";
+        const monthlyValues = values.slice(4, 16).map(v => parseFloat(v) || 0);
+        
+        let status: ImportRow['status'] = 'pending';
+        let matchedCostGroupId: string | undefined;
+        let errorMessage: string | undefined;
+        
+        if (itemId) {
+          let found = false;
+          for (const dept of departments) {
+            for (const cg of dept.costGroups) {
+              const existingItem = cg.items.find((it: any) => it.id === itemId);
+              if (existingItem) {
+                found = true;
+                matchedCostGroupId = cg.id;
+                status = 'update';
+                break;
+              }
+            }
+            if (found) break;
+          }
+          if (!found) {
+            status = 'error';
+            errorMessage = 'ItemId bulunamadı';
+          }
+        } else {
+          if (!deptName || !groupName || !itemName) {
+            status = 'error';
+            errorMessage = 'Yeni kalem için Departman, Grup ve Kalem adı gerekli';
+          } else {
+            const dept = departments.find(d => d.name.toLowerCase() === deptName.toLowerCase());
+            if (!dept) {
+              status = 'error';
+              errorMessage = `Departman bulunamadı: ${deptName}`;
+            } else {
+              const cg = dept.costGroups.find((g: any) => g.name.toLowerCase() === groupName.toLowerCase());
+              if (!cg) {
+                status = 'error';
+                errorMessage = `Grup bulunamadı: ${groupName}`;
+              } else {
+                matchedCostGroupId = cg.id;
+                status = 'create';
+              }
+            }
+          }
+        }
+        
+        dataRows.push({
+          rowNumber: i,
+          itemId,
+          departmentName: deptName,
+          groupName,
+          itemName,
+          monthlyValues,
+          status,
+          matchedCostGroupId,
+          errorMessage
+        });
+      }
+      
+      setImportData(dataRows);
+      setIsImportDialogOpen(true);
+    };
+    reader.readAsText(file, 'UTF-8');
+    if (fileInputRef.current) fileInputRef.current.value = '';
+  };
+
+  const parseCSVLine = (line: string): string[] => {
+    const result: string[] = [];
+    let current = '';
+    let inQuotes = false;
+    
+    for (let i = 0; i < line.length; i++) {
+      const char = line[i];
+      if (char === '"') {
+        inQuotes = !inQuotes;
+      } else if (char === ',' && !inQuotes) {
+        result.push(current.trim());
+        current = '';
+      } else {
+        current += char;
+      }
+    }
+    result.push(current.trim());
+    return result;
+  };
+
+  const handleImportBudgetItems = async () => {
+    setImporting(true);
+    let successCount = 0;
+    let errorCount = 0;
+    
+    try {
+      for (const row of importData) {
+        if (row.status === 'error') {
+          errorCount++;
+          continue;
+        }
+        
+        try {
+          if (row.status === 'update' && row.itemId) {
+            const monthlyValuesObj: BudgetMonthValues = {};
+            row.monthlyValues.forEach((val, idx) => {
+              monthlyValuesObj[idx] = val;
+            });
+            await updateBudgetItemMutation.mutateAsync({ 
+              id: row.itemId, 
+              data: { monthlyValues: monthlyValuesObj } 
+            });
+            successCount++;
+          } else if (row.status === 'create' && row.matchedCostGroupId) {
+            const monthlyValuesObj: BudgetMonthValues = {};
+            row.monthlyValues.forEach((val, idx) => {
+              monthlyValuesObj[idx] = val;
+            });
+            await createBudgetItemMutation.mutateAsync({
+              name: row.itemName,
+              type: 'cost',
+              costGroupId: row.matchedCostGroupId,
+              monthlyValues: monthlyValuesObj,
+              year: currentYear
+            });
+            successCount++;
+          }
+        } catch (err: any) {
+          errorCount++;
+          console.error(`Row ${row.rowNumber} error:`, err);
+        }
+      }
+      
+      toast.success(`İçe aktarma tamamlandı`, { 
+        description: `${successCount} başarılı, ${errorCount} hatalı` 
+      });
+      setIsImportDialogOpen(false);
+      setImportData([]);
+    } catch (error: any) {
+      toast.error("İçe aktarma hatası", { description: error.message });
+    } finally {
+      setImporting(false);
+    }
+  };
+
   const years = [2024, 2025, 2026];
 
   // Filtering based on user role
@@ -297,9 +509,19 @@ export default function DepartmentBudget() {
           <Button variant="outline" size="icon">
             <Filter className="h-4 w-4" />
           </Button>
-          <Button variant="outline" size="icon">
+          <Button variant="outline" size="icon" onClick={handleExportBudgetItems} data-testid="button-export-csv">
             <Download className="h-4 w-4" />
           </Button>
+          <Button variant="outline" size="icon" onClick={() => fileInputRef.current?.click()} data-testid="button-import-csv">
+            <Upload className="h-4 w-4" />
+          </Button>
+          <input
+            type="file"
+            ref={fileInputRef}
+            onChange={handleFileSelect}
+            accept=".csv"
+            className="hidden"
+          />
           {currentUser?.role === 'admin' && (
             <DropdownMenu>
               <DropdownMenuTrigger asChild>
@@ -391,6 +613,82 @@ export default function DepartmentBudget() {
         placeholder="Grup adı"
         defaultValue={editingDeptGroup?.name}
       />
+
+      <Dialog open={isImportDialogOpen} onOpenChange={setIsImportDialogOpen}>
+        <DialogContent className="max-w-4xl max-h-[80vh] overflow-hidden flex flex-col">
+          <DialogHeader>
+            <DialogTitle>Bütçe Kalemlerini İçe Aktar</DialogTitle>
+            <DialogDescription>
+              CSV dosyasından bütçe kalemleri içe aktarılacak. Önizlemeyi kontrol edin.
+            </DialogDescription>
+          </DialogHeader>
+          <div className="flex-1 overflow-auto">
+            <Table>
+              <TableHeader>
+                <TableRow>
+                  <TableHead className="w-[60px]">Satır</TableHead>
+                  <TableHead className="w-[80px]">Durum</TableHead>
+                  <TableHead>Departman</TableHead>
+                  <TableHead>Grup</TableHead>
+                  <TableHead>Kalem</TableHead>
+                  <TableHead className="text-right">Toplam</TableHead>
+                </TableRow>
+              </TableHeader>
+              <TableBody>
+                {importData.map((row, idx) => (
+                  <TableRow 
+                    key={idx} 
+                    className={
+                      row.status === 'error' ? 'bg-destructive/10' : 
+                      row.status === 'update' ? 'bg-blue-500/10' : 
+                      row.status === 'create' ? 'bg-green-500/10' : ''
+                    }
+                  >
+                    <TableCell className="font-mono text-xs">{row.rowNumber}</TableCell>
+                    <TableCell>
+                      {row.status === 'error' && (
+                        <span className="text-destructive text-xs font-medium" title={row.errorMessage}>Hata</span>
+                      )}
+                      {row.status === 'update' && (
+                        <span className="text-blue-600 text-xs font-medium">Güncelle</span>
+                      )}
+                      {row.status === 'create' && (
+                        <span className="text-green-600 text-xs font-medium">Yeni</span>
+                      )}
+                    </TableCell>
+                    <TableCell className="text-xs">{row.departmentName}</TableCell>
+                    <TableCell className="text-xs">{row.groupName}</TableCell>
+                    <TableCell className="text-xs">{row.itemName}</TableCell>
+                    <TableCell className="text-right font-mono text-xs">
+                      {formatMoney(row.monthlyValues.reduce((a, b) => a + b, 0))}
+                    </TableCell>
+                  </TableRow>
+                ))}
+              </TableBody>
+            </Table>
+          </div>
+          <div className="flex items-center justify-between pt-4 border-t">
+            <div className="text-sm text-muted-foreground">
+              <span className="inline-block w-3 h-3 bg-green-500/30 rounded mr-1"></span> Yeni: {importData.filter(r => r.status === 'create').length}
+              <span className="inline-block w-3 h-3 bg-blue-500/30 rounded mx-1 ml-4"></span> Güncelle: {importData.filter(r => r.status === 'update').length}
+              <span className="inline-block w-3 h-3 bg-destructive/30 rounded mx-1 ml-4"></span> Hata: {importData.filter(r => r.status === 'error').length}
+            </div>
+            <DialogFooter className="gap-2">
+              <Button variant="outline" onClick={() => { setIsImportDialogOpen(false); setImportData([]); }}>
+                İptal
+              </Button>
+              <Button 
+                onClick={handleImportBudgetItems} 
+                disabled={importing || importData.filter(r => r.status !== 'error').length === 0}
+                data-testid="button-confirm-import"
+              >
+                {importing && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
+                İçe Aktar ({importData.filter(r => r.status !== 'error').length})
+              </Button>
+            </DialogFooter>
+          </div>
+        </DialogContent>
+      </Dialog>
 
       {/* Summary Cards */}
       <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
