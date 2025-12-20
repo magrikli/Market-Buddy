@@ -393,26 +393,6 @@ export default function ProjectProcessesTab({ projectId, projectName }: Processe
 
   return (
     <div className="space-y-6">
-      <div className="flex items-center justify-between">
-        <div>
-          <h2 className="text-xl font-semibold">Proje Süreçleri</h2>
-          <p className="text-sm text-muted-foreground">{projectName} projesinin süreç planlaması</p>
-        </div>
-        {isAdmin && (
-          <Button 
-            onClick={() => {
-              const nextWbs = getNextWbs();
-              setNewProcess({ name: "", wbs: nextWbs, startDate: new Date(), endDate: addDays(new Date(), 30) });
-              setIsAddDialogOpen(true);
-            }} 
-            data-testid="button-add-process"
-          >
-            <Plus className="mr-2 h-4 w-4" />
-            Yeni Süreç
-          </Button>
-        )}
-      </div>
-
       <Card>
         <CardContent className="p-0">
           {flatProcesses.length === 0 ? (
