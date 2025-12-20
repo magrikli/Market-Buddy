@@ -149,6 +149,10 @@ export const projectProcesses = pgTable("project_processes", {
   startDate: timestamp("start_date").notNull(),
   endDate: timestamp("end_date").notNull(),
   
+  // Actual dates (set when process is started/finished)
+  actualStartDate: timestamp("actual_start_date"),
+  actualEndDate: timestamp("actual_end_date"),
+  
   status: varchar("status", { length: 50 }).notNull().default('draft'), // 'draft', 'pending', 'approved', 'rejected'
   currentRevision: integer("current_revision").notNull().default(0),
   

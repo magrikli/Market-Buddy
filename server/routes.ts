@@ -786,7 +786,7 @@ export async function registerRoutes(server: Server, app: Express): Promise<Serv
   app.patch("/api/project-processes/:id", async (req: Request, res: Response) => {
     try {
       const { id } = req.params;
-      const { name, startDate, endDate, wbs, status } = req.body;
+      const { name, startDate, endDate, wbs, status, actualStartDate, actualEndDate } = req.body;
       
       // Get current process to check if WBS is changing
       const currentProcess = await storage.getProcess(id);
@@ -800,6 +800,8 @@ export async function registerRoutes(server: Server, app: Express): Promise<Serv
       if (endDate !== undefined) updates.endDate = new Date(endDate);
       if (wbs !== undefined) updates.wbs = wbs;
       if (status !== undefined) updates.status = status;
+      if (actualStartDate !== undefined) updates.actualStartDate = actualStartDate ? new Date(actualStartDate) : null;
+      if (actualEndDate !== undefined) updates.actualEndDate = actualEndDate ? new Date(actualEndDate) : null;
       
       // If WBS is changing, update children too
       let updated;
@@ -831,6 +833,58 @@ export async function registerRoutes(server: Server, app: Express): Promise<Serv
 
       return res.json(approved);
     } catch (error) {
+      return res.status(500).json({ message: "Server error" });
+    }
+  });
+
+  app.post("/api/project-processes/:id/start", async (req: Request, res: Response) => {
+    try {
+      const { id } = req.params;
+      const process = await storage.getProcess(id);
+      
+      if (!process) {
+        return res.status(404).json({ message: "Process not found" });
+      }
+      
+      if (process.actualStartDate) {
+        return res.status(400).json({ message: "Process already started" });
+      }
+
+      const updated = await storage.updateProcess(id, {
+        actualStartDate: new Date(),
+      });
+
+      return res.json(updated);
+    } catch (error) {
+      console.error('Start process error:', error);
+      return res.status(500).json({ message: "Server error" });
+    }
+  });
+
+  app.post("/api/project-processes/:id/finish", async (req: Request, res: Response) => {
+    try {
+      const { id } = req.params;
+      const process = await storage.getProcess(id);
+      
+      if (!process) {
+        return res.status(404).json({ message: "Process not found" });
+      }
+      
+      if (!process.actualStartDate) {
+        return res.status(400).json({ message: "Process must be started first" });
+      }
+      
+      if (process.actualEndDate) {
+        return res.status(400).json({ message: "Process already finished" });
+      }
+
+      const updated = await storage.updateProcess(id, {
+        actualEndDate: new Date(),
+      });
+
+      return res.json(updated);
+    } catch (error) {
+      console.error('Finish process error:', error);
       return res.status(500).json({ message: "Server error" });
     }
   });
