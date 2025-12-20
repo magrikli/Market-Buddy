@@ -38,14 +38,50 @@ export default function Transactions() {
   const [importing, setImporting] = useState(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
 
-  // Export CSV template with reference data
+  // Helper: Get short ID (first 8 chars)
+  const shortId = (id: string) => id?.substring(0, 8) || "";
+  
+  // Build item lookup map for import (short ID -> full ID)
+  const buildItemLookup = () => {
+    const lookup: Record<string, string> = {};
+    departments.forEach(dept => {
+      if (dept.costGroups) {
+        dept.costGroups.forEach((cg: any) => {
+          if (cg.items) {
+            cg.items.forEach((item: any) => {
+              lookup[shortId(item.id)] = item.id;
+            });
+          }
+        });
+      }
+    });
+    projects.forEach(proj => {
+      if (proj.phases) {
+        proj.phases.forEach((phase: any) => {
+          if (phase.costItems) {
+            phase.costItems.forEach((item: any) => {
+              lookup[shortId(item.id)] = item.id;
+            });
+          }
+          if (phase.revenueItems) {
+            phase.revenueItems.forEach((item: any) => {
+              lookup[shortId(item.id)] = item.id;
+            });
+          }
+        });
+      }
+    });
+    return lookup;
+  };
+
+  // Export CSV template with reference data (short IDs)
   const handleExportTemplate = () => {
     const lines: string[] = [];
     
     // Main data headers
-    lines.push("=== VERİ GİRİŞ ŞABLONU ===");
-    lines.push("Tarih;Tür;DepartmanID;ProjeID;KalemID;Tutar;Açıklama");
-    lines.push("2025-12-20;department_expense;;;kalem-id-buraya;1000;Örnek açıklama");
+    lines.push("=== VERİ GİRİŞ ŞABLONU (Kısa ID Kullanın) ===");
+    lines.push("Tarih;Tür;KalemID;Tutar;Açıklama");
+    lines.push("2025-12-20;department_expense;abcd1234;1000;Örnek açıklama");
     lines.push("");
     lines.push("=== TÜR SEÇENEKLERİ ===");
     lines.push("department_expense = Departman Gideri");
@@ -54,14 +90,14 @@ export default function Transactions() {
     lines.push("");
     
     // Department reference list
-    lines.push("=== DEPARTMAN VE KALEM LİSTESİ ===");
-    lines.push("DepartmanAdı;DepartmanID;GrupAdı;KalemAdı;KalemID");
+    lines.push("=== DEPARTMAN KALEMLERİ ===");
+    lines.push("Departman;Grup;Kalem;KısaID");
     departments.forEach(dept => {
       if (dept.costGroups && dept.costGroups.length > 0) {
         dept.costGroups.forEach((cg: any) => {
           if (cg.items && cg.items.length > 0) {
             cg.items.forEach((item: any) => {
-              lines.push(`${dept.name};${dept.id};${cg.name};${item.name};${item.id}`);
+              lines.push(`${dept.name};${cg.name};${item.name};${shortId(item.id)}`);
             });
           }
         });
@@ -70,19 +106,19 @@ export default function Transactions() {
     lines.push("");
     
     // Project reference list
-    lines.push("=== PROJE VE KALEM LİSTESİ ===");
-    lines.push("ProjeAdı;ProjeID;FazAdı;KalemAdı;KalemID;Tür");
+    lines.push("=== PROJE KALEMLERİ ===");
+    lines.push("Proje;Faz;Kalem;KısaID;Tür");
     projects.forEach(proj => {
       if (proj.phases && proj.phases.length > 0) {
         proj.phases.forEach((phase: any) => {
           if (phase.costItems && phase.costItems.length > 0) {
             phase.costItems.forEach((item: any) => {
-              lines.push(`${proj.name};${proj.id};${phase.name};${item.name};${item.id};Gider`);
+              lines.push(`${proj.name};${phase.name};${item.name};${shortId(item.id)};Gider`);
             });
           }
           if (phase.revenueItems && phase.revenueItems.length > 0) {
             phase.revenueItems.forEach((item: any) => {
-              lines.push(`${proj.name};${proj.id};${phase.name};${item.name};${item.id};Gelir`);
+              lines.push(`${proj.name};${phase.name};${item.name};${shortId(item.id)};Gelir`);
             });
           }
         });
@@ -97,7 +133,7 @@ export default function Transactions() {
     link.download = "transaction_template.csv";
     link.click();
     URL.revokeObjectURL(url);
-    toast.success("Şablon indirildi - ID'ler dosya içinde");
+    toast.success("Şablon indirildi - 8 haneli kısa ID kullanın");
   };
 
   // Handle file selection
@@ -140,15 +176,22 @@ export default function Transactions() {
     let successCount = 0;
     let errorCount = 0;
     
+    // Build lookup for short IDs
+    const itemLookup = buildItemLookup();
+    
     for (const row of importData) {
       try {
         const type = row["Tür"] === "project_revenue" ? "revenue" : "expense";
+        const shortItemId = row["KalemID"]?.trim() || "";
+        // Match by short ID (8 chars) or full ID
+        const fullItemId = itemLookup[shortItemId] || shortItemId;
+        
         await createTransactionMutation.mutateAsync({
           type,
           date: row["Tarih"],
           amount: parseFloat(row["Tutar"]) || 0,
           description: row["Açıklama"] || "",
-          budgetItemId: row["KalemID"] || undefined,
+          budgetItemId: fullItemId || undefined,
         });
         successCount++;
       } catch {
