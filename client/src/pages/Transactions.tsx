@@ -81,12 +81,11 @@ export default function Transactions() {
     // Main data headers
     lines.push("=== VERİ GİRİŞ ŞABLONU (Kısa ID Kullanın) ===");
     lines.push("Tarih;Tür;KalemID;Tutar;Açıklama");
-    lines.push("2025-12-20;department_expense;abcd1234;1000;Örnek açıklama");
+    lines.push("2025-12-20;expense;abcd1234;1000;Örnek açıklama");
     lines.push("");
     lines.push("=== TÜR SEÇENEKLERİ ===");
-    lines.push("department_expense = Departman Gideri");
-    lines.push("project_expense = Proje Gideri");
-    lines.push("project_revenue = Proje Geliri");
+    lines.push("expense = Gider");
+    lines.push("revenue = Gelir");
     lines.push("");
     
     // Department reference list
@@ -181,7 +180,7 @@ export default function Transactions() {
     
     for (const row of importData) {
       try {
-        const type = row["Tür"] === "project_revenue" ? "revenue" : "expense";
+        const type = row["Tür"] === "revenue" ? "revenue" : "expense";
         const shortItemId = row["KalemID"]?.trim() || "";
         // Match by short ID (8 chars) or full ID
         const fullItemId = itemLookup[shortItemId] || shortItemId;
@@ -284,12 +283,12 @@ export default function Transactions() {
       await createTransactionMutation.mutateAsync({
         type: values.type.includes('expense') ? 'expense' : 'revenue',
         amount: parseFloat(values.amount),
-        description: values.description,
+        description: values.description || "",
         date: format(values.date, 'yyyy-MM-dd'),
         budgetItemId: values.itemId,
       });
       toast.success("Kayıt başarıyla eklendi", {
-        description: `${values.description} - ${values.amount} €`
+        description: `${values.description || "-"} - ${values.amount} €`
       });
       form.reset();
     } catch (error: any) {
