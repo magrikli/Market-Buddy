@@ -47,6 +47,7 @@ export default function ProjectBudget() {
   const [editPhaseOpen, setEditPhaseOpen] = useState(false);
   const [editingProject, setEditingProject] = useState<{id: string; name: string} | null>(null);
   const [editingPhase, setEditingPhase] = useState<{id: string; name: string} | null>(null);
+  const [activeTabByProject, setActiveTabByProject] = useState<Record<string, string>>({});
 
   const formatMoney = (amount: number) => {
     return new Intl.NumberFormat('tr-TR', { minimumFractionDigits: 0 }).format(amount);
@@ -391,15 +392,48 @@ export default function ProjectBudget() {
                           <p className="text-muted-foreground text-sm">Henüz faz eklenmemiş.</p>
                         </div>
                       ) : (
-                        <Tabs defaultValue="costs" className="w-full">
-                          <TabsList className="grid w-full max-w-md grid-cols-3 mb-6">
-                            <TabsTrigger value="costs">Giderler</TabsTrigger>
-                            <TabsTrigger value="revenue">Gelirler</TabsTrigger>
-                            <TabsTrigger value="processes" className="flex items-center gap-1">
-                              <Clock className="h-3 w-3" />
-                              Süreçler
-                            </TabsTrigger>
-                          </TabsList>
+                        <Tabs 
+                            value={activeTabByProject[project.id] || "costs"} 
+                            onValueChange={(value) => setActiveTabByProject(prev => ({ ...prev, [project.id]: value }))}
+                            className="w-full"
+                          >
+                          <div className="flex items-center justify-between mb-6">
+                            <TabsList className="grid w-full max-w-md grid-cols-3">
+                              <TabsTrigger value="costs">Giderler</TabsTrigger>
+                              <TabsTrigger value="revenue">Gelirler</TabsTrigger>
+                              <TabsTrigger value="processes" className="flex items-center gap-1">
+                                <Clock className="h-3 w-3" />
+                                Süreçler
+                              </TabsTrigger>
+                            </TabsList>
+                            {currentUser?.role === 'admin' && (
+                              <>
+                                {(activeTabByProject[project.id] === "costs" || activeTabByProject[project.id] === "revenue" || !activeTabByProject[project.id]) && (
+                                  <Button 
+                                    size="sm"
+                                    variant="outline"
+                                    onClick={() => { setActiveProjectForPhase(project.id); setIsNewPhaseOpen(true); }}
+                                  >
+                                    <Plus className="mr-1 h-3 w-3" />
+                                    Faz Ekle
+                                  </Button>
+                                )}
+                                {activeTabByProject[project.id] === "processes" && (
+                                  <Button 
+                                    size="sm"
+                                    variant="outline"
+                                    onClick={() => {
+                                      const event = new CustomEvent('openNewProcessDialog', { detail: { projectId: project.id } });
+                                      window.dispatchEvent(event);
+                                    }}
+                                  >
+                                    <Plus className="mr-1 h-3 w-3" />
+                                    Süreç Ekle
+                                  </Button>
+                                )}
+                              </>
+                            )}
+                          </div>
 
                           <TabsContent value="costs" className="space-y-4">
                             <div className="space-y-4 pl-4 border-l-2 border-border/50 ml-2">

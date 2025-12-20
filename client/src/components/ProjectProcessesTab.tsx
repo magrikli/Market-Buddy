@@ -1,4 +1,4 @@
-import { useState, useMemo, Fragment } from "react";
+import { useState, useMemo, Fragment, useEffect } from "react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
@@ -175,6 +175,19 @@ export default function ProjectProcessesTab({ projectId, projectName }: Processe
 
   const tree = useMemo(() => buildTree(processes), [processes]);
   const flatProcesses = useMemo(() => flattenTree(tree), [tree]);
+
+  // Listen for external event to open new process dialog
+  useEffect(() => {
+    const handleOpenDialog = (e: Event) => {
+      const customEvent = e as CustomEvent<{ projectId: string }>;
+      if (customEvent.detail.projectId === projectId) {
+        setNewProcess(prev => ({ ...prev, wbs: getNextWbs() }));
+        setIsAddDialogOpen(true);
+      }
+    };
+    window.addEventListener('openNewProcessDialog', handleOpenDialog);
+    return () => window.removeEventListener('openNewProcessDialog', handleOpenDialog);
+  }, [projectId, processes]);
 
   const ganttRange = useMemo(() => {
     if (processes.length === 0) {
