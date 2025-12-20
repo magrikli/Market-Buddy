@@ -164,7 +164,7 @@ export default function Transactions() {
                         <RadioGroup
                           onValueChange={field.onChange}
                           defaultValue={field.value}
-                          className="flex flex-col space-y-1"
+                          className="flex flex-row flex-wrap gap-4"
                         >
                           <div className="flex items-center space-x-2">
                             <RadioGroupItem value="department_expense" id="department_expense" />
