@@ -20,10 +20,10 @@ const formSchema = z.object({
   type: z.enum(["department_expense", "project_expense", "project_revenue"]),
   date: z.date(),
   amount: z.string().min(1, "Tutar giriniz"),
-  description: z.string().min(3, "Açıklama giriniz"),
+  description: z.string().optional(),
   departmentId: z.string().optional(),
   projectId: z.string().optional(),
-  itemId: z.string().optional(), // In real app, this would be cost item ID
+  itemId: z.string().optional(),
 });
 
 export default function Transactions() {

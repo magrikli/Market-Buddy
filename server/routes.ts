@@ -989,10 +989,11 @@ export async function registerRoutes(server: Server, app: Express): Promise<Serv
 
   app.post("/api/transactions", async (req: Request, res: Response) => {
     try {
-      // Convert date string to Date object before validation
+      // Convert date string to Date object and provide default for description
       const body = {
         ...req.body,
         date: req.body.date ? new Date(req.body.date) : undefined,
+        description: req.body.description || "",
       };
       const data = insertTransactionSchema.parse(body);
       const transaction = await storage.createTransaction(data);
