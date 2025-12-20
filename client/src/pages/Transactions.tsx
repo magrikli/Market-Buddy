@@ -3,6 +3,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from "@/components/ui/form";
 import { Input } from "@/components/ui/input";
 import { Select, SelectContent, SelectGroup, SelectItem, SelectLabel, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
 import { useStore } from "@/lib/store";
 import { useDepartments, useDepartmentGroups, useProjects, useCreateTransaction, useTransactions } from "@/lib/queries";
 import { zodResolver } from "@hookform/resolvers/zod";
@@ -159,18 +160,26 @@ export default function Transactions() {
                   render={({ field }) => (
                     <FormItem>
                       <FormLabel>İşlem Türü</FormLabel>
-                      <Select onValueChange={field.onChange} defaultValue={field.value}>
-                        <FormControl>
-                          <SelectTrigger>
-                            <SelectValue placeholder="Tür seçin" />
-                          </SelectTrigger>
-                        </FormControl>
-                        <SelectContent>
-                          <SelectItem value="department_expense">Departman Harcaması</SelectItem>
-                          <SelectItem value="project_expense">Proje Harcaması</SelectItem>
-                          <SelectItem value="project_revenue">Proje Geliri</SelectItem>
-                        </SelectContent>
-                      </Select>
+                      <FormControl>
+                        <RadioGroup
+                          onValueChange={field.onChange}
+                          defaultValue={field.value}
+                          className="flex flex-col space-y-1"
+                        >
+                          <div className="flex items-center space-x-2">
+                            <RadioGroupItem value="department_expense" id="department_expense" />
+                            <label htmlFor="department_expense" className="text-sm font-medium cursor-pointer">Departman Harcaması</label>
+                          </div>
+                          <div className="flex items-center space-x-2">
+                            <RadioGroupItem value="project_expense" id="project_expense" />
+                            <label htmlFor="project_expense" className="text-sm font-medium cursor-pointer">Proje Harcaması</label>
+                          </div>
+                          <div className="flex items-center space-x-2">
+                            <RadioGroupItem value="project_revenue" id="project_revenue" />
+                            <label htmlFor="project_revenue" className="text-sm font-medium cursor-pointer">Proje Geliri</label>
+                          </div>
+                        </RadioGroup>
+                      </FormControl>
                       <FormMessage />
                     </FormItem>
                   )}
