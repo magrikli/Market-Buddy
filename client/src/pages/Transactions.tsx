@@ -2,9 +2,9 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from "@/components/ui/form";
 import { Input } from "@/components/ui/input";
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { Select, SelectContent, SelectGroup, SelectItem, SelectLabel, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { useStore } from "@/lib/store";
-import { useDepartments, useProjects, useCreateTransaction, useTransactions } from "@/lib/queries";
+import { useDepartments, useDepartmentGroups, useProjects, useCreateTransaction, useTransactions } from "@/lib/queries";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { format } from "date-fns";
 import { Loader2, Save } from "lucide-react";
@@ -27,6 +27,7 @@ const formSchema = z.object({
 export default function Transactions() {
   const { currentYear, currentUser, selectedCompanyId } = useStore();
   const { data: allDepartments = [] } = useDepartments(currentYear, selectedCompanyId);
+  const { data: departmentGroups = [] } = useDepartmentGroups();
   const { data: allProjects = [] } = useProjects(currentYear, selectedCompanyId);
   const createTransactionMutation = useCreateTransaction();
   const [loading, setLoading] = useState(false);
@@ -38,6 +39,20 @@ export default function Transactions() {
   const projects = isAdmin 
     ? allProjects 
     : allProjects.filter(p => currentUser?.assignedProjectIds?.includes(p.id));
+
+  // Group departments by their group
+  const departmentsByGroup = departments.reduce((acc, dept) => {
+    const groupId = dept.groupId || 'ungrouped';
+    if (!acc[groupId]) acc[groupId] = [];
+    acc[groupId].push(dept);
+    return acc;
+  }, {} as Record<string, typeof departments>);
+
+  const getGroupName = (groupId: string) => {
+    if (groupId === 'ungrouped') return 'Grupsuz';
+    const group = departmentGroups.find(g => g.id === groupId);
+    return group?.name || 'Bilinmeyen Grup';
+  };
 
   const form = useForm<z.infer<typeof formSchema>>({
     resolver: zodResolver(formSchema),
@@ -202,8 +217,13 @@ export default function Transactions() {
                             </SelectTrigger>
                             </FormControl>
                             <SelectContent>
-                                {departments.map(d => (
-                                    <SelectItem key={d.id} value={d.id}>{d.name}</SelectItem>
+                                {Object.entries(departmentsByGroup).map(([groupId, depts]) => (
+                                  <SelectGroup key={groupId}>
+                                    <SelectLabel>{getGroupName(groupId)}</SelectLabel>
+                                    {depts.map(d => (
+                                      <SelectItem key={d.id} value={d.id}>{d.name}</SelectItem>
+                                    ))}
+                                  </SelectGroup>
                                 ))}
                             </SelectContent>
                         </Select>
