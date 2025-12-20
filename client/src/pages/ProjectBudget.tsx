@@ -402,19 +402,6 @@ export default function ProjectBudget() {
                           </TabsList>
 
                           <TabsContent value="costs" className="space-y-4">
-                            {currentUser?.role === 'admin' && (
-                              <div className="flex justify-end mb-2">
-                                <Button 
-                                  variant="outline" 
-                                  size="sm" 
-                                  onClick={() => { setActiveProjectForPhase(project.id); setIsNewPhaseOpen(true); }}
-                                  data-testid={`button-add-phase-costs-${project.id}`}
-                                >
-                                  <PlusCircle className="mr-2 h-4 w-4" />
-                                  Faz Ekle
-                                </Button>
-                              </div>
-                            )}
                             <div className="space-y-4 pl-4 border-l-2 border-border/50 ml-2">
                               {(project.phases || []).map((phase: any) => {
                                 const phaseTotal = (phase.costItems || []).reduce((acc: number, i: any) => acc + Object.values(i.values as Record<string, number>).reduce((vAcc, v) => vAcc + v, 0), 0);
@@ -495,19 +482,6 @@ export default function ProjectBudget() {
                           </TabsContent>
 
                           <TabsContent value="revenue" className="space-y-4">
-                            {currentUser?.role === 'admin' && (
-                              <div className="flex justify-end mb-2">
-                                <Button 
-                                  variant="outline" 
-                                  size="sm" 
-                                  onClick={() => { setActiveProjectForPhase(project.id); setIsNewPhaseOpen(true); }}
-                                  data-testid={`button-add-phase-revenue-${project.id}`}
-                                >
-                                  <PlusCircle className="mr-2 h-4 w-4" />
-                                  Faz Ekle
-                                </Button>
-                              </div>
-                            )}
                             <div className="space-y-4 pl-4 border-l-2 border-border/50 ml-2">
                               {(project.phases || []).map((phase: any) => {
                                 const phaseTotal = (phase.revenueItems || []).reduce((acc: number, i: any) => acc + Object.values(i.values as Record<string, number>).reduce((vAcc, v) => vAcc + v, 0), 0);
