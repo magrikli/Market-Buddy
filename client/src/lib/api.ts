@@ -398,6 +398,12 @@ export async function finishProcess(id: string): Promise<ProjectProcess> {
   });
 }
 
+export async function submitProcessForApproval(id: string): Promise<ProjectProcess> {
+  return fetchAPI(`/project-processes/${id}/submit-for-approval`, {
+    method: 'POST',
+  });
+}
+
 export async function approveProcess(id: string): Promise<ProjectProcess> {
   return fetchAPI(`/project-processes/${id}/approve`, {
     method: 'POST',

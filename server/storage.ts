@@ -94,6 +94,7 @@ export interface IStorage {
   getProcess(id: string): Promise<ProjectProcess | undefined>;
   createProcess(process: InsertProjectProcess): Promise<ProjectProcess>;
   updateProcess(id: string, updates: Partial<ProjectProcess>): Promise<ProjectProcess | undefined>;
+  submitProcessForApproval(id: string): Promise<ProjectProcess | undefined>;
   approveProcess(id: string): Promise<ProjectProcess | undefined>;
   revertProcess(id: string): Promise<ProjectProcess | undefined>;
   deleteProcess(id: string): Promise<void>;
@@ -478,6 +479,14 @@ export class DatabaseStorage implements IStorage {
       }
     }
     
+    return result[0];
+  }
+
+  async submitProcessForApproval(id: string): Promise<ProjectProcess | undefined> {
+    const result = await db.update(projectProcesses)
+      .set({ status: 'pending', updatedAt: new Date() })
+      .where(eq(projectProcesses.id, id))
+      .returning();
     return result[0];
   }
 

@@ -822,6 +822,21 @@ export async function registerRoutes(server: Server, app: Express): Promise<Serv
     }
   });
 
+  app.post("/api/project-processes/:id/submit-for-approval", async (req: Request, res: Response) => {
+    try {
+      const { id } = req.params;
+      const submitted = await storage.submitProcessForApproval(id);
+      
+      if (!submitted) {
+        return res.status(404).json({ message: "Process not found" });
+      }
+
+      return res.json(submitted);
+    } catch (error) {
+      return res.status(500).json({ message: "Server error" });
+    }
+  });
+
   app.post("/api/project-processes/:id/approve", async (req: Request, res: Response) => {
     try {
       const { id } = req.params;

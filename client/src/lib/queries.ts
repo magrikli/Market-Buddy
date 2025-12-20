@@ -450,6 +450,16 @@ export function useUpdateProjectProcess() {
   });
 }
 
+export function useSubmitProcessForApproval() {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: ({ id, projectId }: { id: string; projectId: string }) => api.submitProcessForApproval(id),
+    onSuccess: (_, variables) => {
+      queryClient.invalidateQueries({ queryKey: ['projectProcesses', variables.projectId] });
+    },
+  });
+}
+
 export function useApproveProcess() {
   const queryClient = useQueryClient();
   return useMutation({

@@ -13,7 +13,7 @@ import { Textarea } from "@/components/ui/textarea";
 import { format, differenceInDays, addDays, startOfMonth, endOfMonth, eachDayOfInterval, parseISO } from "date-fns";
 import { tr } from "date-fns/locale";
 import { useStore } from "@/lib/store";
-import { useProjectProcesses, useCreateProjectProcess, useUpdateProjectProcess, useApproveProcess, useReviseProcess, useRevertProcess, useDeleteProjectProcess, useStartProcess, useFinishProcess } from "@/lib/queries";
+import { useProjectProcesses, useCreateProjectProcess, useUpdateProjectProcess, useSubmitProcessForApproval, useApproveProcess, useReviseProcess, useRevertProcess, useDeleteProjectProcess, useStartProcess, useFinishProcess } from "@/lib/queries";
 import type { ProjectProcess } from "@/lib/api";
 import { toast } from "sonner";
 import { 
@@ -156,6 +156,7 @@ export default function ProjectProcessesTab({ projectId, projectName }: Processe
   const { data: processes = [], isLoading } = useProjectProcesses(projectId);
   const createMutation = useCreateProjectProcess();
   const updateMutation = useUpdateProjectProcess();
+  const submitForApprovalMutation = useSubmitProcessForApproval();
   const approveMutation = useApproveProcess();
   const reviseMutation = useReviseProcess();
   const revertMutation = useRevertProcess();
@@ -277,6 +278,15 @@ export default function ProjectProcessesTab({ projectId, projectName }: Processe
       toast.success("Güncellendi");
       setEditingId(null);
       setEditData(null);
+    } catch (error: any) {
+      toast.error(error.message);
+    }
+  };
+
+  const handleSubmitForApproval = async (process: ProjectProcess) => {
+    try {
+      await submitForApprovalMutation.mutateAsync({ id: process.id, projectId });
+      toast.success("Onaya gönderildi");
     } catch (error: any) {
       toast.error(error.message);
     }
@@ -643,9 +653,15 @@ export default function ProjectProcessesTab({ projectId, projectName }: Processe
                                     Tamamla
                                   </DropdownMenuItem>
                                 )}
+                                {process.status === 'draft' && (
+                                  <DropdownMenuItem onClick={() => handleSubmitForApproval(process)}>
+                                    <CheckCircle2 className="mr-2 h-4 w-4 text-yellow-600" />
+                                    Onaya Gönder
+                                  </DropdownMenuItem>
+                                )}
                                 {isAdmin && (
                                   <>
-                                    {process.status === 'draft' && (
+                                    {process.status === 'pending' && (
                                       <DropdownMenuItem onClick={() => handleApprove(process)}>
                                         <CheckCircle2 className="mr-2 h-4 w-4 text-green-600" />
                                         Onayla
