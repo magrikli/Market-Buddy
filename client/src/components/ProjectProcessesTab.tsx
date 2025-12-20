@@ -27,14 +27,17 @@ interface ProcessesTabProps {
   projectName: string;
 }
 
-interface TreeNode extends ProjectProcess {
-  children: TreeNode[];
+interface TreeNodeWithDates extends ProjectProcess {
+  children: TreeNodeWithDates[];
   level: number;
+  calculatedStartDate?: string;
+  calculatedEndDate?: string;
+  calculatedDays?: number;
 }
 
-function buildTree(processes: ProjectProcess[]): TreeNode[] {
-  const nodeMap = new Map<string, TreeNode>();
-  const roots: TreeNode[] = [];
+function buildTree(processes: ProjectProcess[]): TreeNodeWithDates[] {
+  const nodeMap = new Map<string, TreeNodeWithDates>();
+  const roots: TreeNodeWithDates[] = [];
 
   processes.forEach(p => {
     nodeMap.set(p.id, { ...p, children: [], level: 0 });
@@ -51,12 +54,44 @@ function buildTree(processes: ProjectProcess[]): TreeNode[] {
     }
   });
 
+  // Calculate group dates from children (bottom-up)
+  function calculateGroupDates(node: TreeNodeWithDates): { start: Date; end: Date } | null {
+    if (!node.isGroup || node.children.length === 0) {
+      return {
+        start: parseISO(node.startDate),
+        end: parseISO(node.endDate)
+      };
+    }
+
+    let minStart: Date | null = null;
+    let maxEnd: Date | null = null;
+
+    for (const child of node.children) {
+      const childDates = calculateGroupDates(child);
+      if (childDates) {
+        if (!minStart || childDates.start < minStart) minStart = childDates.start;
+        if (!maxEnd || childDates.end > maxEnd) maxEnd = childDates.end;
+      }
+    }
+
+    if (minStart && maxEnd) {
+      node.calculatedStartDate = minStart.toISOString();
+      node.calculatedEndDate = maxEnd.toISOString();
+      node.calculatedDays = differenceInDays(maxEnd, minStart) + 1;
+      return { start: minStart, end: maxEnd };
+    }
+
+    return null;
+  }
+
+  roots.forEach(calculateGroupDates);
+
   return roots;
 }
 
-function flattenTree(nodes: TreeNode[]): TreeNode[] {
-  const result: TreeNode[] = [];
-  function traverse(node: TreeNode) {
+function flattenTree(nodes: TreeNodeWithDates[]): TreeNodeWithDates[] {
+  const result: TreeNodeWithDates[] = [];
+  function traverse(node: TreeNodeWithDates) {
     result.push(node);
     node.children.forEach(traverse);
   }
@@ -238,10 +273,29 @@ export default function ProjectProcessesTab({ projectId, projectName }: Processe
           <p className="text-sm text-muted-foreground">{projectName} projesinin süreç planlaması</p>
         </div>
         {isAdmin && (
-          <Button onClick={() => setIsAddDialogOpen(true)} data-testid="button-add-process">
-            <Plus className="mr-2 h-4 w-4" />
-            Yeni Süreç
-          </Button>
+          <div className="flex gap-2">
+            <Button 
+              variant="outline"
+              onClick={() => {
+                setNewProcess({ name: "", parentId: "", isGroup: true, startDate: new Date(), endDate: addDays(new Date(), 30) });
+                setIsAddDialogOpen(true);
+              }} 
+              data-testid="button-add-group"
+            >
+              <Folder className="mr-2 h-4 w-4" />
+              Yeni Grup
+            </Button>
+            <Button 
+              onClick={() => {
+                setNewProcess({ name: "", parentId: "", isGroup: false, startDate: new Date(), endDate: addDays(new Date(), 30) });
+                setIsAddDialogOpen(true);
+              }} 
+              data-testid="button-add-process"
+            >
+              <Plus className="mr-2 h-4 w-4" />
+              Yeni Süreç
+            </Button>
+          </div>
         )}
       </div>
 
@@ -310,28 +364,50 @@ export default function ProjectProcessesTab({ projectId, projectName }: Processe
                         </div>
                       </td>
                       <td className="p-3 text-muted-foreground">
-                        {format(parseISO(process.startDate), "dd.MM.yyyy")}
+                        {process.isGroup && process.calculatedStartDate 
+                          ? format(parseISO(process.calculatedStartDate), "dd.MM.yyyy")
+                          : process.isGroup && process.children.length === 0
+                          ? <span className="text-gray-400 italic">-</span>
+                          : format(parseISO(process.startDate), "dd.MM.yyyy")}
                       </td>
                       <td className="p-3 text-muted-foreground">
-                        {format(parseISO(process.endDate), "dd.MM.yyyy")}
+                        {process.isGroup && process.calculatedEndDate 
+                          ? format(parseISO(process.calculatedEndDate), "dd.MM.yyyy")
+                          : process.isGroup && process.children.length === 0
+                          ? <span className="text-gray-400 italic">-</span>
+                          : format(parseISO(process.endDate), "dd.MM.yyyy")}
                       </td>
                       <td className="p-3 text-center font-medium">
-                        {differenceInDays(parseISO(process.endDate), parseISO(process.startDate)) + 1}
+                        {process.isGroup 
+                          ? (process.calculatedDays ?? <span className="text-gray-400">-</span>)
+                          : differenceInDays(parseISO(process.endDate), parseISO(process.startDate)) + 1}
                       </td>
                       <td className="p-3">
                         <div className="relative h-6 bg-gray-100 rounded min-w-[200px]">
-                          <div
-                            className={cn(
-                              "absolute h-full rounded text-[10px] flex items-center justify-center text-white font-medium",
-                              process.isGroup 
-                                ? 'bg-amber-400' 
-                                : process.status === 'approved' ? 'bg-green-500' :
+                          {process.isGroup ? (
+                            process.calculatedStartDate && process.calculatedEndDate ? (
+                              <div
+                                className="absolute h-2 top-2 bg-gray-800 rounded-sm"
+                                style={getGanttBarStyle({ 
+                                  ...process, 
+                                  startDate: process.calculatedStartDate, 
+                                  endDate: process.calculatedEndDate 
+                                })}
+                                title={`${process.calculatedDays} gün`}
+                              />
+                            ) : null
+                          ) : (
+                            <div
+                              className={cn(
+                                "absolute h-full rounded text-[10px] flex items-center justify-center text-white font-medium",
+                                process.status === 'approved' ? 'bg-green-500' :
                                   process.status === 'pending' ? 'bg-yellow-500' :
                                   process.status === 'rejected' ? 'bg-red-500' : 'bg-blue-500'
-                            )}
-                            style={getGanttBarStyle(process)}
-                            title={`${differenceInDays(parseISO(process.endDate), parseISO(process.startDate)) + 1} gün`}
-                          />
+                              )}
+                              style={getGanttBarStyle(process)}
+                              title={`${differenceInDays(parseISO(process.endDate), parseISO(process.startDate)) + 1} gün`}
+                            />
+                          )}
                         </div>
                       </td>
                       <td className="p-3">
@@ -396,49 +472,20 @@ export default function ProjectProcessesTab({ projectId, projectName }: Processe
       <Dialog open={isAddDialogOpen} onOpenChange={setIsAddDialogOpen}>
         <DialogContent>
           <DialogHeader>
-            <DialogTitle>Yeni {newProcess.isGroup ? 'Grup' : 'Süreç'} Ekle</DialogTitle>
-            <DialogDescription>Proje için yeni bir {newProcess.isGroup ? 'grup' : 'süreç'} tanımlayın</DialogDescription>
+            <DialogTitle className="flex items-center gap-2">
+              {newProcess.isGroup ? (
+                <><Folder className="h-5 w-5 text-amber-500" /> Yeni Grup Ekle</>
+              ) : (
+                <><FileText className="h-5 w-5 text-blue-500" /> Yeni Süreç Ekle</>
+              )}
+            </DialogTitle>
+            <DialogDescription>
+              {newProcess.isGroup 
+                ? "Grup tarihler alt süreçlerden otomatik hesaplanır"
+                : "Proje için yeni bir süreç tanımlayın"}
+            </DialogDescription>
           </DialogHeader>
           <div className="space-y-4 py-4">
-            <div className="space-y-2">
-              <Label>Tür</Label>
-              <div className="flex gap-4">
-                <label className={cn(
-                  "flex items-center gap-2 p-3 border rounded-lg cursor-pointer flex-1 transition-colors",
-                  !newProcess.isGroup ? "border-blue-500 bg-blue-50" : "border-gray-200 hover:bg-muted/50"
-                )}>
-                  <input
-                    type="radio"
-                    name="processType"
-                    checked={!newProcess.isGroup}
-                    onChange={() => setNewProcess({ ...newProcess, isGroup: false })}
-                    className="sr-only"
-                  />
-                  <FileText className={cn("h-5 w-5", !newProcess.isGroup ? "text-blue-500" : "text-gray-400")} />
-                  <div>
-                    <div className={cn("font-medium", !newProcess.isGroup ? "text-blue-700" : "")}>Süreç</div>
-                    <div className="text-xs text-muted-foreground">Tek bir iş kalemi</div>
-                  </div>
-                </label>
-                <label className={cn(
-                  "flex items-center gap-2 p-3 border rounded-lg cursor-pointer flex-1 transition-colors",
-                  newProcess.isGroup ? "border-amber-500 bg-amber-50" : "border-gray-200 hover:bg-muted/50"
-                )}>
-                  <input
-                    type="radio"
-                    name="processType"
-                    checked={newProcess.isGroup}
-                    onChange={() => setNewProcess({ ...newProcess, isGroup: true })}
-                    className="sr-only"
-                  />
-                  <Folder className={cn("h-5 w-5", newProcess.isGroup ? "text-amber-500" : "text-gray-400")} />
-                  <div>
-                    <div className={cn("font-medium", newProcess.isGroup ? "text-amber-700" : "")}>Grup</div>
-                    <div className="text-xs text-muted-foreground">Süreçleri grupla</div>
-                  </div>
-                </label>
-              </div>
-            </div>
             <div className="space-y-2">
               <Label>{newProcess.isGroup ? 'Grup' : 'Süreç'} Adı</Label>
               <Input
@@ -465,44 +512,51 @@ export default function ProjectProcessesTab({ projectId, projectName }: Processe
                 </SelectContent>
               </Select>
             </div>
-            <div className="grid grid-cols-2 gap-4">
-              <div className="space-y-2">
-                <Label>Başlangıç Tarihi</Label>
-                <Popover>
-                  <PopoverTrigger asChild>
-                    <Button variant="outline" className="w-full justify-start text-left font-normal">
-                      <CalendarIcon className="mr-2 h-4 w-4" />
-                      {format(newProcess.startDate, "dd.MM.yyyy")}
-                    </Button>
-                  </PopoverTrigger>
-                  <PopoverContent className="w-auto p-0">
-                    <Calendar
-                      mode="single"
-                      selected={newProcess.startDate}
-                      onSelect={(d) => d && setNewProcess({ ...newProcess, startDate: d })}
-                    />
-                  </PopoverContent>
-                </Popover>
+            {!newProcess.isGroup && (
+              <div className="grid grid-cols-2 gap-4">
+                <div className="space-y-2">
+                  <Label>Başlangıç Tarihi</Label>
+                  <Popover>
+                    <PopoverTrigger asChild>
+                      <Button variant="outline" className="w-full justify-start text-left font-normal">
+                        <CalendarIcon className="mr-2 h-4 w-4" />
+                        {format(newProcess.startDate, "dd.MM.yyyy")}
+                      </Button>
+                    </PopoverTrigger>
+                    <PopoverContent className="w-auto p-0">
+                      <Calendar
+                        mode="single"
+                        selected={newProcess.startDate}
+                        onSelect={(d) => d && setNewProcess({ ...newProcess, startDate: d })}
+                      />
+                    </PopoverContent>
+                  </Popover>
+                </div>
+                <div className="space-y-2">
+                  <Label>Bitiş Tarihi</Label>
+                  <Popover>
+                    <PopoverTrigger asChild>
+                      <Button variant="outline" className="w-full justify-start text-left font-normal">
+                        <CalendarIcon className="mr-2 h-4 w-4" />
+                        {format(newProcess.endDate, "dd.MM.yyyy")}
+                      </Button>
+                    </PopoverTrigger>
+                    <PopoverContent className="w-auto p-0">
+                      <Calendar
+                        mode="single"
+                        selected={newProcess.endDate}
+                        onSelect={(d) => d && setNewProcess({ ...newProcess, endDate: d })}
+                      />
+                    </PopoverContent>
+                  </Popover>
+                </div>
               </div>
-              <div className="space-y-2">
-                <Label>Bitiş Tarihi</Label>
-                <Popover>
-                  <PopoverTrigger asChild>
-                    <Button variant="outline" className="w-full justify-start text-left font-normal">
-                      <CalendarIcon className="mr-2 h-4 w-4" />
-                      {format(newProcess.endDate, "dd.MM.yyyy")}
-                    </Button>
-                  </PopoverTrigger>
-                  <PopoverContent className="w-auto p-0">
-                    <Calendar
-                      mode="single"
-                      selected={newProcess.endDate}
-                      onSelect={(d) => d && setNewProcess({ ...newProcess, endDate: d })}
-                    />
-                  </PopoverContent>
-                </Popover>
+            )}
+            {newProcess.isGroup && (
+              <div className="bg-amber-50 border border-amber-200 rounded-lg p-3 text-sm text-amber-700">
+                Grubun başlangıç ve bitiş tarihleri, içindeki süreçlerin tarihlerine göre otomatik hesaplanacaktır.
               </div>
-            </div>
+            )}
           </div>
           <DialogFooter>
             <Button variant="outline" onClick={() => setIsAddDialogOpen(false)}>İptal</Button>
