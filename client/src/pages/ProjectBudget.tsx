@@ -659,7 +659,33 @@ export default function ProjectBudget() {
                                   </Button>
                                 )}
                                 {activeTabByProject[project.id] === "processes" && (
-                                  <div className="flex items-center gap-2">
+                                  <div className="flex items-center gap-1">
+                                    <Button 
+                                      size="icon"
+                                      variant="outline"
+                                      className="h-8 w-8"
+                                      onClick={() => {
+                                        const event = new CustomEvent('exportProcesses', { detail: { projectId: project.id } });
+                                        window.dispatchEvent(event);
+                                      }}
+                                      data-testid="button-export-processes"
+                                      title="Dışa Aktar"
+                                    >
+                                      <Download className="h-4 w-4" />
+                                    </Button>
+                                    <Button 
+                                      size="icon"
+                                      variant="outline"
+                                      className="h-8 w-8"
+                                      onClick={() => {
+                                        const event = new CustomEvent('importProcesses', { detail: { projectId: project.id } });
+                                        window.dispatchEvent(event);
+                                      }}
+                                      data-testid="button-import-processes"
+                                      title="İçe Aktar"
+                                    >
+                                      <Upload className="h-4 w-4" />
+                                    </Button>
                                     <Button 
                                       size="sm"
                                       variant="outline"
@@ -670,30 +696,6 @@ export default function ProjectBudget() {
                                     >
                                       <Plus className="mr-1 h-3 w-3" />
                                       Süreç Ekle
-                                    </Button>
-                                    <Button 
-                                      size="sm"
-                                      variant="outline"
-                                      onClick={() => {
-                                        const event = new CustomEvent('exportProcesses', { detail: { projectId: project.id } });
-                                        window.dispatchEvent(event);
-                                      }}
-                                      data-testid="button-export-processes"
-                                    >
-                                      <Download className="mr-1 h-3 w-3" />
-                                      Dışa Aktar
-                                    </Button>
-                                    <Button 
-                                      size="sm"
-                                      variant="outline"
-                                      onClick={() => {
-                                        const event = new CustomEvent('importProcesses', { detail: { projectId: project.id } });
-                                        window.dispatchEvent(event);
-                                      }}
-                                      data-testid="button-import-processes"
-                                    >
-                                      <Upload className="mr-1 h-3 w-3" />
-                                      İçe Aktar
                                     </Button>
                                   </div>
                                 )}
