@@ -659,17 +659,43 @@ export default function ProjectBudget() {
                                   </Button>
                                 )}
                                 {activeTabByProject[project.id] === "processes" && (
-                                  <Button 
-                                    size="sm"
-                                    variant="outline"
-                                    onClick={() => {
-                                      const event = new CustomEvent('openNewProcessDialog', { detail: { projectId: project.id } });
-                                      window.dispatchEvent(event);
-                                    }}
-                                  >
-                                    <Plus className="mr-1 h-3 w-3" />
-                                    Süreç Ekle
-                                  </Button>
+                                  <div className="flex items-center gap-2">
+                                    <Button 
+                                      size="sm"
+                                      variant="outline"
+                                      onClick={() => {
+                                        const event = new CustomEvent('openNewProcessDialog', { detail: { projectId: project.id } });
+                                        window.dispatchEvent(event);
+                                      }}
+                                    >
+                                      <Plus className="mr-1 h-3 w-3" />
+                                      Süreç Ekle
+                                    </Button>
+                                    <Button 
+                                      size="sm"
+                                      variant="outline"
+                                      onClick={() => {
+                                        const event = new CustomEvent('exportProcesses', { detail: { projectId: project.id } });
+                                        window.dispatchEvent(event);
+                                      }}
+                                      data-testid="button-export-processes"
+                                    >
+                                      <Download className="mr-1 h-3 w-3" />
+                                      Dışa Aktar
+                                    </Button>
+                                    <Button 
+                                      size="sm"
+                                      variant="outline"
+                                      onClick={() => {
+                                        const event = new CustomEvent('importProcesses', { detail: { projectId: project.id } });
+                                        window.dispatchEvent(event);
+                                      }}
+                                      data-testid="button-import-processes"
+                                    >
+                                      <Upload className="mr-1 h-3 w-3" />
+                                      İçe Aktar
+                                    </Button>
+                                  </div>
                                 )}
                               </>
                             )}

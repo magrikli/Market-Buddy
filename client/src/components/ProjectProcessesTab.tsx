@@ -202,8 +202,26 @@ export default function ProjectProcessesTab({ projectId, projectName }: Processe
         setIsAddDialogOpen(true);
       }
     };
+    const handleExportEvent = (e: Event) => {
+      const customEvent = e as CustomEvent<{ projectId: string }>;
+      if (customEvent.detail.projectId === projectId) {
+        handleExportProcesses();
+      }
+    };
+    const handleImportEvent = (e: Event) => {
+      const customEvent = e as CustomEvent<{ projectId: string }>;
+      if (customEvent.detail.projectId === projectId) {
+        fileInputRef.current?.click();
+      }
+    };
     window.addEventListener('openNewProcessDialog', handleOpenDialog);
-    return () => window.removeEventListener('openNewProcessDialog', handleOpenDialog);
+    window.addEventListener('exportProcesses', handleExportEvent);
+    window.addEventListener('importProcesses', handleImportEvent);
+    return () => {
+      window.removeEventListener('openNewProcessDialog', handleOpenDialog);
+      window.removeEventListener('exportProcesses', handleExportEvent);
+      window.removeEventListener('importProcesses', handleImportEvent);
+    };
   }, [projectId, processes]);
 
   const ganttRange = useMemo(() => {
@@ -622,27 +640,6 @@ export default function ProjectProcessesTab({ projectId, projectName }: Processe
         className="hidden"
         data-testid="input-import-csv"
       />
-
-      <div className="flex items-center justify-end gap-2 mb-2">
-        <Button
-          variant="outline"
-          size="sm"
-          onClick={handleExportProcesses}
-          data-testid="button-export-processes"
-        >
-          <Download className="h-4 w-4 mr-2" />
-          Dışa Aktar
-        </Button>
-        <Button
-          variant="outline"
-          size="sm"
-          onClick={() => fileInputRef.current?.click()}
-          data-testid="button-import-processes"
-        >
-          <Upload className="h-4 w-4 mr-2" />
-          İçe Aktar
-        </Button>
-      </div>
 
       <div className="rounded-md border border-border overflow-hidden bg-card">
         <div className="p-0">
