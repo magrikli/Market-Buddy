@@ -392,12 +392,6 @@ export default function ProjectBudget() {
                       </div>
                     </AccordionTrigger>
                     <AccordionContent className="pb-4 pt-2">
-                      {(project.phases || []).length === 0 ? (
-                        <div className="text-center p-8 bg-muted/10 rounded-lg border border-dashed">
-                          <Layers className="h-8 w-8 mx-auto text-muted-foreground opacity-50 mb-2" />
-                          <p className="text-muted-foreground text-sm">Henüz faz eklenmemiş.</p>
-                        </div>
-                      ) : (
                         <Tabs 
                             value={activeTabByProject[project.id] || "costs"} 
                             onValueChange={(value) => setActiveTabByProject(prev => ({ ...prev, [project.id]: value }))}
@@ -442,6 +436,12 @@ export default function ProjectBudget() {
                           </div>
 
                           <TabsContent value="costs" className="space-y-4">
+                            {(project.phases || []).length === 0 ? (
+                              <div className="text-center p-8 bg-muted/10 rounded-lg border border-dashed">
+                                <Layers className="h-8 w-8 mx-auto text-muted-foreground opacity-50 mb-2" />
+                                <p className="text-muted-foreground text-sm">Henüz faz eklenmemiş. Faz eklemek için sağ üstteki butonu kullanın.</p>
+                              </div>
+                            ) : (
                             <div className="space-y-4 pl-4 border-l-2 border-border/50 ml-2">
                               {(project.phases || []).map((phase: any) => {
                                 const phaseTotal = (phase.costItems || []).reduce((acc: number, i: any) => acc + Object.values(i.values as Record<string, number>).reduce((vAcc, v) => vAcc + v, 0), 0);
@@ -519,9 +519,16 @@ export default function ProjectBudget() {
                                 );
                               })}
                             </div>
+                            )}
                           </TabsContent>
 
                           <TabsContent value="revenue" className="space-y-4">
+                            {(project.phases || []).length === 0 ? (
+                              <div className="text-center p-8 bg-muted/10 rounded-lg border border-dashed">
+                                <Layers className="h-8 w-8 mx-auto text-muted-foreground opacity-50 mb-2" />
+                                <p className="text-muted-foreground text-sm">Henüz faz eklenmemiş. Faz eklemek için sağ üstteki butonu kullanın.</p>
+                              </div>
+                            ) : (
                             <div className="space-y-4 pl-4 border-l-2 border-border/50 ml-2">
                               {(project.phases || []).map((phase: any) => {
                                 const phaseTotal = (phase.revenueItems || []).reduce((acc: number, i: any) => acc + Object.values(i.values as Record<string, number>).reduce((vAcc, v) => vAcc + v, 0), 0);
@@ -600,6 +607,7 @@ export default function ProjectBudget() {
                                 );
                               })}
                             </div>
+                            )}
                           </TabsContent>
                           
                           <TabsContent value="processes">
@@ -609,7 +617,6 @@ export default function ProjectBudget() {
                             />
                           </TabsContent>
                         </Tabs>
-                      )}
                     </AccordionContent>
                   </AccordionItem>
                 );
