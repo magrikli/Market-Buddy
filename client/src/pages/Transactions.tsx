@@ -17,12 +17,10 @@ import { toast } from "sonner";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 
 const formSchema = z.object({
-  type: z.enum(["department_expense", "project_expense", "project_revenue"]),
+  type: z.enum(["expense", "revenue"]),
   date: z.date(),
   amount: z.string().min(1, "Tutar giriniz"),
   description: z.string().optional(),
-  departmentId: z.string().optional(),
-  projectId: z.string().optional(),
   itemId: z.string().optional(),
 });
 
@@ -81,12 +79,11 @@ export default function Transactions() {
     // Main data headers
     lines.push("=== VERİ GİRİŞ ŞABLONU (Kısa ID Kullanın) ===");
     lines.push("Tarih;Tür;KalemID;Tutar;Açıklama");
-    lines.push("2025-12-20;department_expense;abcd1234;1000;Örnek açıklama");
+    lines.push("2025-12-20;expense;abcd1234;1000;Örnek açıklama");
     lines.push("");
     lines.push("=== TÜR SEÇENEKLERİ ===");
-    lines.push("department_expense = Departman Gideri");
-    lines.push("project_expense = Proje Gideri");
-    lines.push("project_revenue = Proje Geliri");
+    lines.push("expense = Gider");
+    lines.push("revenue = Gelir");
     lines.push("");
     
     // Department reference list
@@ -181,7 +178,7 @@ export default function Transactions() {
     
     for (const row of importData) {
       try {
-        const type = row["Tür"] === "project_revenue" ? "revenue" : "expense";
+        const type = row["Tür"] === "revenue" ? "revenue" : "expense";
         const shortItemId = row["KalemID"]?.trim() || "";
         // Match by short ID (8 chars) or full ID
         const fullItemId = itemLookup[shortItemId] || shortItemId;
@@ -236,55 +233,64 @@ export default function Transactions() {
   const form = useForm<z.infer<typeof formSchema>>({
     resolver: zodResolver(formSchema),
     defaultValues: {
-      type: "department_expense",
+      type: "expense",
       description: "",
       amount: "",
     },
   });
 
   const watchType = form.watch("type");
-  const watchDepartmentId = form.watch("departmentId");
-  const watchProjectId = form.watch("projectId");
 
-  // Calculate available items based on selection
-  let availableItems: { id: string; name: string; groupName: string }[] = [];
+  // Calculate available items based on type (expense vs revenue)
+  let availableItems: { id: string; name: string; groupName: string; source: string }[] = [];
 
-  if (watchType === 'department_expense' && watchDepartmentId) {
-    const dept = departments.find(d => d.id === watchDepartmentId);
-    if (dept) {
-      dept.costGroups.forEach(group => {
-        group.items.forEach(item => {
-          availableItems.push({ id: item.id, name: item.name, groupName: group.name });
+  // Add all department cost items (for expense)
+  if (watchType === 'expense') {
+    departments.forEach(dept => {
+      if (dept.costGroups) {
+        dept.costGroups.forEach((group: any) => {
+          if (group.items) {
+            group.items.forEach((item: any) => {
+              availableItems.push({ id: item.id, name: item.name, groupName: group.name, source: dept.name });
+            });
+          }
         });
-      });
-    }
-  } else if (watchType === 'project_expense' && watchProjectId) {
-    const proj = projects.find(p => p.id === watchProjectId);
-    if (proj) {
-      proj.phases.forEach(phase => {
-        phase.costItems.forEach(item => {
-          availableItems.push({ id: item.id, name: item.name, groupName: phase.name });
+      }
+    });
+    // Add project cost items
+    projects.forEach(proj => {
+      if (proj.phases) {
+        proj.phases.forEach((phase: any) => {
+          if (phase.costItems) {
+            phase.costItems.forEach((item: any) => {
+              availableItems.push({ id: item.id, name: item.name, groupName: phase.name, source: proj.name });
+            });
+          }
         });
-      });
-    }
-  } else if (watchType === 'project_revenue' && watchProjectId) {
-    const proj = projects.find(p => p.id === watchProjectId);
-    if (proj) {
-      proj.phases.forEach(phase => {
-        phase.revenueItems.forEach(item => {
-          availableItems.push({ id: item.id, name: item.name, groupName: phase.name });
+      }
+    });
+  } else {
+    // Revenue items from projects only
+    projects.forEach(proj => {
+      if (proj.phases) {
+        proj.phases.forEach((phase: any) => {
+          if (phase.revenueItems) {
+            phase.revenueItems.forEach((item: any) => {
+              availableItems.push({ id: item.id, name: item.name, groupName: phase.name, source: proj.name });
+            });
+          }
         });
-      });
-    }
+      }
+    });
   }
 
   async function onSubmit(values: z.infer<typeof formSchema>) {
     setLoading(true);
     try {
       await createTransactionMutation.mutateAsync({
-        type: values.type.includes('expense') ? 'expense' : 'revenue',
+        type: values.type,
         amount: parseFloat(values.amount),
-        description: values.description,
+        description: values.description || "",
         date: format(values.date, 'yyyy-MM-dd'),
         budgetItemId: values.itemId,
       });
@@ -359,21 +365,20 @@ export default function Transactions() {
                       <FormLabel>İşlem Türü</FormLabel>
                       <FormControl>
                         <RadioGroup
-                          onValueChange={field.onChange}
+                          onValueChange={(val) => {
+                            field.onChange(val);
+                            form.setValue("itemId", "");
+                          }}
                           defaultValue={field.value}
-                          className="flex flex-row flex-wrap gap-4"
+                          className="flex flex-row gap-6"
                         >
                           <div className="flex items-center space-x-2">
-                            <RadioGroupItem value="department_expense" id="department_expense" />
-                            <label htmlFor="department_expense" className="text-sm font-medium cursor-pointer">Departman Harcaması</label>
+                            <RadioGroupItem value="expense" id="expense" />
+                            <label htmlFor="expense" className="text-sm font-medium cursor-pointer">Gider</label>
                           </div>
                           <div className="flex items-center space-x-2">
-                            <RadioGroupItem value="project_expense" id="project_expense" />
-                            <label htmlFor="project_expense" className="text-sm font-medium cursor-pointer">Proje Harcaması</label>
-                          </div>
-                          <div className="flex items-center space-x-2">
-                            <RadioGroupItem value="project_revenue" id="project_revenue" />
-                            <label htmlFor="project_revenue" className="text-sm font-medium cursor-pointer">Proje Geliri</label>
+                            <RadioGroupItem value="revenue" id="revenue" />
+                            <label htmlFor="revenue" className="text-sm font-medium cursor-pointer">Gelir</label>
                           </div>
                         </RadioGroup>
                       </FormControl>
@@ -382,108 +387,47 @@ export default function Transactions() {
                   )}
                 />
 
-                <div className="grid grid-cols-2 gap-4">
-                  <FormField
-                    control={form.control}
-                    name="date"
-                    render={({ field }) => (
-                      <FormItem className="flex flex-col">
-                        <FormLabel>Tarih</FormLabel>
-                        <FormControl>
-                          <Input
-                            type="date"
-                            value={field.value ? format(field.value, "yyyy-MM-dd") : ""}
-                            onChange={(e) => {
-                              if (e.target.value) {
-                                field.onChange(new Date(e.target.value));
-                              }
-                            }}
-                            max={format(new Date(), "yyyy-MM-dd")}
-                            className="w-full"
-                          />
-                        </FormControl>
-                        <FormMessage />
-                      </FormItem>
-                    )}
-                  />
-
-                  {watchType === 'department_expense' ? (
-                    <FormField
-                      control={form.control}
-                      name="departmentId"
-                      render={({ field }) => (
-                        <FormItem>
-                          <FormLabel>Departman</FormLabel>
-                          <Select onValueChange={(val) => {
-                            field.onChange(val);
-                            form.setValue("itemId", "");
-                          }} defaultValue={field.value}>
-                            <FormControl>
-                              <SelectTrigger>
-                                <SelectValue placeholder="Departman seçin" />
-                              </SelectTrigger>
-                            </FormControl>
-                            <SelectContent>
-                              {Object.entries(departmentsByGroup).map(([groupId, depts]) => (
-                                <SelectGroup key={groupId}>
-                                  <SelectLabel>{getGroupName(groupId)}</SelectLabel>
-                                  {depts.map(d => (
-                                    <SelectItem key={d.id} value={d.id} className="pl-6">{d.name}</SelectItem>
-                                  ))}
-                                </SelectGroup>
-                              ))}
-                            </SelectContent>
-                          </Select>
-                          <FormMessage />
-                        </FormItem>
-                      )}
-                    />
-                  ) : (
-                    <FormField
-                      control={form.control}
-                      name="projectId"
-                      render={({ field }) => (
-                        <FormItem>
-                          <FormLabel>Proje</FormLabel>
-                          <Select onValueChange={(val) => {
-                            field.onChange(val);
-                            form.setValue("itemId", "");
-                          }} defaultValue={field.value}>
-                            <FormControl>
-                              <SelectTrigger>
-                                <SelectValue placeholder="Proje seçin" />
-                              </SelectTrigger>
-                            </FormControl>
-                            <SelectContent>
-                              {projects.map(p => (
-                                <SelectItem key={p.id} value={p.id}>{p.name}</SelectItem>
-                              ))}
-                            </SelectContent>
-                          </Select>
-                          <FormMessage />
-                        </FormItem>
-                      )}
-                    />
+                <FormField
+                  control={form.control}
+                  name="date"
+                  render={({ field }) => (
+                    <FormItem className="flex flex-col">
+                      <FormLabel>Tarih</FormLabel>
+                      <FormControl>
+                        <Input
+                          type="date"
+                          value={field.value ? format(field.value, "yyyy-MM-dd") : ""}
+                          onChange={(e) => {
+                            if (e.target.value) {
+                              field.onChange(new Date(e.target.value));
+                            }
+                          }}
+                          max={format(new Date(), "yyyy-MM-dd")}
+                          className="w-full"
+                        />
+                      </FormControl>
+                      <FormMessage />
+                    </FormItem>
                   )}
-                </div>
+                />
 
                 <FormField
                   control={form.control}
                   name="itemId"
                   render={({ field }) => (
                     <FormItem>
-                      <FormLabel>Kalem (Item)</FormLabel>
-                      <Select onValueChange={field.onChange} value={field.value} disabled={availableItems.length === 0}>
+                      <FormLabel>Kalem</FormLabel>
+                      <Select onValueChange={field.onChange} value={field.value}>
                         <FormControl>
                           <SelectTrigger>
-                            <SelectValue placeholder={availableItems.length === 0 ? "Önce departman/proje seçin" : "Kalem seçin"} />
+                            <SelectValue placeholder="Kalem seçin" />
                           </SelectTrigger>
                         </FormControl>
                         <SelectContent>
                           {availableItems.map(item => (
                             <SelectItem key={item.id} value={item.id}>
                               <span className="font-medium">{item.name}</span>
-                              <span className="text-xs text-muted-foreground ml-2">({item.groupName})</span>
+                              <span className="text-xs text-muted-foreground ml-2">({item.source})</span>
                             </SelectItem>
                           ))}
                         </SelectContent>
