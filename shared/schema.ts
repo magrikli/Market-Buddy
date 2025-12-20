@@ -195,6 +195,10 @@ export const transactions = pgTable("transactions", {
   
   budgetItemId: varchar("budget_item_id", { length: 255 }).references(() => budgetItems.id, { onDelete: 'set null' }),
   
+  // CSV import tracking
+  csvFileName: text("csv_file_name"),
+  csvRowNumber: integer("csv_row_number"),
+  
   createdBy: varchar("created_by", { length: 255 }).references(() => users.id),
   createdAt: timestamp("created_at").defaultNow().notNull(),
 });

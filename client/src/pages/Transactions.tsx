@@ -36,67 +36,105 @@ export default function Transactions() {
   const [isImportDialogOpen, setIsImportDialogOpen] = useState(false);
   const [importData, setImportData] = useState<any[]>([]);
   const [importing, setImporting] = useState(false);
+  const [csvFileName, setCsvFileName] = useState("");
+  const [selectionDialogOpen, setSelectionDialogOpen] = useState(false);
+  const [pendingSelection, setPendingSelection] = useState<{
+    rowIndex: number;
+    matches: { id: string; name: string; context: string }[];
+  } | null>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
 
-  // Helper: Get short ID (first 8 chars)
-  const shortId = (id: string) => id?.substring(0, 8) || "";
-  
-  // Build item lookup map for import (short ID -> full ID)
-  const buildItemLookup = () => {
-    const lookup: Record<string, string> = {};
-    departments.forEach(dept => {
-      if (dept.costGroups) {
-        dept.costGroups.forEach((cg: any) => {
-          if (cg.items) {
-            cg.items.forEach((item: any) => {
-              lookup[shortId(item.id)] = item.id;
-            });
-          }
-        });
-      }
-    });
-    projects.forEach(proj => {
-      if (proj.phases) {
-        proj.phases.forEach((phase: any) => {
-          if (phase.costItems) {
-            phase.costItems.forEach((item: any) => {
-              lookup[shortId(item.id)] = item.id;
-            });
-          }
-          if (phase.revenueItems) {
-            phase.revenueItems.forEach((item: any) => {
-              lookup[shortId(item.id)] = item.id;
-            });
-          }
-        });
-      }
-    });
-    return lookup;
+  // Types for import rows
+  type ImportRow = {
+    rowNumber: number;
+    date: string;
+    type: string;
+    departmentName: string;
+    projectName: string;
+    itemName: string;
+    amount: string;
+    description: string;
+    status: 'pending' | 'matched' | 'ambiguous' | 'error' | 'success';
+    matchedItemId?: string;
+    matches?: { id: string; name: string; context: string }[];
+    errorMessage?: string;
   };
 
-  // Export CSV template with reference data (short IDs)
+  // Find matching items by name
+  const findItemsByName = (itemName: string, deptName?: string, projName?: string) => {
+    const matches: { id: string; name: string; context: string }[] = [];
+    
+    // Search in departments
+    if (!projName) {
+      departments.forEach(dept => {
+        if (deptName && dept.name.toLowerCase() !== deptName.toLowerCase()) return;
+        if (dept.costGroups) {
+          dept.costGroups.forEach((cg: any) => {
+            if (cg.items) {
+              cg.items.forEach((item: any) => {
+                if (item.name.toLowerCase() === itemName.toLowerCase()) {
+                  matches.push({
+                    id: item.id,
+                    name: item.name,
+                    context: `${dept.name} > ${cg.name}`
+                  });
+                }
+              });
+            }
+          });
+        }
+      });
+    }
+    
+    // Search in projects
+    if (!deptName) {
+      projects.forEach(proj => {
+        if (projName && proj.name.toLowerCase() !== projName.toLowerCase()) return;
+        if (proj.phases) {
+          proj.phases.forEach((phase: any) => {
+            const items = [...(phase.costItems || []), ...(phase.revenueItems || [])];
+            items.forEach((item: any) => {
+              if (item.name.toLowerCase() === itemName.toLowerCase()) {
+                matches.push({
+                  id: item.id,
+                  name: item.name,
+                  context: `${proj.name} > ${phase.name}`
+                });
+              }
+            });
+          });
+        }
+      });
+    }
+    
+    return matches;
+  };
+
+  // Export CSV template with name-based format
   const handleExportTemplate = () => {
     const lines: string[] = [];
     
     // Main data headers
-    lines.push("=== VERİ GİRİŞ ŞABLONU (Kısa ID Kullanın) ===");
-    lines.push("Tarih,Tür,KalemID,Tutar,Açıklama");
-    lines.push("2025-12-20,expense,abcd1234,1000,Örnek açıklama");
+    lines.push("Sıra,Tarih,Tür,Departman,Proje,Kalem,Tutar,Açıklama");
+    lines.push("1,2025-12-20,expense,Bilgi Teknolojileri,,Yazılım Ekibi Maaşları,55000,Aralık maaş");
+    lines.push("2,2025-12-20,revenue,,Yeni E-Ticaret,Erken Erişim Satışları,30000,");
     lines.push("");
-    lines.push("=== TÜR SEÇENEKLERİ ===");
-    lines.push("expense = Gider");
-    lines.push("revenue = Gelir");
+    lines.push("=== AÇIKLAMA ===");
+    lines.push("Sıra: Satır numarası (hata takibi için)");
+    lines.push("Tür: expense (gider) veya revenue (gelir)");
+    lines.push("Departman: Departman gideri için departman adı yazın");
+    lines.push("Proje: Proje gideri/geliri için proje adı yazın");
+    lines.push("Not: Departman veya Proje'den birini doldurun - ikisini birden doldurmayın");
     lines.push("");
     
     // Department reference list
-    lines.push("=== DEPARTMAN KALEMLERİ ===");
-    lines.push("Departman,Grup,Kalem,KısaID");
+    lines.push("=== MEVCUT DEPARTMANLAR VE KALEMLERİ ===");
     departments.forEach(dept => {
       if (dept.costGroups && dept.costGroups.length > 0) {
         dept.costGroups.forEach((cg: any) => {
           if (cg.items && cg.items.length > 0) {
             cg.items.forEach((item: any) => {
-              lines.push(`${dept.name},${cg.name},${item.name},${shortId(item.id)}`);
+              lines.push(`Departman: ${dept.name} | Grup: ${cg.name} | Kalem: ${item.name}`);
             });
           }
         });
@@ -105,19 +143,18 @@ export default function Transactions() {
     lines.push("");
     
     // Project reference list
-    lines.push("=== PROJE KALEMLERİ ===");
-    lines.push("Proje,Faz,Kalem,KısaID,Tür");
+    lines.push("=== MEVCUT PROJELER VE KALEMLERİ ===");
     projects.forEach(proj => {
       if (proj.phases && proj.phases.length > 0) {
         proj.phases.forEach((phase: any) => {
           if (phase.costItems && phase.costItems.length > 0) {
             phase.costItems.forEach((item: any) => {
-              lines.push(`${proj.name},${phase.name},${item.name},${shortId(item.id)},Gider`);
+              lines.push(`Proje: ${proj.name} | Faz: ${phase.name} | Kalem: ${item.name} (Gider)`);
             });
           }
           if (phase.revenueItems && phase.revenueItems.length > 0) {
             phase.revenueItems.forEach((item: any) => {
-              lines.push(`${proj.name},${phase.name},${item.name},${shortId(item.id)},Gelir`);
+              lines.push(`Proje: ${proj.name} | Faz: ${phase.name} | Kalem: ${item.name} (Gelir)`);
             });
           }
         });
@@ -132,18 +169,20 @@ export default function Transactions() {
     link.download = "transaction_template.csv";
     link.click();
     URL.revokeObjectURL(url);
-    toast.success("Şablon indirildi - 8 haneli kısa ID kullanın");
+    toast.success("Şablon indirildi");
   };
 
-  // Handle file selection
+  // Handle file selection - parse and match items
   const handleFileSelect = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (!file) return;
     
+    setCsvFileName(file.name);
+    
     const reader = new FileReader();
     reader.onload = (event) => {
       const text = event.target?.result as string;
-      const lines = text.split("\n").filter(line => line.trim());
+      const lines = text.split("\n").filter(line => line.trim() && !line.startsWith("==="));
       
       if (lines.length < 2) {
         toast.error("CSV dosyası en az bir veri satırı içermeli");
@@ -151,14 +190,59 @@ export default function Transactions() {
       }
       
       const headers = lines[0].split(",").map(h => h.trim());
-      const dataRows = lines.slice(1).map(line => {
-        const values = line.split(",").map(v => v.trim());
+      const dataRows: ImportRow[] = [];
+      
+      for (let i = 1; i < lines.length; i++) {
+        const values = lines[i].split(",").map(v => v.trim());
         const row: Record<string, string> = {};
-        headers.forEach((header, i) => {
-          row[header] = values[i] || "";
+        headers.forEach((header, idx) => {
+          row[header] = values[idx] || "";
         });
-        return row;
-      });
+        
+        // Skip empty rows or header/instruction rows
+        if (!row["Kalem"] && !row["Tutar"]) continue;
+        
+        const rowNumber = parseInt(row["Sıra"]) || i;
+        const itemName = row["Kalem"] || "";
+        const deptName = row["Departman"] || "";
+        const projName = row["Proje"] || "";
+        
+        // Find matching items
+        const matches = findItemsByName(itemName, deptName || undefined, projName || undefined);
+        
+        let status: ImportRow['status'] = 'pending';
+        let matchedItemId: string | undefined;
+        let errorMessage: string | undefined;
+        
+        if (!itemName) {
+          status = 'error';
+          errorMessage = 'Kalem adı boş';
+        } else if (matches.length === 0) {
+          status = 'error';
+          errorMessage = 'Kalem bulunamadı';
+        } else if (matches.length === 1) {
+          status = 'matched';
+          matchedItemId = matches[0].id;
+        } else {
+          status = 'ambiguous';
+          errorMessage = `${matches.length} eşleşme bulundu - seçim yapın`;
+        }
+        
+        dataRows.push({
+          rowNumber,
+          date: row["Tarih"] || "",
+          type: row["Tür"] || "expense",
+          departmentName: deptName,
+          projectName: projName,
+          itemName,
+          amount: row["Tutar"] || "0",
+          description: row["Açıklama"] || "",
+          status,
+          matchedItemId,
+          matches: matches.length > 1 ? matches : undefined,
+          errorMessage,
+        });
+      }
       
       setImportData(dataRows);
       setIsImportDialogOpen(true);
@@ -167,46 +251,76 @@ export default function Transactions() {
     e.target.value = "";
   };
 
+  // Handle item selection for ambiguous rows
+  const handleSelectItem = (rowIndex: number, itemId: string) => {
+    setImportData(prev => prev.map((row, idx) => 
+      idx === rowIndex 
+        ? { ...row, status: 'matched' as const, matchedItemId: itemId, errorMessage: undefined }
+        : row
+    ));
+    setSelectionDialogOpen(false);
+    setPendingSelection(null);
+  };
+
   // Process import
   const handleImport = async () => {
     if (importData.length === 0) return;
+    
+    // Check if there are any ambiguous rows
+    const ambiguousRows = importData.filter(r => r.status === 'ambiguous');
+    if (ambiguousRows.length > 0) {
+      toast.error(`${ambiguousRows.length} satırda seçim yapmanız gerekiyor`);
+      return;
+    }
     
     setImporting(true);
     let successCount = 0;
     let errorCount = 0;
     
-    // Build lookup for short IDs
-    const itemLookup = buildItemLookup();
+    const updatedRows = [...importData];
     
-    for (const row of importData) {
+    for (let i = 0; i < updatedRows.length; i++) {
+      const row = updatedRows[i];
+      if (row.status === 'error') {
+        errorCount++;
+        continue;
+      }
+      
       try {
-        const type = row["Tür"] === "revenue" ? "revenue" : "expense";
-        const shortItemId = row["KalemID"]?.trim() || "";
-        // Match by short ID (8 chars) or full ID
-        const fullItemId = itemLookup[shortItemId] || shortItemId;
+        const type = row.type === "revenue" ? "revenue" : "expense";
         
         await createTransactionMutation.mutateAsync({
           type,
-          date: row["Tarih"],
-          amount: parseFloat(row["Tutar"]) || 0,
-          description: row["Açıklama"] || "",
-          budgetItemId: fullItemId || undefined,
+          date: row.date,
+          amount: parseFloat(row.amount) || 0,
+          description: row.description || "",
+          budgetItemId: row.matchedItemId || undefined,
+          csvFileName,
+          csvRowNumber: row.rowNumber,
         });
+        
+        updatedRows[i] = { ...row, status: 'success' };
         successCount++;
       } catch {
+        updatedRows[i] = { ...row, status: 'error', errorMessage: 'Kayıt oluşturulamadı' };
         errorCount++;
       }
     }
     
+    setImportData(updatedRows);
     setImporting(false);
-    setIsImportDialogOpen(false);
-    setImportData([]);
     
     if (successCount > 0) {
       toast.success(`${successCount} kayıt başarıyla eklendi`);
     }
     if (errorCount > 0) {
       toast.error(`${errorCount} kayıt eklenemedi`);
+    }
+    
+    // Close dialog if all successful
+    if (errorCount === 0) {
+      setIsImportDialogOpen(false);
+      setImportData([]);
     }
   };
 
@@ -569,40 +683,82 @@ export default function Transactions() {
       </div>
 
       <Dialog open={isImportDialogOpen} onOpenChange={setIsImportDialogOpen}>
-        <DialogContent className="max-w-2xl">
+        <DialogContent className="max-w-4xl">
           <DialogHeader>
-            <DialogTitle>CSV Import Önizleme</DialogTitle>
+            <DialogTitle>CSV Import Önizleme - {csvFileName}</DialogTitle>
             <DialogDescription>
-              {importData.length} kayıt bulundu. İçe aktarmak için onaylayın.
+              {importData.length} kayıt bulundu. 
+              {importData.filter(r => r.status === 'matched').length} eşleşti, 
+              {importData.filter(r => r.status === 'ambiguous').length} seçim bekliyor, 
+              {importData.filter(r => r.status === 'error').length} hata.
             </DialogDescription>
           </DialogHeader>
-          <div className="max-h-64 overflow-auto">
+          <div className="max-h-80 overflow-auto">
             <Table>
               <TableHeader>
                 <TableRow>
+                  <TableHead className="w-12">Sıra</TableHead>
                   <TableHead>Tarih</TableHead>
-                  <TableHead>Tür</TableHead>
+                  <TableHead>Kalem</TableHead>
                   <TableHead>Tutar</TableHead>
-                  <TableHead>Açıklama</TableHead>
+                  <TableHead>Durum</TableHead>
+                  <TableHead>İşlem</TableHead>
                 </TableRow>
               </TableHeader>
               <TableBody>
-                {importData.map((row, idx) => (
-                  <TableRow key={idx}>
-                    <TableCell>{row["Tarih"]}</TableCell>
-                    <TableCell>{row["Tür"]}</TableCell>
-                    <TableCell>€ {row["Tutar"]}</TableCell>
-                    <TableCell>{row["Açıklama"]}</TableCell>
+                {importData.map((row: ImportRow, idx) => (
+                  <TableRow key={idx} className={
+                    row.status === 'error' ? 'bg-red-50' : 
+                    row.status === 'ambiguous' ? 'bg-yellow-50' : 
+                    row.status === 'success' ? 'bg-green-50' : ''
+                  }>
+                    <TableCell className="font-mono text-xs">{row.rowNumber}</TableCell>
+                    <TableCell className="text-xs">{row.date}</TableCell>
+                    <TableCell>
+                      <div className="flex flex-col">
+                        <span className="font-medium text-sm">{row.itemName}</span>
+                        <span className="text-xs text-muted-foreground">
+                          {row.departmentName || row.projectName || '-'}
+                        </span>
+                      </div>
+                    </TableCell>
+                    <TableCell className="font-mono">€ {row.amount}</TableCell>
+                    <TableCell>
+                      {row.status === 'matched' && <span className="text-green-600 text-xs">✓ Eşleşti</span>}
+                      {row.status === 'ambiguous' && <span className="text-yellow-600 text-xs">⚠ Seçim gerekli</span>}
+                      {row.status === 'error' && <span className="text-red-600 text-xs">✗ {row.errorMessage}</span>}
+                      {row.status === 'success' && <span className="text-green-600 text-xs">✓ Kaydedildi</span>}
+                    </TableCell>
+                    <TableCell>
+                      {row.status === 'ambiguous' && row.matches && (
+                        <Select onValueChange={(val) => handleSelectItem(idx, val)}>
+                          <SelectTrigger className="h-7 text-xs w-40">
+                            <SelectValue placeholder="Seçin..." />
+                          </SelectTrigger>
+                          <SelectContent>
+                            {row.matches.map((match) => (
+                              <SelectItem key={match.id} value={match.id} className="text-xs">
+                                <span>{match.name}</span>
+                                <span className="text-muted-foreground ml-1">({match.context})</span>
+                              </SelectItem>
+                            ))}
+                          </SelectContent>
+                        </Select>
+                      )}
+                    </TableCell>
                   </TableRow>
                 ))}
               </TableBody>
             </Table>
           </div>
           <DialogFooter>
-            <Button variant="outline" onClick={() => setIsImportDialogOpen(false)}>İptal</Button>
-            <Button onClick={handleImport} disabled={importing}>
+            <Button variant="outline" onClick={() => { setIsImportDialogOpen(false); setImportData([]); }}>İptal</Button>
+            <Button 
+              onClick={handleImport} 
+              disabled={importing || importData.some(r => r.status === 'ambiguous')}
+            >
               {importing && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
-              {importData.length} Kayıt Ekle
+              {importData.filter(r => r.status === 'matched').length} Kayıt Ekle
             </Button>
           </DialogFooter>
         </DialogContent>

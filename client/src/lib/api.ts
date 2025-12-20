@@ -285,6 +285,8 @@ export async function createTransaction(data: {
   description: string;
   date: string;
   budgetItemId?: string;
+  csvFileName?: string;
+  csvRowNumber?: number;
 }): Promise<any> {
   return fetchAPI('/transactions', {
     method: 'POST',

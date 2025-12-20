@@ -352,6 +352,8 @@ export function useCreateTransaction() {
       description: string;
       date: string;
       budgetItemId?: string;
+      csvFileName?: string;
+      csvRowNumber?: number;
     }) => api.createTransaction(data),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: queryKeys.transactions() });
