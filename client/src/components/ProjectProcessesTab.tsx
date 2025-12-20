@@ -479,7 +479,7 @@ export default function ProjectProcessesTab({ projectId, projectName }: Processe
                               type="date"
                               value={editData?.startDate?.substring(0, 10) ?? ''}
                               onChange={(e) => setEditData(prev => prev ? { ...prev, startDate: e.target.value } : null)}
-                              className="h-8 w-32"
+                              className="h-8 w-full"
                             />
                           ) : (
                             <div>
@@ -509,7 +509,7 @@ export default function ProjectProcessesTab({ projectId, projectName }: Processe
                               type="date"
                               value={editData?.endDate?.substring(0, 10) ?? ''}
                               onChange={(e) => setEditData(prev => prev ? { ...prev, endDate: e.target.value } : null)}
-                              className="h-8 w-32"
+                              className="h-8 w-full"
                             />
                           ) : (
                             <div>
