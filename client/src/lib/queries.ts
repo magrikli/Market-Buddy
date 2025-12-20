@@ -418,6 +418,13 @@ export function useProjectProcesses(projectId: string | null) {
   });
 }
 
+export function usePendingProcesses() {
+  return useQuery({
+    queryKey: ['pendingProcesses'],
+    queryFn: () => api.getPendingProcesses(),
+  });
+}
+
 export function useCreateProjectProcess() {
   const queryClient = useQueryClient();
   return useMutation({
@@ -456,6 +463,7 @@ export function useSubmitProcessForApproval() {
     mutationFn: ({ id, projectId }: { id: string; projectId: string }) => api.submitProcessForApproval(id),
     onSuccess: (_, variables) => {
       queryClient.invalidateQueries({ queryKey: ['projectProcesses', variables.projectId] });
+      queryClient.invalidateQueries({ queryKey: ['pendingProcesses'] });
     },
   });
 }
@@ -466,6 +474,7 @@ export function useApproveProcess() {
     mutationFn: ({ id, projectId }: { id: string; projectId: string }) => api.approveProcess(id),
     onSuccess: (_, variables) => {
       queryClient.invalidateQueries({ queryKey: ['projectProcesses', variables.projectId] });
+      queryClient.invalidateQueries({ queryKey: ['pendingProcesses'] });
     },
   });
 }

@@ -730,6 +730,16 @@ export async function registerRoutes(server: Server, app: Express): Promise<Serv
 
   // ===== PROJECT PROCESSES =====
   
+  app.get("/api/pending-processes", async (req: Request, res: Response) => {
+    try {
+      const processes = await storage.getPendingProcesses();
+      return res.json(processes);
+    } catch (error) {
+      console.error('Get pending processes error:', error);
+      return res.status(500).json({ message: "Server error" });
+    }
+  });
+
   app.get("/api/project-processes/:projectId", async (req: Request, res: Response) => {
     try {
       const { projectId } = req.params;

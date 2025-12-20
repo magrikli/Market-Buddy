@@ -91,6 +91,7 @@ export interface IStorage {
   
   // Project Processes
   getProcessesByProject(projectId: string): Promise<ProjectProcess[]>;
+  getPendingProcesses(): Promise<ProjectProcess[]>;
   getProcess(id: string): Promise<ProjectProcess | undefined>;
   createProcess(process: InsertProjectProcess): Promise<ProjectProcess>;
   updateProcess(id: string, updates: Partial<ProjectProcess>): Promise<ProjectProcess | undefined>;
@@ -436,6 +437,12 @@ export class DatabaseStorage implements IStorage {
     return await db.select().from(projectProcesses)
       .where(eq(projectProcesses.projectId, projectId))
       .orderBy(projectProcesses.wbs);
+  }
+
+  async getPendingProcesses(): Promise<ProjectProcess[]> {
+    return await db.select().from(projectProcesses)
+      .where(eq(projectProcesses.status, 'pending'))
+      .orderBy(projectProcesses.updatedAt);
   }
 
   async getProcess(id: string): Promise<ProjectProcess | undefined> {

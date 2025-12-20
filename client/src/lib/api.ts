@@ -358,6 +358,10 @@ export async function getProjectProcesses(projectId: string): Promise<ProjectPro
   return fetchAPI(`/project-processes/${projectId}`);
 }
 
+export async function getPendingProcesses(): Promise<ProjectProcess[]> {
+  return fetchAPI('/pending-processes');
+}
+
 export async function createProjectProcess(data: {
   name: string;
   projectId: string;

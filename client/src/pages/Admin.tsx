@@ -7,7 +7,7 @@ import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, D
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Checkbox } from "@/components/ui/checkbox";
 import { useStore } from "@/lib/store";
-import { useDepartments, useProjects, useUsers, useCreateUser, useUpdateUser, useDeleteUser, useUpdateUserAssignments, useCompanies, useCreateCompany, useUpdateCompany, useDeleteCompany, useUpdateUserCompanyAssignments } from "@/lib/queries";
+import { useDepartments, useProjects, useUsers, useCreateUser, useUpdateUser, useDeleteUser, useUpdateUserAssignments, useCompanies, useCreateCompany, useUpdateCompany, useDeleteCompany, useUpdateUserCompanyAssignments, usePendingProcesses, useApproveProcess } from "@/lib/queries";
 import { Search, UserPlus, Settings, CheckCheck, Pencil, Trash2, Loader2, Users, Building2, Plus } from "lucide-react";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { toast } from "sonner";
@@ -19,6 +19,8 @@ export default function Admin() {
   const { data: projects = [] } = useProjects(currentYear);
   const { data: users = [], isLoading: usersLoading } = useUsers();
   const { data: companies = [], isLoading: companiesLoading } = useCompanies();
+  const { data: pendingProcesses = [], isLoading: pendingProcessesLoading } = usePendingProcesses();
+  const approveProcessMutation = useApproveProcess();
   const createUserMutation = useCreateUser();
   const updateUserMutation = useUpdateUser();
   const deleteUserMutation = useDeleteUser();
@@ -57,6 +59,15 @@ export default function Admin() {
 
   const handleBulkApprove = () => {
     toast.success("5 adet bütçe kalemi onaylandı");
+  };
+
+  const handleApproveProcess = async (processId: string, projectId: string) => {
+    try {
+      await approveProcessMutation.mutateAsync({ id: processId, projectId });
+      toast.success("Süreç onaylandı");
+    } catch (error: any) {
+      toast.error("Hata", { description: error.message });
+    }
   };
 
   const handleCreateUser = async () => {
@@ -445,6 +456,59 @@ export default function Admin() {
                   ))}
                 </TableBody>
               </Table>
+            </CardContent>
+          </Card>
+
+          <Card className="shadow-md mt-6">
+            <CardHeader>
+              <div>
+                <CardTitle>Onay Bekleyen Süreçler</CardTitle>
+                <CardDescription>Projelerden gelen onay bekleyen süreçler</CardDescription>
+              </div>
+            </CardHeader>
+            <CardContent>
+              {pendingProcessesLoading ? (
+                <div className="flex items-center justify-center p-8">
+                  <Loader2 className="h-8 w-8 animate-spin text-primary" />
+                </div>
+              ) : pendingProcesses.length === 0 ? (
+                <div className="text-center p-8 bg-muted/10 rounded-lg border border-dashed">
+                  <p className="text-muted-foreground">Onay bekleyen süreç bulunmuyor.</p>
+                </div>
+              ) : (
+                <Table>
+                  <TableHeader>
+                    <TableRow>
+                      <TableHead>WBS</TableHead>
+                      <TableHead>Süreç Adı</TableHead>
+                      <TableHead>Başlangıç</TableHead>
+                      <TableHead>Bitiş</TableHead>
+                      <TableHead className="text-center">İşlem</TableHead>
+                    </TableRow>
+                  </TableHeader>
+                  <TableBody>
+                    {pendingProcesses.map((process) => (
+                      <TableRow key={process.id}>
+                        <TableCell className="font-mono text-sm">{process.wbs}</TableCell>
+                        <TableCell className="font-medium">{process.name}</TableCell>
+                        <TableCell className="text-sm text-muted-foreground">{new Date(process.startDate).toLocaleDateString('tr-TR')}</TableCell>
+                        <TableCell className="text-sm text-muted-foreground">{new Date(process.endDate).toLocaleDateString('tr-TR')}</TableCell>
+                        <TableCell className="text-center">
+                          <Button 
+                            size="sm" 
+                            variant="ghost" 
+                            className="text-emerald-600 hover:text-emerald-700 hover:bg-emerald-50"
+                            onClick={() => handleApproveProcess(process.id, process.projectId)}
+                            disabled={approveProcessMutation.isPending}
+                          >
+                            Onayla
+                          </Button>
+                        </TableCell>
+                      </TableRow>
+                    ))}
+                  </TableBody>
+                </Table>
+              )}
             </CardContent>
           </Card>
         </TabsContent>
