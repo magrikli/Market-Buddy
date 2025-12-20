@@ -129,7 +129,7 @@ export function BudgetTable({ items, onSave, onRevise, onApprove, onDelete, onSu
                       {months.map((_, index) => {
                         const isPastMonth = index < currentMonth;
                         return (
-                          <TableCell key={index} className={cn("w-[80px] min-w-[80px] max-w-[80px] text-right p-1", isPastMonth && "bg-muted/30")}>
+                          <TableCell key={index} className={cn("min-w-[70px] text-right p-1", isPastMonth && "bg-muted/30")}>
                             {isEditing ? (
                               isPastMonth ? (
                                 <span className="block tabular-nums text-muted-foreground">
@@ -137,7 +137,7 @@ export function BudgetTable({ items, onSave, onRevise, onApprove, onDelete, onSu
                                 </span>
                               ) : (
                                 <Input 
-                                  className="h-6 w-full text-right text-xs px-1 border-primary/30 focus-visible:ring-1" 
+                                  className="h-6 w-[65px] text-right text-xs px-1 border-primary/30 focus-visible:ring-1" 
                                   value={editValues[index] || 0}
                                   onChange={(e) => handleValueChange(index, e.target.value)}
                                 />
