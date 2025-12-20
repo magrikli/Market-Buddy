@@ -33,6 +33,8 @@ const formatMoney = (amount: number) => {
   return new Intl.NumberFormat('tr-TR', { minimumFractionDigits: 0, maximumFractionDigits: 0 }).format(amount);
 };
 
+const currentMonth = new Date().getMonth(); // 0-indexed (0 = January, 11 = December)
+
 export function BudgetTable({ items, onSave, onRevise, onApprove, onDelete, onSubmitForApproval, onWithdraw, onRevert, isAdmin = false, type = 'cost' }: BudgetTableProps) {
   const [editingId, setEditingId] = useState<string | null>(null);
   const [editValues, setEditValues] = useState<BudgetMonthValues>({});
@@ -124,24 +126,34 @@ export function BudgetTable({ items, onSave, onRevise, onApprove, onDelete, onSu
                           </div>
                         </div>
                       </TableCell>
-                      {months.map((_, index) => (
-                        <TableCell key={index} className="min-w-[80px] text-right p-2">
-                          {isEditing ? (
-                            <Input 
-                              className="h-7 text-right text-xs px-1 border-primary/30 focus-visible:ring-1" 
-                              value={editValues[index] || 0}
-                              onChange={(e) => handleValueChange(index, e.target.value)}
-                            />
-                          ) : (
-                            <span className={cn(
-                              "block tabular-nums",
-                              type === 'revenue' && "text-emerald-600 font-medium"
-                            )}>
-                              {formatMoney(item.values[index] || 0)}
-                            </span>
-                          )}
-                        </TableCell>
-                      ))}
+                      {months.map((_, index) => {
+                        const isPastMonth = index < currentMonth;
+                        return (
+                          <TableCell key={index} className={cn("min-w-[80px] text-right p-2", isPastMonth && "bg-muted/30")}>
+                            {isEditing ? (
+                              isPastMonth ? (
+                                <span className="block tabular-nums text-muted-foreground">
+                                  {formatMoney(editValues[index] || 0)}
+                                </span>
+                              ) : (
+                                <Input 
+                                  className="h-7 text-right text-xs px-1 border-primary/30 focus-visible:ring-1" 
+                                  value={editValues[index] || 0}
+                                  onChange={(e) => handleValueChange(index, e.target.value)}
+                                />
+                              )
+                            ) : (
+                              <span className={cn(
+                                "block tabular-nums",
+                                type === 'revenue' && "text-emerald-600 font-medium",
+                                isPastMonth && "text-muted-foreground"
+                              )}>
+                                {formatMoney(item.values[index] || 0)}
+                              </span>
+                            )}
+                          </TableCell>
+                        );
+                      })}
                       <TableCell className="w-[150px] text-right font-bold tabular-nums bg-muted/10 p-2">
                         <div className="flex items-center justify-end gap-2">
                           <span>€ {formatMoney(total)}</span>
