@@ -48,6 +48,7 @@ export default function ProjectBudget() {
   const [editingProject, setEditingProject] = useState<{id: string; name: string} | null>(null);
   const [editingPhase, setEditingPhase] = useState<{id: string; name: string} | null>(null);
   const [activeTabByProject, setActiveTabByProject] = useState<Record<string, string>>({});
+  const [expandedProjects, setExpandedProjects] = useState<string[]>([]);
 
   const formatMoney = (amount: number) => {
     return new Intl.NumberFormat('tr-TR', { minimumFractionDigits: 0 }).format(amount);
@@ -72,7 +73,8 @@ export default function ProjectBudget() {
       return;
     }
     try {
-      await createProjectMutation.mutateAsync({ name, companyId: selectedCompanyId });
+      const newProject = await createProjectMutation.mutateAsync({ name, companyId: selectedCompanyId });
+      setExpandedProjects(prev => [...prev, newProject.id]);
       toast.success("Proje eklendi", { description: name });
       setIsNewProjectOpen(false);
     } catch (error: any) {
@@ -338,7 +340,7 @@ export default function ProjectBudget() {
               </p>
             </div>
           ) : (
-            <Accordion type="multiple" className="w-full" defaultValue={visibleProjects.map(p => p.id)}>
+            <Accordion type="multiple" className="w-full" value={expandedProjects.length > 0 ? expandedProjects : visibleProjects.map(p => p.id)} onValueChange={setExpandedProjects}>
               {visibleProjects.map((project) => {
                 const projectCostTotal = (project.phases || []).reduce((acc: number, phase: any) => 
                   acc + (phase.costItems || []).reduce((iAcc: number, item: any) => 
