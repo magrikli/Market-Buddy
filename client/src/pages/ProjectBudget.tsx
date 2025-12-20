@@ -257,7 +257,14 @@ export default function ProjectBudget() {
 
   const handleExportBudgetItems = () => {
     const lines: string[] = [];
-    lines.push("ItemId,Proje,Faz,Kalem,Tür,Ocak,Şubat,Mart,Nisan,Mayıs,Haziran,Temmuz,Ağustos,Eylül,Ekim,Kasım,Aralık");
+    lines.push("ItemId,Proje,Faz,Kalem,Tür,Durum,Ocak,Şubat,Mart,Nisan,Mayıs,Haziran,Temmuz,Ağustos,Eylül,Ekim,Kasım,Aralık");
+    
+    const statusLabels: Record<string, string> = {
+      'draft': 'Taslak',
+      'pending': 'Beklemede',
+      'approved': 'Onaylı',
+      'rejected': 'Reddedildi'
+    };
     
     visibleProjects.forEach(project => {
       (project.phases || []).forEach((phase: any) => {
@@ -270,7 +277,8 @@ export default function ProjectBudget() {
           const escapedName = item.name.includes(',') ? `"${item.name}"` : item.name;
           const escapedProject = project.name.includes(',') ? `"${project.name}"` : project.name;
           const escapedPhase = phase.name.includes(',') ? `"${phase.name}"` : phase.name;
-          lines.push(`${item.id},${escapedProject},${escapedPhase},${escapedName},${item.type},${monthValues.join(',')}`);
+          const statusLabel = statusLabels[item.status] || item.status || 'Taslak';
+          lines.push(`${item.id},${escapedProject},${escapedPhase},${escapedName},${item.type},${statusLabel},${monthValues.join(',')}`);
         });
       });
     });
@@ -314,14 +322,15 @@ export default function ProjectBudget() {
         
         for (let i = 1; i < lines.length; i++) {
           const values = lines[i].match(/(".*?"|[^,]+)/g)?.map(v => v.replace(/^"|"$/g, '').trim()) || [];
-          if (values.length < 17) continue;
+          if (values.length < 18) continue;
           
           const itemId = values[0] || "";
           const projectName = values[1] || "";
           const phaseName = values[2] || "";
           const itemName = values[3] || "";
           const itemType = values[4] === 'revenue' ? 'revenue' : 'cost';
-          const monthlyValues = values.slice(5, 17).map(v => parseFloat(v) || 0);
+          // Skip values[5] (Durum) - ignored on import
+          const monthlyValues = values.slice(6, 18).map(v => parseFloat(v) || 0);
           
           let status: ImportRow['status'] = 'pending';
           let matchedPhaseId: string | undefined;

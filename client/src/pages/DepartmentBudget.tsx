@@ -275,7 +275,14 @@ export default function DepartmentBudget() {
 
   const handleExportBudgetItems = () => {
     const lines: string[] = [];
-    lines.push("ItemId,Departman,Grup,Kalem,Ocak,Şubat,Mart,Nisan,Mayıs,Haziran,Temmuz,Ağustos,Eylül,Ekim,Kasım,Aralık");
+    lines.push("ItemId,Departman,Grup,Kalem,Durum,Ocak,Şubat,Mart,Nisan,Mayıs,Haziran,Temmuz,Ağustos,Eylül,Ekim,Kasım,Aralık");
+    
+    const statusLabels: Record<string, string> = {
+      'draft': 'Taslak',
+      'pending': 'Beklemede',
+      'approved': 'Onaylı',
+      'rejected': 'Reddedildi'
+    };
     
     visibleDepartments.forEach(dept => {
       dept.costGroups.forEach((costGroup: any) => {
@@ -284,7 +291,8 @@ export default function DepartmentBudget() {
           const escapedName = item.name.includes(',') ? `"${item.name}"` : item.name;
           const escapedDept = dept.name.includes(',') ? `"${dept.name}"` : dept.name;
           const escapedGroup = costGroup.name.includes(',') ? `"${costGroup.name}"` : costGroup.name;
-          lines.push(`${item.id},${escapedDept},${escapedGroup},${escapedName},${monthValues.join(',')}`);
+          const statusLabel = statusLabels[item.status] || item.status || 'Taslak';
+          lines.push(`${item.id},${escapedDept},${escapedGroup},${escapedName},${statusLabel},${monthValues.join(',')}`);
         });
       });
     });
@@ -319,13 +327,14 @@ export default function DepartmentBudget() {
       
       for (let i = 1; i < lines.length; i++) {
         const values = parseCSVLine(lines[i]);
-        if (values.length < 16) continue;
+        if (values.length < 17) continue;
         
         const itemId = values[0] || "";
         const deptName = values[1] || "";
         const groupName = values[2] || "";
         const itemName = values[3] || "";
-        const monthlyValues = values.slice(4, 16).map(v => parseFloat(v) || 0);
+        // Skip values[4] (Durum) - ignored on import
+        const monthlyValues = values.slice(5, 17).map(v => parseFloat(v) || 0);
         
         let status: ImportRow['status'] = 'pending';
         let matchedCostGroupId: string | undefined;

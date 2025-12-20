@@ -391,13 +391,18 @@ export default function ProjectProcessesTab({ projectId, projectName }: Processe
       return;
     }
 
-    const headers = ["ProcessId", "WBS", "İsim", "BaşlangıçTarihi", "BitişTarihi", "Süre", "BağımlılıkWBS", "Açıklama"];
+    const headers = ["ProcessId", "WBS", "İsim", "BaşlangıçTarihi", "BitişTarihi", "Süre", "GerçekleşenBaşlangıç", "GerçekleşenBitiş", "GerçekleşenSüre", "BağımlılıkWBS", "Açıklama"];
     const rows = processes.map(p => {
       const duration = differenceInDays(parseISO(p.endDate), parseISO(p.startDate)) + 1;
       const processAny = p as any;
       const dependencyWbs = processAny.dependencyId 
         ? processes.find(dep => dep.id === processAny.dependencyId)?.wbs || ""
         : "";
+      const actualStart = p.actualStartDate ? format(parseISO(p.actualStartDate), "yyyy-MM-dd") : "";
+      const actualEnd = p.actualEndDate ? format(parseISO(p.actualEndDate), "yyyy-MM-dd") : "";
+      const actualDuration = p.actualStartDate && p.actualEndDate 
+        ? String(differenceInDays(parseISO(p.actualEndDate), parseISO(p.actualStartDate)) + 1)
+        : p.actualStartDate ? "Devam Ediyor" : "";
       return [
         p.id,
         p.wbs,
@@ -405,6 +410,9 @@ export default function ProjectProcessesTab({ projectId, projectName }: Processe
         format(parseISO(p.startDate), "yyyy-MM-dd"),
         format(parseISO(p.endDate), "yyyy-MM-dd"),
         String(duration),
+        actualStart,
+        actualEnd,
+        actualDuration,
         dependencyWbs,
         processAny.description || ""
       ].map(v => `"${String(v).replace(/"/g, '""')}"`).join(",");
