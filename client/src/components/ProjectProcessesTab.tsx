@@ -6,8 +6,6 @@ import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigge
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { Calendar } from "@/components/ui/calendar";
-import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { Textarea } from "@/components/ui/textarea";
 import { format, differenceInDays, addDays, startOfMonth, endOfMonth, eachDayOfInterval, parseISO } from "date-fns";
 import { tr } from "date-fns/locale";
@@ -16,7 +14,7 @@ import { useProjectProcesses, useCreateProjectProcess, useUpdateProjectProcess, 
 import type { ProjectProcess } from "@/lib/api";
 import { toast } from "sonner";
 import { 
-  Plus, ChevronDown, ChevronRight, CalendarIcon, Trash2, Edit2, 
+  Plus, ChevronDown, ChevronRight, Trash2, Edit2, 
   RotateCcw, History, Save, X, MoreHorizontal, Folder, FileText, CheckCircle2,
   Play, Flag
 } from "lucide-react";
@@ -736,39 +734,23 @@ export default function ProjectProcessesTab({ projectId, projectName }: Processe
             <div className="grid grid-cols-2 gap-4">
               <div className="space-y-2">
                 <Label>Başlangıç Tarihi</Label>
-                <Popover>
-                  <PopoverTrigger asChild>
-                    <Button variant="outline" className="w-full justify-start text-left font-normal">
-                      <CalendarIcon className="mr-2 h-4 w-4" />
-                      {format(newProcess.startDate, "dd.MM.yyyy")}
-                    </Button>
-                  </PopoverTrigger>
-                  <PopoverContent className="w-auto p-0">
-                    <Calendar
-                      mode="single"
-                      selected={newProcess.startDate}
-                      onSelect={(d) => d && setNewProcess({ ...newProcess, startDate: d })}
-                    />
-                  </PopoverContent>
-                </Popover>
+                <Input
+                  type="date"
+                  value={format(newProcess.startDate, "yyyy-MM-dd")}
+                  onChange={(e) => e.target.value && setNewProcess({ ...newProcess, startDate: new Date(e.target.value) })}
+                  className="w-full"
+                  data-testid="input-process-start-date"
+                />
               </div>
               <div className="space-y-2">
                 <Label>Bitiş Tarihi</Label>
-                <Popover>
-                  <PopoverTrigger asChild>
-                    <Button variant="outline" className="w-full justify-start text-left font-normal">
-                      <CalendarIcon className="mr-2 h-4 w-4" />
-                      {format(newProcess.endDate, "dd.MM.yyyy")}
-                    </Button>
-                  </PopoverTrigger>
-                  <PopoverContent className="w-auto p-0">
-                    <Calendar
-                      mode="single"
-                      selected={newProcess.endDate}
-                      onSelect={(d) => d && setNewProcess({ ...newProcess, endDate: d })}
-                    />
-                  </PopoverContent>
-                </Popover>
+                <Input
+                  type="date"
+                  value={format(newProcess.endDate, "yyyy-MM-dd")}
+                  onChange={(e) => e.target.value && setNewProcess({ ...newProcess, endDate: new Date(e.target.value) })}
+                  className="w-full"
+                  data-testid="input-process-end-date"
+                />
               </div>
             </div>
             <div className="bg-blue-50 border border-blue-200 rounded-lg p-3 text-sm text-blue-700">
