@@ -30,6 +30,7 @@ interface ProcessesTabProps {
 interface TreeNodeWithDates extends ProjectProcess {
   children: TreeNodeWithDates[];
   level: number;
+  wbs: string;
   calculatedStartDate?: string;
   calculatedEndDate?: string;
   calculatedDays?: number;
@@ -40,7 +41,7 @@ function buildTree(processes: ProjectProcess[]): TreeNodeWithDates[] {
   const roots: TreeNodeWithDates[] = [];
 
   processes.forEach(p => {
-    nodeMap.set(p.id, { ...p, children: [], level: 0 });
+    nodeMap.set(p.id, { ...p, children: [], level: 0, wbs: '' });
   });
 
   processes.forEach(p => {
@@ -85,6 +86,18 @@ function buildTree(processes: ProjectProcess[]): TreeNodeWithDates[] {
   }
 
   roots.forEach(calculateGroupDates);
+
+  // Calculate WBS numbers
+  function assignWbs(nodes: TreeNodeWithDates[], prefix: string = '') {
+    nodes.forEach((node, index) => {
+      node.wbs = prefix ? `${prefix}.${index + 1}` : `${index + 1}`;
+      if (node.children.length > 0) {
+        assignWbs(node.children, node.wbs);
+      }
+    });
+  }
+
+  assignWbs(roots);
 
   return roots;
 }
@@ -310,6 +323,7 @@ export default function ProjectProcessesTab({ projectId, projectName }: Processe
               <table className="w-full text-sm">
                 <thead>
                   <tr className="border-b bg-muted/30">
+                    <th className="text-left p-3 font-medium w-[60px]">WBS</th>
                     <th className="text-left p-3 font-medium w-[200px]">Süreç Adı</th>
                     <th className="text-left p-3 font-medium w-[100px]">Başlangıç</th>
                     <th className="text-left p-3 font-medium w-[100px]">Bitiş</th>
@@ -328,32 +342,18 @@ export default function ProjectProcessesTab({ projectId, projectName }: Processe
                 </thead>
                 <tbody>
                   {flatProcesses.map(process => (
-                    <tr key={process.id} className="border-b hover:bg-muted/20">
+                    <tr key={process.id} className={cn("border-b hover:bg-muted/20", process.children.length > 0 && "bg-amber-50/50")}>
                       <td className="p-3">
-                        <div 
-                          className="flex items-center gap-2"
-                          style={{ paddingLeft: `${process.level * 16}px` }}
-                        >
-                          {process.children && process.children.length > 0 ? (
-                            <button 
-                              onClick={() => toggleExpand(process.id)} 
-                              className="p-0.5 hover:bg-muted rounded"
-                            >
-                              {expandedNodes.has(process.id) ? (
-                                <ChevronDown className="h-4 w-4" />
-                              ) : (
-                                <ChevronRight className="h-4 w-4" />
-                              )}
-                            </button>
-                          ) : (
-                            <div className="w-5" />
-                          )}
-                          {process.isGroup ? (
-                            <Folder className="h-4 w-4 text-amber-500 shrink-0" />
-                          ) : (
-                            <FileText className="h-4 w-4 text-blue-500 shrink-0" />
-                          )}
-                          <span className={cn("font-medium truncate", process.isGroup && "text-amber-700")} title={process.name}>
+                        <span className={cn(
+                          "font-mono text-xs",
+                          process.children.length > 0 ? "font-bold text-amber-700" : "text-muted-foreground"
+                        )}>
+                          {process.wbs}
+                        </span>
+                      </td>
+                      <td className="p-3">
+                        <div className="flex items-center gap-2">
+                          <span className={cn("font-medium truncate", process.children.length > 0 && "font-semibold")} title={process.name}>
                             {process.name}
                           </span>
                           {process.currentRevision > 0 && (
