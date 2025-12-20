@@ -1,6 +1,5 @@
 import { useState, useMemo, Fragment, useEffect } from "react";
 import { Button } from "@/components/ui/button";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from "@/components/ui/dropdown-menu";
@@ -392,9 +391,9 @@ export default function ProjectProcessesTab({ projectId, projectName }: Processe
   }
 
   return (
-    <div className="space-y-6">
-      <Card>
-        <CardContent className="p-0">
+    <div className="space-y-4 pl-4 border-l-2 border-border/50 ml-2">
+      <div className="rounded-md border border-border overflow-hidden bg-card">
+        <div className="p-0">
           {flatProcesses.length === 0 ? (
             <div className="text-center py-12 text-muted-foreground">
               Henüz süreç tanımlanmamış
@@ -699,8 +698,8 @@ export default function ProjectProcessesTab({ projectId, projectName }: Processe
               </table>
             </div>
           )}
-        </CardContent>
-      </Card>
+        </div>
+      </div>
 
       <Dialog open={isAddDialogOpen} onOpenChange={setIsAddDialogOpen}>
         <DialogContent>
