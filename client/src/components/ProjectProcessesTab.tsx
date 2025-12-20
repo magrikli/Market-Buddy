@@ -18,7 +18,7 @@ import type { ProjectProcess } from "@/lib/api";
 import { toast } from "sonner";
 import { 
   Plus, ChevronDown, ChevronRight, CalendarIcon, Trash2, Edit2, 
-  RotateCcw, History, CheckCircle2, MoreHorizontal, Folder, FileText
+  RotateCcw, History, Save, X, MoreHorizontal, Folder, FileText, CheckCircle2
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 
@@ -415,13 +415,15 @@ export default function ProjectProcessesTab({ projectId, projectName }: Processe
                         </td>
                         <td className="p-2">
                           {isEditing ? (
-                            <Input
-                              value={editData?.name ?? ''}
-                              onChange={(e) => setEditData(prev => prev ? { ...prev, name: e.target.value } : null)}
-                              className="h-8"
-                            />
+                            <div style={{ paddingLeft: `${process.level * 20}px` }}>
+                              <Input
+                                value={editData?.name ?? ''}
+                                onChange={(e) => setEditData(prev => prev ? { ...prev, name: e.target.value } : null)}
+                                className="h-8"
+                              />
+                            </div>
                           ) : (
-                            <div className="flex items-center gap-2">
+                            <div className="flex items-center gap-2" style={{ paddingLeft: `${process.level * 20}px` }}>
                               <span className={cn("font-medium truncate", process.children.length > 0 && "font-semibold")} title={process.name}>
                                 {process.name}
                               </span>
@@ -501,11 +503,11 @@ export default function ProjectProcessesTab({ projectId, projectName }: Processe
                         <td className="p-2">
                           {isEditing ? (
                             <div className="flex gap-1">
-                              <Button size="sm" className="h-7 px-2" onClick={() => saveEdit(process.id, process.isGroup)}>
-                                <CheckCircle2 className="h-3.5 w-3.5" />
+                              <Button size="icon" variant="ghost" className="h-6 w-6 text-emerald-600 hover:text-emerald-700 hover:bg-emerald-50" onClick={() => saveEdit(process.id, process.isGroup)}>
+                                <Save className="h-3 w-3" />
                               </Button>
-                              <Button size="sm" variant="outline" className="h-7 px-2" onClick={cancelEdit}>
-                                <RotateCcw className="h-3.5 w-3.5" />
+                              <Button size="icon" variant="ghost" className="h-6 w-6 text-destructive hover:text-destructive hover:bg-destructive/10" onClick={cancelEdit}>
+                                <X className="h-3 w-3" />
                               </Button>
                             </div>
                           ) : (
