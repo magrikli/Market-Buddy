@@ -283,8 +283,8 @@ export function useUpdateBudgetItem() {
     mutationFn: ({ id, data }: { id: string; data: { monthlyValues?: any; status?: string } }) =>
       api.updateBudgetItem(id, data),
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: queryKeys.departments(2025) });
-      queryClient.invalidateQueries({ queryKey: queryKeys.projects(2025) });
+      queryClient.invalidateQueries({ queryKey: ['departments'] });
+      queryClient.invalidateQueries({ queryKey: ['projects'] });
     },
   });
 }
@@ -294,8 +294,8 @@ export function useApproveBudgetItem() {
   return useMutation({
     mutationFn: (id: string) => api.approveBudgetItem(id),
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: queryKeys.departments(2025) });
-      queryClient.invalidateQueries({ queryKey: queryKeys.projects(2025) });
+      queryClient.invalidateQueries({ queryKey: ['departments'] });
+      queryClient.invalidateQueries({ queryKey: ['projects'] });
     },
   });
 }
@@ -306,8 +306,8 @@ export function useReviseBudgetItem() {
     mutationFn: ({ id, editorName, revisionReason }: { id: string; editorName: string; revisionReason?: string }) =>
       api.reviseBudgetItem(id, editorName, revisionReason),
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: queryKeys.departments(2025) });
-      queryClient.invalidateQueries({ queryKey: queryKeys.projects(2025) });
+      queryClient.invalidateQueries({ queryKey: ['departments'] });
+      queryClient.invalidateQueries({ queryKey: ['projects'] });
     },
   });
 }
@@ -317,8 +317,8 @@ export function useRevertBudgetItem() {
   return useMutation({
     mutationFn: (id: string) => api.revertBudgetItem(id),
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: queryKeys.departments(2025) });
-      queryClient.invalidateQueries({ queryKey: queryKeys.projects(2025) });
+      queryClient.invalidateQueries({ queryKey: ['departments'] });
+      queryClient.invalidateQueries({ queryKey: ['projects'] });
     },
   });
 }
@@ -328,8 +328,8 @@ export function useDeleteBudgetItem() {
   return useMutation({
     mutationFn: (id: string) => api.deleteBudgetItem(id),
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: queryKeys.departments(2025) });
-      queryClient.invalidateQueries({ queryKey: queryKeys.projects(2025) });
+      queryClient.invalidateQueries({ queryKey: ['departments'] });
+      queryClient.invalidateQueries({ queryKey: ['projects'] });
     },
   });
 }
