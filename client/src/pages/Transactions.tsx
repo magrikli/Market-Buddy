@@ -221,7 +221,7 @@ export default function Transactions() {
                                   <SelectGroup key={groupId}>
                                     <SelectLabel>{getGroupName(groupId)}</SelectLabel>
                                     {depts.map(d => (
-                                      <SelectItem key={d.id} value={d.id}>{d.name}</SelectItem>
+                                      <SelectItem key={d.id} value={d.id} className="pl-6">{d.name}</SelectItem>
                                     ))}
                                   </SelectGroup>
                                 ))}
