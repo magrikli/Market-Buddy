@@ -8,8 +8,9 @@ import { useStore } from "@/lib/store";
 import { useDepartments, useDepartmentGroups, useProjects, useCreateTransaction, useTransactions } from "@/lib/queries";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { format } from "date-fns";
-import { Loader2, Save } from "lucide-react";
-import { useState } from "react";
+import { Loader2, Save, Download, Upload } from "lucide-react";
+import { useState, useRef } from "react";
+import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { useForm } from "react-hook-form";
 import { z } from "zod";
 import { toast } from "sonner";
@@ -32,6 +33,94 @@ export default function Transactions() {
   const { data: allProjects = [] } = useProjects(currentYear, selectedCompanyId);
   const createTransactionMutation = useCreateTransaction();
   const [loading, setLoading] = useState(false);
+  const [isImportDialogOpen, setIsImportDialogOpen] = useState(false);
+  const [importData, setImportData] = useState<any[]>([]);
+  const [importing, setImporting] = useState(false);
+  const fileInputRef = useRef<HTMLInputElement>(null);
+
+  // Export CSV template
+  const handleExportTemplate = () => {
+    const headers = ["Tarih", "Tür", "DepartmanID", "ProjeID", "KalemID", "Tutar", "Açıklama"];
+    const exampleRow = ["2025-12-20", "department_expense", "dept-id-here", "", "item-id-here", "1000", "Örnek açıklama"];
+    const csvContent = [headers.join(";"), exampleRow.join(";")].join("\n");
+    
+    const blob = new Blob(["\uFEFF" + csvContent], { type: "text/csv;charset=utf-8;" });
+    const url = URL.createObjectURL(blob);
+    const link = document.createElement("a");
+    link.href = url;
+    link.download = "transaction_template.csv";
+    link.click();
+    URL.revokeObjectURL(url);
+    toast.success("Şablon indirildi");
+  };
+
+  // Handle file selection
+  const handleFileSelect = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    
+    const reader = new FileReader();
+    reader.onload = (event) => {
+      const text = event.target?.result as string;
+      const lines = text.split("\n").filter(line => line.trim());
+      
+      if (lines.length < 2) {
+        toast.error("CSV dosyası en az bir veri satırı içermeli");
+        return;
+      }
+      
+      const headers = lines[0].split(";").map(h => h.trim());
+      const dataRows = lines.slice(1).map(line => {
+        const values = line.split(";").map(v => v.trim());
+        const row: Record<string, string> = {};
+        headers.forEach((header, i) => {
+          row[header] = values[i] || "";
+        });
+        return row;
+      });
+      
+      setImportData(dataRows);
+      setIsImportDialogOpen(true);
+    };
+    reader.readAsText(file, "UTF-8");
+    e.target.value = "";
+  };
+
+  // Process import
+  const handleImport = async () => {
+    if (importData.length === 0) return;
+    
+    setImporting(true);
+    let successCount = 0;
+    let errorCount = 0;
+    
+    for (const row of importData) {
+      try {
+        const type = row["Tür"] === "project_revenue" ? "revenue" : "expense";
+        await createTransactionMutation.mutateAsync({
+          type,
+          date: row["Tarih"],
+          amount: parseFloat(row["Tutar"]) || 0,
+          description: row["Açıklama"] || "",
+          budgetItemId: row["KalemID"] || undefined,
+        });
+        successCount++;
+      } catch {
+        errorCount++;
+      }
+    }
+    
+    setImporting(false);
+    setIsImportDialogOpen(false);
+    setImportData([]);
+    
+    if (successCount > 0) {
+      toast.success(`${successCount} kayıt başarıyla eklendi`);
+    }
+    if (errorCount > 0) {
+      toast.error(`${errorCount} kayıt eklenemedi`);
+    }
+  };
 
   const isAdmin = currentUser?.role === 'admin';
   const departments = isAdmin 
@@ -133,9 +222,28 @@ export default function Transactions() {
 
   return (
     <div className="space-y-6 animate-in fade-in slide-in-from-bottom-4 duration-500">
-      <div>
-        <h1 className="text-3xl font-bold tracking-tight text-foreground">Harcama ve Gelir Girişi</h1>
-        <p className="text-muted-foreground mt-1">Gerçekleşen finansal hareketleri sisteme kaydedin.</p>
+      <div className="flex items-center justify-between">
+        <div>
+          <h1 className="text-3xl font-bold tracking-tight text-foreground">Harcama ve Gelir Girişi</h1>
+          <p className="text-muted-foreground mt-1">Gerçekleşen finansal hareketleri sisteme kaydedin.</p>
+        </div>
+        <div className="flex gap-2">
+          <Button variant="outline" size="sm" onClick={handleExportTemplate}>
+            <Download className="h-4 w-4 mr-2" />
+            Şablon İndir
+          </Button>
+          <Button variant="outline" size="sm" onClick={() => fileInputRef.current?.click()}>
+            <Upload className="h-4 w-4 mr-2" />
+            CSV Yükle
+          </Button>
+          <input
+            ref={fileInputRef}
+            type="file"
+            accept=".csv"
+            onChange={handleFileSelect}
+            className="hidden"
+          />
+        </div>
       </div>
 
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
@@ -371,6 +479,46 @@ export default function Transactions() {
             </CardContent>
         </Card>
       </div>
+
+      <Dialog open={isImportDialogOpen} onOpenChange={setIsImportDialogOpen}>
+        <DialogContent className="max-w-2xl">
+          <DialogHeader>
+            <DialogTitle>CSV Import Önizleme</DialogTitle>
+            <DialogDescription>
+              {importData.length} kayıt bulundu. İçe aktarmak için onaylayın.
+            </DialogDescription>
+          </DialogHeader>
+          <div className="max-h-64 overflow-auto">
+            <Table>
+              <TableHeader>
+                <TableRow>
+                  <TableHead>Tarih</TableHead>
+                  <TableHead>Tür</TableHead>
+                  <TableHead>Tutar</TableHead>
+                  <TableHead>Açıklama</TableHead>
+                </TableRow>
+              </TableHeader>
+              <TableBody>
+                {importData.map((row, idx) => (
+                  <TableRow key={idx}>
+                    <TableCell>{row["Tarih"]}</TableCell>
+                    <TableCell>{row["Tür"]}</TableCell>
+                    <TableCell>€ {row["Tutar"]}</TableCell>
+                    <TableCell>{row["Açıklama"]}</TableCell>
+                  </TableRow>
+                ))}
+              </TableBody>
+            </Table>
+          </div>
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setIsImportDialogOpen(false)}>İptal</Button>
+            <Button onClick={handleImport} disabled={importing}>
+              {importing && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
+              {importData.length} Kayıt Ekle
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }
