@@ -1,4 +1,4 @@
-import { useState, useMemo } from "react";
+import { useState, useMemo, Fragment } from "react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
@@ -13,12 +13,13 @@ import { Textarea } from "@/components/ui/textarea";
 import { format, differenceInDays, addDays, startOfMonth, endOfMonth, eachDayOfInterval, parseISO } from "date-fns";
 import { tr } from "date-fns/locale";
 import { useStore } from "@/lib/store";
-import { useProjectProcesses, useCreateProjectProcess, useUpdateProjectProcess, useApproveProcess, useReviseProcess, useRevertProcess, useDeleteProjectProcess } from "@/lib/queries";
+import { useProjectProcesses, useCreateProjectProcess, useUpdateProjectProcess, useApproveProcess, useReviseProcess, useRevertProcess, useDeleteProjectProcess, useStartProcess, useFinishProcess } from "@/lib/queries";
 import type { ProjectProcess } from "@/lib/api";
 import { toast } from "sonner";
 import { 
   Plus, ChevronDown, ChevronRight, CalendarIcon, Trash2, Edit2, 
-  RotateCcw, History, Save, X, MoreHorizontal, Folder, FileText, CheckCircle2
+  RotateCcw, History, Save, X, MoreHorizontal, Folder, FileText, CheckCircle2,
+  Play, Flag
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 
@@ -159,6 +160,8 @@ export default function ProjectProcessesTab({ projectId, projectName }: Processe
   const reviseMutation = useReviseProcess();
   const revertMutation = useRevertProcess();
   const deleteMutation = useDeleteProjectProcess();
+  const startMutation = useStartProcess();
+  const finishMutation = useFinishProcess();
 
   const [expandedNodes, setExpandedNodes] = useState<Set<string>>(new Set());
   const [isAddDialogOpen, setIsAddDialogOpen] = useState(false);
@@ -324,9 +327,27 @@ export default function ProjectProcessesTab({ projectId, projectName }: Processe
     }
   };
 
-  const getGanttBarStyle = (process: ProjectProcess) => {
-    const start = parseISO(process.startDate);
-    const end = parseISO(process.endDate);
+  const handleStart = async (process: ProjectProcess) => {
+    try {
+      await startMutation.mutateAsync({ id: process.id, projectId });
+      toast.success("Süreç başlatıldı");
+    } catch (error: any) {
+      toast.error(error.message);
+    }
+  };
+
+  const handleFinish = async (process: ProjectProcess) => {
+    try {
+      await finishMutation.mutateAsync({ id: process.id, projectId });
+      toast.success("Süreç tamamlandı");
+    } catch (error: any) {
+      toast.error(error.message);
+    }
+  };
+
+  const getGanttBarStyle = (startDateStr: string, endDateStr: string) => {
+    const start = parseISO(startDateStr);
+    const end = parseISO(endDateStr);
     const totalDays = differenceInDays(ganttRange.end, ganttRange.start) + 1;
     const startOffset = differenceInDays(start, ganttRange.start);
     const duration = differenceInDays(end, start) + 1;
@@ -335,6 +356,12 @@ export default function ProjectProcessesTab({ projectId, projectName }: Processe
       left: `${(startOffset / totalDays) * 100}%`,
       width: `${(duration / totalDays) * 100}%`,
     };
+  };
+
+  const getActualEndDate = (process: ProjectProcess): string => {
+    if (process.actualEndDate) return process.actualEndDate;
+    const today = new Date().toISOString();
+    return today < process.endDate ? today : process.endDate;
   };
 
   if (isLoading) {
@@ -395,7 +422,8 @@ export default function ProjectProcessesTab({ projectId, projectName }: Processe
                   {flatProcesses.map(process => {
                     const isEditing = editingId === process.id;
                     return (
-                      <tr key={process.id} className={cn("border-b hover:bg-muted/20", process.children.length > 0 && "bg-amber-50/50", isEditing && "bg-blue-50")}>
+                      <Fragment key={process.id}>
+                      <tr className={cn("border-b hover:bg-muted/20", process.children.length > 0 && "bg-amber-50/50", isEditing && "bg-blue-50")}>
                         <td className="p-2">
                           {isEditing ? (
                             <Input
@@ -473,30 +501,45 @@ export default function ProjectProcessesTab({ projectId, projectName }: Processe
                             : differenceInDays(parseISO(process.endDate), parseISO(process.startDate)) + 1}
                         </td>
                         <td className="p-2">
-                          <div className="relative h-6 bg-gray-100 rounded min-w-[200px]">
+                          <div className="relative h-8 bg-gray-100 rounded min-w-[200px]">
                             {process.isGroup ? (
                               process.calculatedStartDate && process.calculatedEndDate ? (
                                 <div
-                                  className="absolute h-2 top-2 bg-gray-800 rounded-sm"
-                                  style={getGanttBarStyle({ 
-                                    ...process, 
-                                    startDate: process.calculatedStartDate, 
-                                    endDate: process.calculatedEndDate 
-                                  })}
+                                  className="absolute h-2 top-3 bg-gray-800 rounded-sm"
+                                  style={getGanttBarStyle(process.calculatedStartDate, process.calculatedEndDate)}
                                   title={`${process.calculatedDays} gün`}
                                 />
                               ) : null
                             ) : (
-                              <div
-                                className={cn(
-                                  "absolute h-full rounded text-[10px] flex items-center justify-center text-white font-medium",
-                                  process.status === 'approved' ? 'bg-green-500' :
-                                    process.status === 'pending' ? 'bg-yellow-500' :
-                                    process.status === 'rejected' ? 'bg-red-500' : 'bg-blue-500'
+                              <>
+                                {/* Planned bar - top, thinner */}
+                                <div
+                                  className={cn(
+                                    "absolute h-3 top-0 rounded-t text-[9px] flex items-center justify-center text-white font-medium opacity-60",
+                                    process.status === 'approved' ? 'bg-blue-400' :
+                                      process.status === 'pending' ? 'bg-yellow-400' :
+                                      process.status === 'rejected' ? 'bg-red-400' : 'bg-gray-400'
+                                  )}
+                                  style={getGanttBarStyle(process.startDate, process.endDate)}
+                                  title={`Planlanan: ${differenceInDays(parseISO(process.endDate), parseISO(process.startDate)) + 1} gün`}
+                                />
+                                {/* Actual bar - bottom, thinner */}
+                                {process.actualStartDate && (
+                                  <div
+                                    className={cn(
+                                      "absolute h-3 bottom-0 rounded-b text-[9px] flex items-center justify-center text-white font-medium",
+                                      process.actualEndDate ? 'bg-green-500' : 'bg-orange-500'
+                                    )}
+                                    style={{
+                                      ...getGanttBarStyle(process.actualStartDate, getActualEndDate(process)),
+                                      ...(process.actualEndDate ? {} : { 
+                                        background: 'repeating-linear-gradient(45deg, #f97316, #f97316 4px, #fb923c 4px, #fb923c 8px)' 
+                                      })
+                                    }}
+                                    title={`Gerçekleşen: ${process.actualEndDate ? differenceInDays(parseISO(process.actualEndDate), parseISO(process.actualStartDate)) + 1 : 'Devam ediyor'} gün`}
+                                  />
                                 )}
-                                style={getGanttBarStyle(process)}
-                                title={`${differenceInDays(parseISO(process.endDate), parseISO(process.startDate)) + 1} gün`}
-                              />
+                              </>
                             )}
                           </div>
                         </td>
@@ -522,6 +565,18 @@ export default function ProjectProcessesTab({ projectId, projectName }: Processe
                                   <History className="mr-2 h-4 w-4" />
                                   Geçmiş
                                 </DropdownMenuItem>
+                                {!process.isGroup && !process.actualStartDate && (
+                                  <DropdownMenuItem onClick={() => handleStart(process)}>
+                                    <Play className="mr-2 h-4 w-4 text-green-600" />
+                                    Başlat
+                                  </DropdownMenuItem>
+                                )}
+                                {!process.isGroup && process.actualStartDate && !process.actualEndDate && (
+                                  <DropdownMenuItem onClick={() => handleFinish(process)}>
+                                    <Flag className="mr-2 h-4 w-4 text-blue-600" />
+                                    Tamamla
+                                  </DropdownMenuItem>
+                                )}
                                 {isAdmin && (
                                   <>
                                     {process.status === 'draft' && (
@@ -562,6 +617,30 @@ export default function ProjectProcessesTab({ projectId, projectName }: Processe
                           )}
                         </td>
                       </tr>
+                      {/* Second row for actual dates - only for non-group processes */}
+                      {!process.isGroup && (process.actualStartDate || process.actualEndDate) && !isEditing && (
+                        <tr key={`${process.id}-actual`} className="border-b bg-gray-50/50">
+                          <td className="p-1 pl-2"></td>
+                          <td className="p-1 text-xs text-muted-foreground" style={{ paddingLeft: `${process.level * 12 + 8}px` }}>
+                            <span className="italic">Gerçekleşen</span>
+                          </td>
+                          <td className="p-1 text-xs text-green-600">
+                            {process.actualStartDate ? format(parseISO(process.actualStartDate), "dd.MM.yyyy") : '-'}
+                          </td>
+                          <td className="p-1 text-xs text-green-600">
+                            {process.actualEndDate ? format(parseISO(process.actualEndDate), "dd.MM.yyyy") : <span className="text-orange-500 italic">Devam</span>}
+                          </td>
+                          <td className="p-1 text-xs text-center">
+                            {process.actualStartDate && (
+                              process.actualEndDate 
+                                ? differenceInDays(parseISO(process.actualEndDate), parseISO(process.actualStartDate)) + 1
+                                : <span className="text-orange-500">{differenceInDays(new Date(), parseISO(process.actualStartDate)) + 1}</span>
+                            )}
+                          </td>
+                          <td className="p-1" colSpan={2}></td>
+                        </tr>
+                      )}
+                      </Fragment>
                     );
                   })}
                 </tbody>

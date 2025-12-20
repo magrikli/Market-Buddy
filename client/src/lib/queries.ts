@@ -460,6 +460,26 @@ export function useApproveProcess() {
   });
 }
 
+export function useStartProcess() {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: ({ id, projectId }: { id: string; projectId: string }) => api.startProcess(id),
+    onSuccess: (_, variables) => {
+      queryClient.invalidateQueries({ queryKey: ['projectProcesses', variables.projectId] });
+    },
+  });
+}
+
+export function useFinishProcess() {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: ({ id, projectId }: { id: string; projectId: string }) => api.finishProcess(id),
+    onSuccess: (_, variables) => {
+      queryClient.invalidateQueries({ queryKey: ['projectProcesses', variables.projectId] });
+    },
+  });
+}
+
 export function useReviseProcess() {
   const queryClient = useQueryClient();
   return useMutation({

@@ -343,6 +343,8 @@ export interface ProjectProcess {
   wbs: string; // Work Breakdown Structure - hierarchical numbering like "1", "1.1", "1.2"
   startDate: string;
   endDate: string;
+  actualStartDate: string | null;
+  actualEndDate: string | null;
   status: 'draft' | 'pending' | 'approved' | 'rejected';
   currentRevision: number;
   previousStartDate: string | null;
@@ -375,10 +377,24 @@ export async function updateProjectProcess(id: string, data: {
   endDate?: string;
   wbs?: string;
   status?: string;
+  actualStartDate?: string | null;
+  actualEndDate?: string | null;
 }): Promise<ProjectProcess> {
   return fetchAPI(`/project-processes/${id}`, {
     method: 'PATCH',
     body: JSON.stringify(data),
+  });
+}
+
+export async function startProcess(id: string): Promise<ProjectProcess> {
+  return fetchAPI(`/project-processes/${id}/start`, {
+    method: 'POST',
+  });
+}
+
+export async function finishProcess(id: string): Promise<ProjectProcess> {
+  return fetchAPI(`/project-processes/${id}/finish`, {
+    method: 'POST',
   });
 }
 
