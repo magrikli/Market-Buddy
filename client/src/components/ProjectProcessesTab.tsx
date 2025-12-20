@@ -490,11 +490,16 @@ export default function ProjectProcessesTab({ projectId, projectName }: Processe
                                   ? <span className="text-gray-400 italic">-</span>
                                   : format(parseISO(process.startDate), "dd.MM.yyyy")}
                               </div>
-                              {!process.isGroup && process.actualStartDate && (
-                                <div className="text-xs text-green-600">
-                                  {format(parseISO(process.actualStartDate), "dd.MM.yyyy")}
-                                </div>
-                              )}
+                              {!process.isGroup && process.actualStartDate && (() => {
+                                const actualStart = parseISO(process.actualStartDate);
+                                const plannedStart = parseISO(process.startDate);
+                                const isLate = actualStart > plannedStart;
+                                return (
+                                  <div className={cn("text-xs", isLate ? "text-red-600" : "text-green-600")}>
+                                    {format(actualStart, "dd.MM.yyyy")}
+                                  </div>
+                                );
+                              })()}
                             </div>
                           )}
                         </td>
@@ -515,13 +520,19 @@ export default function ProjectProcessesTab({ projectId, projectName }: Processe
                                   ? <span className="text-gray-400 italic">-</span>
                                   : format(parseISO(process.endDate), "dd.MM.yyyy")}
                               </div>
-                              {!process.isGroup && process.actualStartDate && (
-                                <div className="text-xs text-green-600">
-                                  {process.actualEndDate 
-                                    ? format(parseISO(process.actualEndDate), "dd.MM.yyyy") 
-                                    : <span className="text-orange-500 italic">Devam</span>}
-                                </div>
-                              )}
+                              {!process.isGroup && process.actualStartDate && (() => {
+                                if (!process.actualEndDate) {
+                                  return <div className="text-xs text-orange-500 italic">Devam</div>;
+                                }
+                                const actualEnd = parseISO(process.actualEndDate);
+                                const plannedEnd = parseISO(process.endDate);
+                                const isLate = actualEnd > plannedEnd;
+                                return (
+                                  <div className={cn("text-xs", isLate ? "text-red-600" : "text-green-600")}>
+                                    {format(actualEnd, "dd.MM.yyyy")}
+                                  </div>
+                                );
+                              })()}
                             </div>
                           )}
                         </td>
@@ -532,13 +543,16 @@ export default function ProjectProcessesTab({ projectId, projectName }: Processe
                                 ? (process.calculatedDays ?? <span className="text-gray-400">-</span>)
                                 : differenceInDays(parseISO(process.endDate), parseISO(process.startDate)) + 1}
                             </div>
-                            {!process.isGroup && process.actualStartDate && (
-                              <div className="text-xs text-green-600">
-                                {process.actualEndDate 
-                                  ? differenceInDays(parseISO(process.actualEndDate), parseISO(process.actualStartDate)) + 1
-                                  : <span className="text-orange-500">{differenceInDays(new Date(), parseISO(process.actualStartDate)) + 1}</span>}
-                              </div>
-                            )}
+                            {!process.isGroup && process.actualStartDate && (() => {
+                              const plannedDuration = differenceInDays(parseISO(process.endDate), parseISO(process.startDate)) + 1;
+                              if (!process.actualEndDate) {
+                                const currentDuration = differenceInDays(new Date(), parseISO(process.actualStartDate)) + 1;
+                                return <div className={cn("text-xs", currentDuration > plannedDuration ? "text-red-600" : "text-orange-500")}>{currentDuration}</div>;
+                              }
+                              const actualDuration = differenceInDays(parseISO(process.actualEndDate), parseISO(process.actualStartDate)) + 1;
+                              const isOver = actualDuration > plannedDuration;
+                              return <div className={cn("text-xs", isOver ? "text-red-600" : "text-green-600")}>{actualDuration}</div>;
+                            })()}
                           </div>
                         </td>
                         <td className="p-2">
@@ -565,21 +579,32 @@ export default function ProjectProcessesTab({ projectId, projectName }: Processe
                                   title={`Planlanan: ${differenceInDays(parseISO(process.endDate), parseISO(process.startDate)) + 1} gün`}
                                 />
                                 {/* Actual bar - bottom, thinner */}
-                                {process.actualStartDate && (
-                                  <div
-                                    className={cn(
-                                      "absolute h-3 bottom-0 rounded-b text-[9px] flex items-center justify-center text-white font-medium",
-                                      process.actualEndDate ? 'bg-green-500' : 'bg-orange-500'
-                                    )}
-                                    style={{
-                                      ...getGanttBarStyle(process.actualStartDate, getActualEndDate(process)),
-                                      ...(process.actualEndDate ? {} : { 
-                                        background: 'repeating-linear-gradient(45deg, #f97316, #f97316 4px, #fb923c 4px, #fb923c 8px)' 
-                                      })
-                                    }}
-                                    title={`Gerçekleşen: ${process.actualEndDate ? differenceInDays(parseISO(process.actualEndDate), parseISO(process.actualStartDate)) + 1 : 'Devam ediyor'} gün`}
-                                  />
-                                )}
+                                {process.actualStartDate && (() => {
+                                  const plannedDuration = differenceInDays(parseISO(process.endDate), parseISO(process.startDate)) + 1;
+                                  const actualEndDateStr = getActualEndDate(process);
+                                  const actualDuration = differenceInDays(parseISO(actualEndDateStr), parseISO(process.actualStartDate)) + 1;
+                                  const isOverBudget = actualDuration > plannedDuration;
+                                  
+                                  return (
+                                    <div
+                                      className={cn(
+                                        "absolute h-3 bottom-0 rounded-b text-[9px] flex items-center justify-center text-white font-medium",
+                                        process.actualEndDate 
+                                          ? (isOverBudget ? 'bg-red-500' : 'bg-green-500')
+                                          : (isOverBudget ? 'bg-red-500' : 'bg-orange-500')
+                                      )}
+                                      style={{
+                                        ...getGanttBarStyle(process.actualStartDate, actualEndDateStr),
+                                        ...(!process.actualEndDate ? { 
+                                          background: isOverBudget 
+                                            ? 'repeating-linear-gradient(45deg, #ef4444, #ef4444 4px, #f87171 4px, #f87171 8px)'
+                                            : 'repeating-linear-gradient(45deg, #f97316, #f97316 4px, #fb923c 4px, #fb923c 8px)' 
+                                        } : {})
+                                      }}
+                                      title={`Gerçekleşen: ${process.actualEndDate ? actualDuration : 'Devam ediyor'} gün`}
+                                    />
+                                  );
+                                })()}
                               </>
                             )}
                           </div>
