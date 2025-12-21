@@ -47,6 +47,19 @@ export async function initializeDatabase() {
       )
     `);
     
+    // Create session table for connect-pg-simple (required for production)
+    await pool.query(`
+      CREATE TABLE IF NOT EXISTS "session" (
+        "sid" varchar NOT NULL COLLATE "default",
+        "sess" json NOT NULL,
+        "expire" timestamp(6) NOT NULL,
+        CONSTRAINT "session_pkey" PRIMARY KEY ("sid")
+      )
+    `);
+    await pool.query(`
+      CREATE INDEX IF NOT EXISTS "IDX_session_expire" ON "session" ("expire")
+    `);
+    
     // Auto-increment BuildNo only when running in Replit (not Docker/production)
     const isReplit = process.env.REPL_ID || process.env.REPLIT_DEV_DOMAIN;
     const isProduction = process.env.NODE_ENV === 'production';

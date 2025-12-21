@@ -23,7 +23,7 @@ if (isProduction && process.env.DATABASE_URL) {
   sessionStore = new PgSession({
     conString: process.env.DATABASE_URL,
     tableName: 'session',
-    createTableIfMissing: true,
+    // Table is created in initializeDatabase() - don't use createTableIfMissing as it requires a SQL file
   });
 } else {
   const MemoryStoreSession = MemoryStore(session);
