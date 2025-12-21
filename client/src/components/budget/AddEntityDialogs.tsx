@@ -134,20 +134,22 @@ export function AddBudgetItemDialog({ isOpen, onClose, onSave, title, descriptio
 interface AddProjectDialogProps {
     isOpen: boolean;
     onClose: () => void;
-    onSave: (name: string, projectTypeId?: string) => void;
+    onSave: (name: string, code?: string, projectTypeId?: string) => void;
     projectTypes: { id: string; name: string; code?: string | null }[];
     isLoading?: boolean;
 }
 
 export function AddProjectDialog({ isOpen, onClose, onSave, projectTypes, isLoading }: AddProjectDialogProps) {
     const [name, setName] = useState("");
+    const [code, setCode] = useState("");
     const [projectTypeId, setProjectTypeId] = useState<string>("");
 
     const handleSave = () => {
         if (name.trim()) {
             const typeId = projectTypeId && projectTypeId !== "__none__" ? projectTypeId : undefined;
-            onSave(name, typeId);
+            onSave(name, code.trim() || undefined, typeId);
             setName("");
+            setCode("");
             setProjectTypeId("");
             onClose();
         }
@@ -155,6 +157,7 @@ export function AddProjectDialog({ isOpen, onClose, onSave, projectTypes, isLoad
 
     const handleClose = () => {
         setName("");
+        setCode("");
         setProjectTypeId("");
         onClose();
     };
@@ -167,16 +170,28 @@ export function AddProjectDialog({ isOpen, onClose, onSave, projectTypes, isLoad
                     <DialogDescription>Bütçe sistemine yeni bir proje tanımlayın.</DialogDescription>
                 </DialogHeader>
                 <div className="space-y-4 py-4">
-                    <div className="space-y-2">
-                        <Label htmlFor="project-name">Proje Adı</Label>
-                        <Input 
-                            id="project-name" 
-                            placeholder="Örn: E-Ticaret Platformu" 
-                            value={name} 
-                            onChange={(e) => setName(e.target.value)}
-                            onKeyDown={(e) => e.key === 'Enter' && handleSave()}
-                            data-testid="input-project-name"
-                        />
+                    <div className="grid grid-cols-3 gap-3">
+                        <div className="col-span-1 space-y-2">
+                            <Label htmlFor="project-code">Proje Kodu</Label>
+                            <Input 
+                                id="project-code" 
+                                placeholder="Örn: PRJ001" 
+                                value={code} 
+                                onChange={(e) => setCode(e.target.value)}
+                                data-testid="input-project-code"
+                            />
+                        </div>
+                        <div className="col-span-2 space-y-2">
+                            <Label htmlFor="project-name">Proje Adı</Label>
+                            <Input 
+                                id="project-name" 
+                                placeholder="Örn: E-Ticaret Platformu" 
+                                value={name} 
+                                onChange={(e) => setName(e.target.value)}
+                                onKeyDown={(e) => e.key === 'Enter' && handleSave()}
+                                data-testid="input-project-name"
+                            />
+                        </div>
                     </div>
                     {projectTypes.length > 0 && (
                         <div className="space-y-2">

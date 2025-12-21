@@ -184,17 +184,17 @@ export async function getProjects(year: number = 2025, companyId?: string | null
   return fetchAPI(`/projects?${params.toString()}`);
 }
 
-export async function createProject(name: string, companyId: string, projectTypeId?: string): Promise<Project> {
+export async function createProject(name: string, companyId: string, code?: string, projectTypeId?: string): Promise<Project> {
   return fetchAPI('/projects', {
     method: 'POST',
-    body: JSON.stringify({ name, companyId, projectTypeId }),
+    body: JSON.stringify({ name, code, companyId, projectTypeId }),
   });
 }
 
-export async function updateProject(id: string, name: string): Promise<Project> {
+export async function updateProject(id: string, data: { name?: string; code?: string }): Promise<Project> {
   return fetchAPI(`/projects/${id}`, {
     method: 'PUT',
-    body: JSON.stringify({ name }),
+    body: JSON.stringify(data),
   });
 }
 

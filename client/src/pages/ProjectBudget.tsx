@@ -17,6 +17,8 @@ import { PlusCircle, Download, Filter, Loader2, Plus, MoreHorizontal, Pencil, Tr
 import { useState, useRef } from "react";
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
+import { Label } from "@/components/ui/label";
+import { Input } from "@/components/ui/input";
 import { AddEntityDialog, AddBudgetItemDialog, AddProjectDialog } from "@/components/budget/AddEntityDialogs";
 import { toast } from "sonner";
 import type { BudgetMonthValues } from "@/lib/store";
@@ -49,7 +51,9 @@ export default function ProjectBudget() {
   
   const [editProjectOpen, setEditProjectOpen] = useState(false);
   const [editPhaseOpen, setEditPhaseOpen] = useState(false);
-  const [editingProject, setEditingProject] = useState<{id: string; name: string} | null>(null);
+  const [editingProject, setEditingProject] = useState<{id: string; name: string; code?: string | null} | null>(null);
+  const [editProjectName, setEditProjectName] = useState("");
+  const [editProjectCode, setEditProjectCode] = useState("");
   const [editingPhase, setEditingPhase] = useState<{id: string; name: string} | null>(null);
   const [activeTabByProject, setActiveTabByProject] = useState<Record<string, string>>({});
   const [expandedProjects, setExpandedProjects] = useState<string[] | null>(null);
@@ -88,35 +92,49 @@ export default function ProjectBudget() {
     return totals;
   };
 
-  const handleAddProject = async (name: string, projectTypeId?: string) => {
+  const handleAddProject = async (name: string, code?: string, projectTypeId?: string) => {
     if (!selectedCompanyId) {
       toast.error("Lütfen önce bir şirket seçin");
       return;
     }
     try {
       const newProject = await createProjectMutation.mutateAsync({ 
-        name, 
+        name,
+        code,
         companyId: selectedCompanyId,
         projectTypeId 
       });
       setExpandedProjects(prev => prev === null ? [newProject.id] : [...prev, newProject.id]);
-      toast.success("Proje eklendi", { description: name });
+      toast.success("Proje eklendi", { description: code ? `${code}-${name}` : name });
       setIsNewProjectOpen(false);
     } catch (error: any) {
       toast.error("Hata", { description: error.message });
     }
   };
 
-  const handleEditProject = async (name: string) => {
+  const handleEditProject = async () => {
     if (!editingProject) return;
     try {
-      await updateProjectMutation.mutateAsync({ id: editingProject.id, name });
-      toast.success("Proje güncellendi", { description: name });
+      await updateProjectMutation.mutateAsync({ 
+        id: editingProject.id, 
+        name: editProjectName,
+        code: editProjectCode || undefined
+      });
+      toast.success("Proje güncellendi", { description: editProjectCode ? `${editProjectCode}-${editProjectName}` : editProjectName });
       setEditProjectOpen(false);
       setEditingProject(null);
+      setEditProjectName("");
+      setEditProjectCode("");
     } catch (error: any) {
       toast.error("Hata", { description: error.message });
     }
+  };
+
+  const openEditProjectDialog = (project: {id: string; name: string; code?: string | null}) => {
+    setEditingProject(project);
+    setEditProjectName(project.name);
+    setEditProjectCode(project.code || "");
+    setEditProjectOpen(true);
   };
 
   const handleDeleteProject = async (id: string, name: string) => {
@@ -633,7 +651,7 @@ export default function ProjectBudget() {
                                   <PlusCircle className="mr-2 h-4 w-4" />
                                   Yeni Faz Ekle
                                 </DropdownMenuItem>
-                                <DropdownMenuItem onClick={(e) => { e.stopPropagation(); setEditingProject({ id: project.id, name: project.name }); setEditProjectOpen(true); }}>
+                                <DropdownMenuItem onClick={(e) => { e.stopPropagation(); openEditProjectDialog({ id: project.id, name: project.name, code: project.code }); }}>
                                   <Pencil className="mr-2 h-4 w-4" />
                                   Düzenle
                                 </DropdownMenuItem>
@@ -943,15 +961,43 @@ export default function ProjectBudget() {
         description="Seçili faz altına yeni bir gelir kalemi ekleyin."
       />
 
-      <AddEntityDialog 
-        isOpen={editProjectOpen} 
-        onClose={() => { setEditProjectOpen(false); setEditingProject(null); }} 
-        onSave={handleEditProject}
-        title="Proje Düzenle"
-        description="Proje adını güncelleyin."
-        placeholder="Proje adı"
-        defaultValue={editingProject?.name}
-      />
+      <Dialog open={editProjectOpen} onOpenChange={(open) => { if (!open) { setEditProjectOpen(false); setEditingProject(null); setEditProjectName(""); setEditProjectCode(""); } }}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>Proje Düzenle</DialogTitle>
+            <DialogDescription>Proje bilgilerini güncelleyin.</DialogDescription>
+          </DialogHeader>
+          <div className="space-y-4 py-4">
+            <div className="grid grid-cols-3 gap-3">
+              <div className="col-span-1 space-y-2">
+                <Label htmlFor="edit-project-code">Proje Kodu</Label>
+                <Input 
+                  id="edit-project-code" 
+                  placeholder="Örn: PRJ001" 
+                  value={editProjectCode} 
+                  onChange={(e) => setEditProjectCode(e.target.value)}
+                  data-testid="input-edit-project-code"
+                />
+              </div>
+              <div className="col-span-2 space-y-2">
+                <Label htmlFor="edit-project-name">Proje Adı</Label>
+                <Input 
+                  id="edit-project-name" 
+                  placeholder="Örn: E-Ticaret Platformu" 
+                  value={editProjectName} 
+                  onChange={(e) => setEditProjectName(e.target.value)}
+                  onKeyDown={(e) => e.key === 'Enter' && handleEditProject()}
+                  data-testid="input-edit-project-name"
+                />
+              </div>
+            </div>
+          </div>
+          <DialogFooter>
+            <Button variant="outline" onClick={() => { setEditProjectOpen(false); setEditingProject(null); setEditProjectName(""); setEditProjectCode(""); }}>İptal</Button>
+            <Button onClick={handleEditProject} disabled={!editProjectName.trim()} data-testid="button-update-project">Güncelle</Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
 
       <AddEntityDialog 
         isOpen={editPhaseOpen} 
