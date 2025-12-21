@@ -9,7 +9,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger, DropdownMenuSeparator } from "@/components/ui/dropdown-menu";
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
-import { PlusCircle, Download, Filter, Loader2, Plus, MoreHorizontal, Pencil, Trash2, FolderOpen, Building2, Upload, ArrowUp, ArrowDown } from "lucide-react";
+import { PlusCircle, Download, Filter, Loader2, Plus, MoreHorizontal, Pencil, Trash2, FolderOpen, Building2, Upload, ArrowUp, ArrowDown, ChevronDown } from "lucide-react";
 import { useState, useRef } from "react";
 import { AddEntityDialog, AddBudgetItemDialog } from "@/components/budget/AddEntityDialogs";
 import { toast } from "sonner";
@@ -927,13 +927,14 @@ export default function DepartmentBudget() {
                         const deptMonthlyTotals = getDeptMonthlyTotals(dept);
                         return (
                           <AccordionItem key={dept.id} value={dept.id} className="border-b border-border/50">
-                            <AccordionTrigger className="hover:no-underline py-0 [&>svg]:absolute [&>svg]:right-2 [&>svg]:top-1/2 [&>svg]:-translate-y-1/2">
+                            <AccordionTrigger className="hover:no-underline py-0 [&>svg]:hidden">
                               <div className="w-full overflow-x-auto">
                                 <table className="w-full text-xs">
                                   <tbody>
                                     <tr className="bg-muted/50">
                                       <td className="w-[200px] text-left p-2 font-semibold sticky left-0 bg-muted/50 z-10">
                                         <div className="flex items-center gap-2">
+                                          <ChevronDown className="h-4 w-4 text-muted-foreground shrink-0 transition-transform duration-200 group-data-[state=open]:rotate-180" />
                                           <Building2 className="h-4 w-4 text-muted-foreground" />
                                           <span className="text-foreground">{dept.name}</span>
                                           <span className="px-2 py-0.5 rounded-full bg-background text-[10px] font-medium text-muted-foreground">{dept.costGroups.length} Grup</span>
@@ -1098,13 +1099,14 @@ export default function DepartmentBudget() {
                       const deptMonthlyTotals = getDeptMonthlyTotals(dept);
                       return (
                         <AccordionItem key={dept.id} value={dept.id} className="border-b border-border/50">
-                          <AccordionTrigger className="hover:no-underline py-0 [&>svg]:absolute [&>svg]:right-2 [&>svg]:top-1/2 [&>svg]:-translate-y-1/2">
+                          <AccordionTrigger className="hover:no-underline py-0 [&>svg]:hidden">
                             <div className="w-full overflow-x-auto">
                               <table className="w-full text-xs">
                                 <tbody>
                                   <tr className="bg-muted/50">
                                     <td className="w-[200px] text-left p-2 font-semibold sticky left-0 bg-muted/50 z-10">
                                       <div className="flex items-center gap-2">
+                                        <ChevronDown className="h-4 w-4 text-muted-foreground shrink-0 transition-transform duration-200 group-data-[state=open]:rotate-180" />
                                         <Building2 className="h-4 w-4 text-muted-foreground" />
                                         <span className="text-foreground">{dept.name}</span>
                                         <span className="px-2 py-0.5 rounded-full bg-background text-[10px] font-medium text-muted-foreground">{dept.costGroups.length} Grup</span>
