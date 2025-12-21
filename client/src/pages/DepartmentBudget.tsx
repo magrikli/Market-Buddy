@@ -926,7 +926,7 @@ export default function DepartmentBudget() {
                         const deptTotal = dept.costGroups.reduce((acc, g) => acc + g.items.reduce((iAcc, i) => iAcc + Object.values(i.values).reduce((vAcc, v) => vAcc + v, 0), 0), 0);
                         const deptMonthlyTotals = getDeptMonthlyTotals(dept);
                         return (
-                          <AccordionItem key={dept.id} value={dept.id} className="border-b border-border/50">
+                          <AccordionItem key={dept.id} value={dept.id} className="border-b border-border/50 group">
                             <AccordionTrigger className="hover:no-underline py-0 [&>svg]:hidden">
                               <div className="w-full overflow-x-auto">
                                 <div className="pl-4 ml-2">
@@ -1101,7 +1101,7 @@ export default function DepartmentBudget() {
                       const deptTotal = dept.costGroups.reduce((acc, g) => acc + g.items.reduce((iAcc, i) => iAcc + Object.values(i.values).reduce((vAcc, v) => vAcc + v, 0), 0), 0);
                       const deptMonthlyTotals = getDeptMonthlyTotals(dept);
                       return (
-                        <AccordionItem key={dept.id} value={dept.id} className="border-b border-border/50">
+                        <AccordionItem key={dept.id} value={dept.id} className="border-b border-border/50 group">
                           <AccordionTrigger className="hover:no-underline py-0 [&>svg]:hidden">
                             <div className="w-full overflow-x-auto">
                               <div className="pl-4 ml-2">
