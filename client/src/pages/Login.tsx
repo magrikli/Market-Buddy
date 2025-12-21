@@ -10,8 +10,8 @@ import { Loader2 } from "lucide-react";
 import { useQueryClient } from "@tanstack/react-query";
 
 export default function Login() {
-  const [username, setUsername] = useState("admin");
-  const [password, setPassword] = useState("admin123");
+  const [username, setUsername] = useState("");
+  const [password, setPassword] = useState("");
   const [error, setError] = useState("");
   const { setUser } = useStore();
   const [_, setLocation] = useLocation();
@@ -97,25 +97,7 @@ export default function Login() {
               )}
             </Button>
 
-            <div className="relative my-4">
-                <div className="absolute inset-0 flex items-center">
-                    <span className="w-full border-t" />
-                </div>
-                <div className="relative flex justify-center text-xs uppercase">
-                    <span className="bg-background px-2 text-muted-foreground">
-                    Hızlı Giriş (Demo)
-                    </span>
-                </div>
-            </div>
-
-            <div className="grid grid-cols-2 gap-2">
-                <Button variant="outline" type="button" onClick={() => { setUsername("admin"); setPassword("admin123"); }} className="text-xs">
-                    Admin
-                </Button>
-                <Button variant="outline" type="button" onClick={() => { setUsername("it_manager"); setPassword("user123"); }} className="text-xs">
-                    IT Manager
-                </Button>
-            </div>
+            
           </form>
         </CardContent>
       </Card>
