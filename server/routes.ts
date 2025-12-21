@@ -75,6 +75,10 @@ export async function registerRoutes(server: Server, app: Express): Promise<Serv
         return res.status(401).json({ message: "User not found" });
       }
 
+      // Re-set session data in case it was lost
+      req.session.username = user.username;
+      req.session.role = user.role;
+
       const departmentIds = await storage.getUserDepartments(user.id);
       const projectIds = await storage.getUserProjects(user.id);
       const companyIds = await storage.getUserCompanies(user.id);
