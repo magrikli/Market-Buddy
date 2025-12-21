@@ -4,8 +4,8 @@ import * as schema from '@shared/schema';
 
 const { Pool } = pg;
 
-// Use the external database URL
-const connectionString = 'postgresql://admin:346523@support.parkolay.com:7081/Budget';
+// Use DATABASE_URL from environment variable
+const connectionString = process.env.DATABASE_URL || 'postgresql://admin:346523@support.parkolay.com:7081/Budget';
 
 export const pool = new Pool({
   connectionString,
