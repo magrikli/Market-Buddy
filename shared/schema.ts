@@ -34,6 +34,7 @@ export const departmentGroups = pgTable("department_groups", {
   id: varchar("id", { length: 255 }).primaryKey().default(sql`gen_random_uuid()`),
   name: text("name").notNull(),
   companyId: varchar("company_id", { length: 255 }).references(() => companies.id, { onDelete: 'cascade' }),
+  sortOrder: integer("sort_order").notNull().default(0),
   createdAt: timestamp("created_at").defaultNow().notNull(),
 });
 
@@ -47,6 +48,7 @@ export const departments = pgTable("departments", {
   name: text("name").notNull(),
   groupId: varchar("group_id", { length: 255 }).references(() => departmentGroups.id, { onDelete: 'set null' }),
   companyId: varchar("company_id", { length: 255 }).references(() => companies.id, { onDelete: 'cascade' }),
+  sortOrder: integer("sort_order").notNull().default(0),
   createdAt: timestamp("created_at").defaultNow().notNull(),
 });
 
@@ -59,6 +61,7 @@ export const costGroups = pgTable("cost_groups", {
   id: varchar("id", { length: 255 }).primaryKey().default(sql`gen_random_uuid()`),
   name: text("name").notNull(),
   departmentId: varchar("department_id", { length: 255 }).notNull().references(() => departments.id, { onDelete: 'cascade' }),
+  sortOrder: integer("sort_order").notNull().default(0),
   createdAt: timestamp("created_at").defaultNow().notNull(),
 });
 
@@ -110,6 +113,7 @@ export const budgetItems = pgTable("budget_items", {
   currentRevision: integer("current_revision").notNull().default(0),
   
   year: integer("year").notNull().default(2025),
+  sortOrder: integer("sort_order").notNull().default(0),
   
   createdAt: timestamp("created_at").defaultNow().notNull(),
   updatedAt: timestamp("updated_at").defaultNow().notNull(),

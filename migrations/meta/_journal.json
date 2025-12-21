@@ -15,6 +15,13 @@
       "when": 1766150209620,
       "tag": "0001_little_red_wolf",
       "breakpoints": true
+    },
+    {
+      "idx": 2,
+      "version": "7",
+      "when": 1766292839718,
+      "tag": "0002_bumpy_calypso",
+      "breakpoints": true
     }
   ]
 }
