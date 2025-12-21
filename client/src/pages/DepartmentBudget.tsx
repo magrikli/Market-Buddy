@@ -934,12 +934,12 @@ export default function DepartmentBudget() {
                                     <table className="w-full text-xs">
                                       <tbody>
                                         <tr>
-                                          <td className="w-[200px] text-left p-2 font-semibold sticky left-0 bg-muted/30 z-10">
-                                            <div className="flex items-center gap-2">
+                                          <td className="text-left p-2 font-semibold sticky left-0 bg-muted/30 z-10" style={{ width: '200px', minWidth: '200px', maxWidth: '200px' }}>
+                                            <div className="flex items-center gap-2 overflow-hidden">
                                               <ChevronDown className="h-4 w-4 text-muted-foreground shrink-0 transition-transform duration-200 group-data-[state=open]:rotate-180" />
-                                              <Building2 className="h-4 w-4 text-muted-foreground" />
+                                              <Building2 className="h-4 w-4 text-muted-foreground shrink-0" />
                                               <span className="text-foreground truncate">{dept.name}</span>
-                                              <span className="px-2 py-0.5 rounded-full bg-background text-[10px] font-medium text-muted-foreground whitespace-nowrap">{dept.costGroups.length} Grup</span>
+                                              <span className="px-2 py-0.5 rounded-full bg-background text-[10px] font-medium text-muted-foreground whitespace-nowrap shrink-0">{dept.costGroups.length} Grup</span>
                                             </div>
                                           </td>
                                           {months.map((m, idx) => (
@@ -1110,12 +1110,12 @@ export default function DepartmentBudget() {
                                   <table className="w-full text-xs">
                                     <tbody>
                                       <tr>
-                                        <td className="w-[200px] text-left p-2 font-semibold sticky left-0 bg-muted/30 z-10">
-                                          <div className="flex items-center gap-2">
+                                        <td className="text-left p-2 font-semibold sticky left-0 bg-muted/30 z-10" style={{ width: '200px', minWidth: '200px', maxWidth: '200px' }}>
+                                          <div className="flex items-center gap-2 overflow-hidden">
                                             <ChevronDown className="h-4 w-4 text-muted-foreground shrink-0 transition-transform duration-200 group-data-[state=open]:rotate-180" />
-                                            <Building2 className="h-4 w-4 text-muted-foreground" />
+                                            <Building2 className="h-4 w-4 text-muted-foreground shrink-0" />
                                             <span className="text-foreground truncate">{dept.name}</span>
-                                            <span className="px-2 py-0.5 rounded-full bg-background text-[10px] font-medium text-muted-foreground whitespace-nowrap">{dept.costGroups.length} Grup</span>
+                                            <span className="px-2 py-0.5 rounded-full bg-background text-[10px] font-medium text-muted-foreground whitespace-nowrap shrink-0">{dept.costGroups.length} Grup</span>
                                           </div>
                                         </td>
                                         {months.map((m, idx) => (
