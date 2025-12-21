@@ -12,7 +12,7 @@ import {
   type ProjectProcess, type InsertProjectProcess,
   type ProcessRevision, type InsertProcessRevision
 } from '@shared/schema';
-import { eq, and, sql, inArray, asc } from 'drizzle-orm';
+import { eq, and, sql, inArray, asc, max } from 'drizzle-orm';
 
 export interface IStorage {
   // Companies
@@ -282,7 +282,16 @@ export class DatabaseStorage implements IStorage {
   }
 
   async createCostGroup(group: InsertCostGroup): Promise<CostGroup> {
-    const result = await db.insert(costGroups).values(group).returning();
+    // Get max sortOrder for this department and add 1
+    const maxResult = await db.select({ maxOrder: max(costGroups.sortOrder) })
+      .from(costGroups)
+      .where(eq(costGroups.departmentId, group.departmentId));
+    const nextSortOrder = (maxResult[0]?.maxOrder ?? -1) + 1;
+    
+    const result = await db.insert(costGroups).values({
+      ...group,
+      sortOrder: group.sortOrder ?? nextSortOrder
+    }).returning();
     return result[0];
   }
 
@@ -371,7 +380,24 @@ export class DatabaseStorage implements IStorage {
   }
 
   async createBudgetItem(item: InsertBudgetItem): Promise<BudgetItem> {
-    const result = await db.insert(budgetItems).values(item).returning();
+    // Get max sortOrder for this cost group or project phase and add 1
+    let nextSortOrder = 0;
+    if (item.costGroupId) {
+      const maxResult = await db.select({ maxOrder: max(budgetItems.sortOrder) })
+        .from(budgetItems)
+        .where(eq(budgetItems.costGroupId, item.costGroupId));
+      nextSortOrder = (maxResult[0]?.maxOrder ?? -1) + 1;
+    } else if (item.projectPhaseId) {
+      const maxResult = await db.select({ maxOrder: max(budgetItems.sortOrder) })
+        .from(budgetItems)
+        .where(eq(budgetItems.projectPhaseId, item.projectPhaseId));
+      nextSortOrder = (maxResult[0]?.maxOrder ?? -1) + 1;
+    }
+    
+    const result = await db.insert(budgetItems).values({
+      ...item,
+      sortOrder: item.sortOrder ?? nextSortOrder
+    }).returning();
     return result[0];
   }
 
