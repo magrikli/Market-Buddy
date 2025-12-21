@@ -1851,10 +1851,6 @@ export async function registerRoutes(server: Server, app: Express): Promise<Serv
 
   app.put("/api/users/:id/company-assignments", async (req: Request, res: Response) => {
     try {
-      // Admin only
-      if (req.session.role !== 'admin') {
-        return res.status(403).json({ message: "Admin access required" });
-      }
       const { id } = req.params;
       const { companyIds } = req.body;
       
