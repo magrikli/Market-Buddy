@@ -25,12 +25,7 @@ SESSION_SECRET=your-secure-random-session-secret-here
 
 2. Create the `.env` file with your environment variables
 
-3. Bump version (optional - increases patch version):
-   ```bash
-   npm run bump-version
-   ```
-
-4. Build and run:
+3. Build and run (version is auto-generated from git commit count):
    ```bash
    docker-compose up -d --build
    ```
@@ -47,12 +42,7 @@ SESSION_SECRET=your-secure-random-session-secret-here
 
 ### Option 2: Using Docker Directly
 
-1. Bump version (optional - increases patch version):
-   ```bash
-   npm run bump-version
-   ```
-
-2. Build the Docker image:
+1. Build the Docker image (version is auto-generated from git commit count):
    ```bash
    docker build -t finflow:latest .
    ```
