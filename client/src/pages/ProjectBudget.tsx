@@ -219,7 +219,7 @@ export default function ProjectBudget() {
 
   const handleUpdateItem = async (itemId: string, values: BudgetMonthValues) => {
     try {
-      await updateBudgetItemMutation.mutateAsync({ id: itemId, data: { monthlyValues: values } });
+      await updateBudgetItemMutation.mutateAsync({ id: itemId, updates: { monthlyValues: values } });
       toast.success("Güncellendi");
     } catch (error: any) {
       toast.error("Hata", { description: error.message });
@@ -246,7 +246,7 @@ export default function ProjectBudget() {
 
   const handleSubmitForApproval = async (itemId: string) => {
     try {
-      await updateBudgetItemMutation.mutateAsync({ id: itemId, data: { status: 'pending' } });
+      await updateBudgetItemMutation.mutateAsync({ id: itemId, updates: { status: 'pending' } });
       toast.success("Onaya gönderildi");
     } catch (error: any) {
       toast.error("Hata", { description: error.message });
@@ -255,7 +255,7 @@ export default function ProjectBudget() {
 
   const handleWithdraw = async (itemId: string) => {
     try {
-      await updateBudgetItemMutation.mutateAsync({ id: itemId, data: { status: 'draft' } });
+      await updateBudgetItemMutation.mutateAsync({ id: itemId, updates: { status: 'draft' } });
       toast.success("Geri çekildi");
     } catch (error: any) {
       toast.error("Hata", { description: error.message });
@@ -447,7 +447,7 @@ export default function ProjectBudget() {
         if (row.status === 'update' && row.itemId) {
           await updateBudgetItemMutation.mutateAsync({ 
             id: row.itemId, 
-            data: { monthlyValues: monthlyValuesObj } 
+            updates: { monthlyValues: monthlyValuesObj } 
           });
           updateCount++;
         } else if (row.status === 'create' && row.matchedPhaseId) {
@@ -466,7 +466,7 @@ export default function ProjectBudget() {
           if (newItemId) {
             await updateBudgetItemMutation.mutateAsync({
               id: newItemId,
-              data: { monthlyValues: monthlyValuesObj }
+              updates: { monthlyValues: monthlyValuesObj }
             });
           }
           createCount++;
