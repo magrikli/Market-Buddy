@@ -118,6 +118,7 @@ export interface IStorage {
   createDefaultProjectPhase(phase: InsertDefaultProjectPhase): Promise<DefaultProjectPhase>;
   updateDefaultProjectPhase(id: string, updates: Partial<DefaultProjectPhase>): Promise<DefaultProjectPhase | undefined>;
   deleteDefaultProjectPhase(id: string): Promise<void>;
+  reorderDefaultProjectPhases(id1: string, id2: string): Promise<void>;
 }
 
 export class DatabaseStorage implements IStorage {
@@ -757,6 +758,24 @@ export class DatabaseStorage implements IStorage {
 
   async deleteDefaultProjectPhase(id: string): Promise<void> {
     await db.delete(defaultProjectPhases).where(eq(defaultProjectPhases.id, id));
+  }
+
+  async reorderDefaultProjectPhases(id1: string, id2: string): Promise<void> {
+    // Swap sort orders atomically within a transaction
+    await db.transaction(async (tx) => {
+      const phase1 = await tx.select().from(defaultProjectPhases).where(eq(defaultProjectPhases.id, id1)).limit(1);
+      const phase2 = await tx.select().from(defaultProjectPhases).where(eq(defaultProjectPhases.id, id2)).limit(1);
+      
+      if (!phase1[0] || !phase2[0]) {
+        throw new Error('One or both phases not found');
+      }
+      
+      const order1 = phase1[0].sortOrder;
+      const order2 = phase2[0].sortOrder;
+      
+      await tx.update(defaultProjectPhases).set({ sortOrder: order2 }).where(eq(defaultProjectPhases.id, id1));
+      await tx.update(defaultProjectPhases).set({ sortOrder: order1 }).where(eq(defaultProjectPhases.id, id2));
+    });
   }
 }
 

@@ -1909,5 +1909,22 @@ export async function registerRoutes(server: Server, app: Express): Promise<Serv
     }
   });
 
+  app.post("/api/default-project-phases/reorder", async (req: Request, res: Response) => {
+    try {
+      if (req.session.role !== 'admin') {
+        return res.status(403).json({ message: "Admin access required" });
+      }
+      const { id1, id2 } = req.body;
+      if (!id1 || !id2) {
+        return res.status(400).json({ message: "Both id1 and id2 are required" });
+      }
+      await storage.reorderDefaultProjectPhases(id1, id2);
+      return res.json({ success: true });
+    } catch (error) {
+      console.error('Reorder default phases error:', error);
+      return res.status(500).json({ message: "Server error" });
+    }
+  });
+
   return server;
 }

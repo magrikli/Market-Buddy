@@ -7,8 +7,8 @@ import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, D
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Checkbox } from "@/components/ui/checkbox";
 import { useStore } from "@/lib/store";
-import { useDepartments, useProjects, useUsers, useCreateUser, useUpdateUser, useDeleteUser, useUpdateUserAssignments, useCompanies, useCreateCompany, useUpdateCompany, useDeleteCompany, useUpdateUserCompanyAssignments, usePendingProcesses, useApproveProcess, useRejectProcess, useBulkApproveProcesses, usePendingBudgetItems, useApproveBudgetItem, useRejectBudgetItem, useBulkApproveBudgetItems } from "@/lib/queries";
-import { Search, UserPlus, CheckCheck, Pencil, Trash2, Loader2, Users, Building2, Plus, X } from "lucide-react";
+import { useDepartments, useProjects, useUsers, useCreateUser, useUpdateUser, useDeleteUser, useUpdateUserAssignments, useCompanies, useCreateCompany, useUpdateCompany, useDeleteCompany, useUpdateUserCompanyAssignments, usePendingProcesses, useApproveProcess, useRejectProcess, useBulkApproveProcesses, usePendingBudgetItems, useApproveBudgetItem, useRejectBudgetItem, useBulkApproveBudgetItems, useDefaultProjectPhases, useCreateDefaultProjectPhase, useDeleteDefaultProjectPhase, useReorderDefaultProjectPhases } from "@/lib/queries";
+import { Search, UserPlus, CheckCheck, Pencil, Trash2, Loader2, Users, Building2, Plus, X, Settings, ArrowUp, ArrowDown } from "lucide-react";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { toast } from "sonner";
 import { useState } from "react";
@@ -35,6 +35,12 @@ export default function Admin() {
   const createCompanyMutation = useCreateCompany();
   const updateCompanyMutation = useUpdateCompany();
   const deleteCompanyMutation = useDeleteCompany();
+  
+  // Default project phases
+  const { data: defaultPhases = [], isLoading: defaultPhasesLoading } = useDefaultProjectPhases();
+  const createDefaultPhaseMutation = useCreateDefaultProjectPhase();
+  const deleteDefaultPhaseMutation = useDeleteDefaultProjectPhase();
+  const reorderDefaultPhasesMutation = useReorderDefaultProjectPhases();
 
   const [isNewUserOpen, setIsNewUserOpen] = useState(false);
   const [isEditUserOpen, setIsEditUserOpen] = useState(false);
@@ -62,6 +68,9 @@ export default function Admin() {
   const [newCompanyCode, setNewCompanyCode] = useState("");
   const [editCompanyName, setEditCompanyName] = useState("");
   const [editCompanyCode, setEditCompanyCode] = useState("");
+
+  // Default phase state
+  const [newPhaseName, setNewPhaseName] = useState("");
 
   const handleApproveProcess = async (processId: string, projectId: string) => {
     try {
@@ -296,6 +305,49 @@ export default function Admin() {
     return Object.values(monthlyValues || {}).reduce((sum, val) => sum + (val || 0), 0);
   };
 
+  // Default phase handlers
+  const handleAddDefaultPhase = async () => {
+    if (!newPhaseName.trim()) {
+      toast.error("Faz adı gerekli");
+      return;
+    }
+    try {
+      await createDefaultPhaseMutation.mutateAsync({ name: newPhaseName.trim() });
+      toast.success("Varsayılan faz eklendi");
+      setNewPhaseName("");
+    } catch (error: any) {
+      toast.error("Hata", { description: error.message });
+    }
+  };
+
+  const handleDeleteDefaultPhase = async (id: string, name: string) => {
+    if (!confirm(`"${name}" varsayılan fazını silmek istediğinize emin misiniz?`)) return;
+    try {
+      await deleteDefaultPhaseMutation.mutateAsync(id);
+      toast.success("Varsayılan faz silindi");
+    } catch (error: any) {
+      toast.error("Hata", { description: error.message });
+    }
+  };
+
+  const handleMoveDefaultPhase = async (id: string, direction: 'up' | 'down') => {
+    const currentIndex = defaultPhases.findIndex(p => p.id === id);
+    if (currentIndex === -1) return;
+    
+    const newIndex = direction === 'up' ? currentIndex - 1 : currentIndex + 1;
+    if (newIndex < 0 || newIndex >= defaultPhases.length) return;
+    
+    // Swap sort orders atomically
+    const currentPhase = defaultPhases[currentIndex];
+    const targetPhase = defaultPhases[newIndex];
+    
+    try {
+      await reorderDefaultPhasesMutation.mutateAsync({ id1: currentPhase.id, id2: targetPhase.id });
+    } catch (error: any) {
+      toast.error("Hata", { description: error.message });
+    }
+  };
+
   return (
     <div className="space-y-6 animate-in fade-in slide-in-from-bottom-4 duration-500">
       <div>
@@ -470,10 +522,11 @@ export default function Admin() {
       </Dialog>
 
       <Tabs defaultValue="approvals" className="w-full">
-        <TabsList className="grid w-full max-w-xl grid-cols-3 mb-6">
+        <TabsList className="grid w-full max-w-2xl grid-cols-4 mb-6">
           <TabsTrigger value="approvals" data-testid="tab-approvals">Onay Bekleyenler</TabsTrigger>
           <TabsTrigger value="users" data-testid="tab-users">Kullanıcılar</TabsTrigger>
           <TabsTrigger value="companies" data-testid="tab-companies">Şirketler</TabsTrigger>
+          <TabsTrigger value="settings" data-testid="tab-settings">Ayarlar</TabsTrigger>
         </TabsList>
 
         <TabsContent value="approvals">
@@ -796,6 +849,99 @@ export default function Admin() {
                   ))}
                 </div>
               )}
+            </CardContent>
+          </Card>
+        </TabsContent>
+
+        <TabsContent value="settings">
+          <Card className="shadow-md">
+            <CardHeader>
+              <CardTitle className="flex items-center gap-2">
+                <Settings className="h-5 w-5" />
+                Varsayılan Proje Fazları
+              </CardTitle>
+              <CardDescription>
+                Yeni projeler oluşturulduğunda otomatik olarak eklenecek fazları yönetin.
+              </CardDescription>
+            </CardHeader>
+            <CardContent className="space-y-6">
+              <div className="flex gap-2">
+                <Input
+                  placeholder="Yeni faz adı..."
+                  value={newPhaseName}
+                  onChange={(e) => setNewPhaseName(e.target.value)}
+                  onKeyDown={(e) => e.key === 'Enter' && handleAddDefaultPhase()}
+                  data-testid="input-new-default-phase"
+                />
+                <Button onClick={handleAddDefaultPhase} disabled={createDefaultPhaseMutation.isPending} data-testid="button-add-default-phase">
+                  {createDefaultPhaseMutation.isPending ? <Loader2 className="h-4 w-4 animate-spin" /> : <Plus className="h-4 w-4" />}
+                  <span className="ml-1">Ekle</span>
+                </Button>
+              </div>
+
+              {defaultPhasesLoading ? (
+                <div className="flex justify-center p-8">
+                  <Loader2 className="h-8 w-8 animate-spin text-muted-foreground" />
+                </div>
+              ) : defaultPhases.length === 0 ? (
+                <div className="text-center p-8 bg-muted/10 rounded-lg border border-dashed">
+                  <Settings className="mx-auto h-12 w-12 text-muted-foreground mb-3" />
+                  <p className="text-muted-foreground">Henüz varsayılan faz tanımlı değil.</p>
+                  <p className="text-sm text-muted-foreground mt-1">Yukarıdan yeni fazlar ekleyebilirsiniz.</p>
+                </div>
+              ) : (
+                <div className="space-y-2">
+                  {defaultPhases.map((phase, index) => (
+                    <div key={phase.id} className="flex items-center justify-between p-3 border rounded-lg hover:bg-muted/30 transition-colors" data-testid={`row-default-phase-${phase.id}`}>
+                      <div className="flex items-center gap-3">
+                        <span className="text-muted-foreground text-sm font-mono w-6">{index + 1}.</span>
+                        <span className="font-medium">{phase.name}</span>
+                      </div>
+                      <div className="flex gap-1">
+                        <Button 
+                          variant="ghost" 
+                          size="icon" 
+                          className="h-8 w-8" 
+                          onClick={() => handleMoveDefaultPhase(phase.id, 'up')}
+                          disabled={index === 0}
+                          title="Yukarı taşı"
+                          data-testid={`button-move-up-phase-${phase.id}`}
+                        >
+                          <ArrowUp className="h-4 w-4" />
+                        </Button>
+                        <Button 
+                          variant="ghost" 
+                          size="icon" 
+                          className="h-8 w-8" 
+                          onClick={() => handleMoveDefaultPhase(phase.id, 'down')}
+                          disabled={index === defaultPhases.length - 1}
+                          title="Aşağı taşı"
+                          data-testid={`button-move-down-phase-${phase.id}`}
+                        >
+                          <ArrowDown className="h-4 w-4" />
+                        </Button>
+                        <Button 
+                          variant="ghost" 
+                          size="icon" 
+                          className="h-8 w-8 text-destructive hover:text-destructive" 
+                          onClick={() => handleDeleteDefaultPhase(phase.id, phase.name)}
+                          title="Sil"
+                          data-testid={`button-delete-phase-${phase.id}`}
+                        >
+                          <Trash2 className="h-4 w-4" />
+                        </Button>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              )}
+
+              <div className="bg-muted/30 p-4 rounded-lg border">
+                <p className="text-sm text-muted-foreground">
+                  <strong>Not:</strong> Bu fazlar, yeni bir proje oluşturulduğunda otomatik olarak projeye eklenir. 
+                  Mevcut projelerin fazları etkilenmez.
+                </p>
+              </div>
             </CardContent>
           </Card>
         </TabsContent>
