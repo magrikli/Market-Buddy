@@ -83,16 +83,24 @@ export async function registerRoutes(server: Server, app: Express): Promise<Serv
       const projectIds = await storage.getUserProjects(user.id);
       const companyIds = await storage.getUserCompanies(user.id);
 
-      return res.json({
-        user: {
-          id: user.id,
-          username: user.username,
-          name: user.name,
-          role: user.role,
-          assignedDepartmentIds: departmentIds,
-          assignedProjectIds: projectIds,
-          assignedCompanyIds: companyIds,
+      // Explicitly save the session to persist the role before responding
+      req.session.save((err) => {
+        if (err) {
+          console.error('Session save error in /api/auth/me:', err);
+          return res.status(500).json({ message: "Session error" });
         }
+        
+        return res.json({
+          user: {
+            id: user.id,
+            username: user.username,
+            name: user.name,
+            role: user.role,
+            assignedDepartmentIds: departmentIds,
+            assignedProjectIds: projectIds,
+            assignedCompanyIds: companyIds,
+          }
+        });
       });
     } catch (error) {
       console.error('Auth check error:', error);
