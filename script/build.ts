@@ -10,7 +10,7 @@ const allowlist = [
   "connect-pg-simple",
   "cors",
   "date-fns",
-  "drizzle-orm",
+  // drizzle-orm excluded - bundling it includes migrator code that causes issues
   "drizzle-zod",
   "express",
   "express-rate-limit",

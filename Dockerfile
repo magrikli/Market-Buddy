@@ -29,8 +29,8 @@ RUN npm ci --omit=dev
 # Copy built files from builder stage
 COPY --from=builder /app/dist ./dist
 
-# Copy migrations folder for database migrations
-COPY --from=builder /app/migrations ./migrations
+# Note: Migrations are handled via drizzle-kit push before deployment
+# No migrations folder needed in production
 
 # Set environment variables
 ENV NODE_ENV=production
