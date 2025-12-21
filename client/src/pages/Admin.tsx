@@ -518,16 +518,23 @@ export default function Admin() {
                       <TableHead>Süreç Adı</TableHead>
                       <TableHead>Başlangıç</TableHead>
                       <TableHead>Bitiş</TableHead>
+                      <TableHead>Süre</TableHead>
                       <TableHead className="text-center">İşlem</TableHead>
                     </TableRow>
                   </TableHeader>
                   <TableBody>
-                    {pendingProcesses.map((process) => (
+                    {pendingProcesses.map((process) => {
+                      const startDate = new Date(process.startDate);
+                      const endDate = new Date(process.endDate);
+                      const diffTime = Math.abs(endDate.getTime() - startDate.getTime());
+                      const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
+                      return (
                       <TableRow key={process.id}>
                         <TableCell className="font-medium">{getProjectName(process.projectId)}</TableCell>
                         <TableCell>{process.name}</TableCell>
-                        <TableCell className="text-sm text-muted-foreground">{new Date(process.startDate).toLocaleDateString('tr-TR')}</TableCell>
-                        <TableCell className="text-sm text-muted-foreground">{new Date(process.endDate).toLocaleDateString('tr-TR')}</TableCell>
+                        <TableCell className="text-sm text-muted-foreground">{startDate.toLocaleDateString('tr-TR')}</TableCell>
+                        <TableCell className="text-sm text-muted-foreground">{endDate.toLocaleDateString('tr-TR')}</TableCell>
+                        <TableCell className="text-sm text-muted-foreground">{diffDays} gün</TableCell>
                         <TableCell className="text-center">
                           <div className="flex items-center justify-center gap-1">
                             <Button 
@@ -551,7 +558,8 @@ export default function Admin() {
                           </div>
                         </TableCell>
                       </TableRow>
-                    ))}
+                      );
+                    })}
                   </TableBody>
                 </Table>
               )}
