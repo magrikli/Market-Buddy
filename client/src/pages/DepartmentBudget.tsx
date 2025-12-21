@@ -84,6 +84,15 @@ export default function DepartmentBudget() {
     }
     return totals;
   };
+
+  const getDeptMonthlyTotals = (dept: any) => {
+    const totals: Record<number, number> = {};
+    for (let i = 0; i < 12; i++) {
+      totals[i] = (dept.costGroups || []).reduce((sum: number, group: any) => 
+        sum + (group.items || []).reduce((iSum: number, item: any) => iSum + (item.values[i] || 0), 0), 0);
+    }
+    return totals;
+  };
   
   const handleAddDepartment = async (name: string) => {
     try {
@@ -915,54 +924,70 @@ export default function DepartmentBudget() {
                     <Accordion type="multiple" className="w-full pl-4 border-l-2 border-primary/20">
                       {groupDepts.map((dept, deptIndex) => {
                         const deptTotal = dept.costGroups.reduce((acc, g) => acc + g.items.reduce((iAcc, i) => iAcc + Object.values(i.values).reduce((vAcc, v) => vAcc + v, 0), 0), 0);
+                        const deptMonthlyTotals = getDeptMonthlyTotals(dept);
                         return (
-                          <AccordionItem key={dept.id} value={dept.id} className="border-b border-border/50 px-4">
-                            <AccordionTrigger className="hover:no-underline py-3">
-                              <div className="flex items-center justify-between w-full pr-4">
-                                <div className="flex items-center gap-3">
-                                  <Building2 className="h-4 w-4 text-muted-foreground" />
-                                  <span className="font-semibold text-foreground">{dept.name}</span>
-                                  <span className="px-2 py-0.5 rounded-full bg-muted text-xs font-medium text-muted-foreground">{dept.costGroups.length} Grup</span>
-                                </div>
-                                <div className="flex items-center gap-3">
-                                  <span className="font-mono font-medium text-foreground">€ {formatMoney(deptTotal)}</span>
-                                  {currentUser?.role === 'admin' && (
-                                    <DropdownMenu>
-                                      <DropdownMenuTrigger asChild onClick={(e) => e.stopPropagation()}>
-                                        <Button variant="ghost" size="icon" className="h-7 w-7">
-                                          <MoreHorizontal className="h-3 w-3" />
-                                        </Button>
-                                      </DropdownMenuTrigger>
-                                      <DropdownMenuContent align="end">
-                                        <DropdownMenuItem onClick={(e) => { e.stopPropagation(); handleReorderDepartment(dept.id, 'up', dept.groupId); }}>
-                                          <ArrowUp className="mr-2 h-4 w-4" />
-                                          Yukarı Taşı
-                                        </DropdownMenuItem>
-                                        <DropdownMenuItem onClick={(e) => { e.stopPropagation(); handleReorderDepartment(dept.id, 'down', dept.groupId); }}>
-                                          <ArrowDown className="mr-2 h-4 w-4" />
-                                          Aşağı Taşı
-                                        </DropdownMenuItem>
-                                        <DropdownMenuSeparator />
-                                        <DropdownMenuItem onClick={(e) => { e.stopPropagation(); setActiveDeptForGroup(dept.id); setIsNewGroupOpen(true); }}>
-                                          <PlusCircle className="mr-2 h-4 w-4" />
-                                          Yeni Grup Ekle
-                                        </DropdownMenuItem>
-                                        <DropdownMenuItem onClick={(e) => { e.stopPropagation(); setEditingDept({ id: dept.id, name: dept.name }); setEditDeptOpen(true); }}>
-                                          <Pencil className="mr-2 h-4 w-4" />
-                                          Düzenle
-                                        </DropdownMenuItem>
-                                        <DropdownMenuItem onClick={(e) => { e.stopPropagation(); handleAssignDeptToGroup(dept.id, null); }}>
-                                          <FolderOpen className="mr-2 h-4 w-4" />
-                                          Gruptan Çıkar
-                                        </DropdownMenuItem>
-                                        <DropdownMenuItem onClick={(e) => { e.stopPropagation(); handleDeleteDepartment(dept.id, dept.name); }} className="text-destructive">
-                                          <Trash2 className="mr-2 h-4 w-4" />
-                                          Sil
-                                        </DropdownMenuItem>
-                                      </DropdownMenuContent>
-                                    </DropdownMenu>
-                                  )}
-                                </div>
+                          <AccordionItem key={dept.id} value={dept.id} className="border-b border-border/50">
+                            <AccordionTrigger className="hover:no-underline py-0 [&>svg]:absolute [&>svg]:right-2 [&>svg]:top-1/2 [&>svg]:-translate-y-1/2">
+                              <div className="w-full overflow-x-auto">
+                                <table className="w-full text-xs">
+                                  <tbody>
+                                    <tr className="bg-muted/50">
+                                      <td className="w-[200px] text-left p-2 font-semibold sticky left-0 bg-muted/50 z-10">
+                                        <div className="flex items-center gap-2">
+                                          <Building2 className="h-4 w-4 text-muted-foreground" />
+                                          <span className="text-foreground">{dept.name}</span>
+                                          <span className="px-2 py-0.5 rounded-full bg-background text-[10px] font-medium text-muted-foreground">{dept.costGroups.length} Grup</span>
+                                        </div>
+                                      </td>
+                                      {months.map((m, idx) => (
+                                        <td key={m} className="text-right min-w-[80px] p-2">
+                                          <span className="font-mono font-semibold text-foreground">{formatMoney(deptMonthlyTotals[idx])}</span>
+                                        </td>
+                                      ))}
+                                      <td className="text-right w-[150px] p-2 bg-primary/10">
+                                        <div className="flex items-center justify-end gap-2 pr-6">
+                                          <span className="font-mono font-bold text-foreground">€ {formatMoney(deptTotal)}</span>
+                                          {currentUser?.role === 'admin' && (
+                                            <DropdownMenu>
+                                              <DropdownMenuTrigger asChild onClick={(e) => e.stopPropagation()}>
+                                                <Button variant="ghost" size="icon" className="h-7 w-7">
+                                                  <MoreHorizontal className="h-3 w-3" />
+                                                </Button>
+                                              </DropdownMenuTrigger>
+                                              <DropdownMenuContent align="end">
+                                                <DropdownMenuItem onClick={(e) => { e.stopPropagation(); handleReorderDepartment(dept.id, 'up', dept.groupId); }}>
+                                                  <ArrowUp className="mr-2 h-4 w-4" />
+                                                  Yukarı Taşı
+                                                </DropdownMenuItem>
+                                                <DropdownMenuItem onClick={(e) => { e.stopPropagation(); handleReorderDepartment(dept.id, 'down', dept.groupId); }}>
+                                                  <ArrowDown className="mr-2 h-4 w-4" />
+                                                  Aşağı Taşı
+                                                </DropdownMenuItem>
+                                                <DropdownMenuSeparator />
+                                                <DropdownMenuItem onClick={(e) => { e.stopPropagation(); setActiveDeptForGroup(dept.id); setIsNewGroupOpen(true); }}>
+                                                  <PlusCircle className="mr-2 h-4 w-4" />
+                                                  Yeni Grup Ekle
+                                                </DropdownMenuItem>
+                                                <DropdownMenuItem onClick={(e) => { e.stopPropagation(); setEditingDept({ id: dept.id, name: dept.name }); setEditDeptOpen(true); }}>
+                                                  <Pencil className="mr-2 h-4 w-4" />
+                                                  Düzenle
+                                                </DropdownMenuItem>
+                                                <DropdownMenuItem onClick={(e) => { e.stopPropagation(); handleAssignDeptToGroup(dept.id, null); }}>
+                                                  <FolderOpen className="mr-2 h-4 w-4" />
+                                                  Gruptan Çıkar
+                                                </DropdownMenuItem>
+                                                <DropdownMenuItem onClick={(e) => { e.stopPropagation(); handleDeleteDepartment(dept.id, dept.name); }} className="text-destructive">
+                                                  <Trash2 className="mr-2 h-4 w-4" />
+                                                  Sil
+                                                </DropdownMenuItem>
+                                              </DropdownMenuContent>
+                                            </DropdownMenu>
+                                          )}
+                                        </div>
+                                      </td>
+                                    </tr>
+                                  </tbody>
+                                </table>
                               </div>
                             </AccordionTrigger>
                             <AccordionContent className="pb-4 pt-2">
@@ -1070,56 +1095,72 @@ export default function DepartmentBudget() {
                   <Accordion type="multiple" className="w-full">
                     {ungroupedDepartments.map((dept) => {
                       const deptTotal = dept.costGroups.reduce((acc, g) => acc + g.items.reduce((iAcc, i) => iAcc + Object.values(i.values).reduce((vAcc, v) => vAcc + v, 0), 0), 0);
+                      const deptMonthlyTotals = getDeptMonthlyTotals(dept);
                       return (
-                        <AccordionItem key={dept.id} value={dept.id} className="border-b border-border/50 px-4">
-                          <AccordionTrigger className="hover:no-underline py-3">
-                            <div className="flex items-center justify-between w-full pr-4">
-                              <div className="flex items-center gap-3">
-                                <Building2 className="h-4 w-4 text-muted-foreground" />
-                                <span className="font-semibold text-foreground">{dept.name}</span>
-                                <span className="px-2 py-0.5 rounded-full bg-muted text-xs font-medium text-muted-foreground">{dept.costGroups.length} Grup</span>
-                              </div>
-                              <div className="flex items-center gap-3">
-                                <span className="font-mono font-medium text-foreground">€ {formatMoney(deptTotal)}</span>
-                                {currentUser?.role === 'admin' && (
-                                  <DropdownMenu>
-                                    <DropdownMenuTrigger asChild onClick={(e) => e.stopPropagation()}>
-                                      <Button variant="ghost" size="icon" className="h-7 w-7">
-                                        <MoreHorizontal className="h-3 w-3" />
-                                      </Button>
-                                    </DropdownMenuTrigger>
-                                    <DropdownMenuContent align="end">
-                                      <DropdownMenuItem onClick={(e) => { e.stopPropagation(); handleReorderDepartment(dept.id, 'up', null); }}>
-                                        <ArrowUp className="mr-2 h-4 w-4" />
-                                        Yukarı Taşı
-                                      </DropdownMenuItem>
-                                      <DropdownMenuItem onClick={(e) => { e.stopPropagation(); handleReorderDepartment(dept.id, 'down', null); }}>
-                                        <ArrowDown className="mr-2 h-4 w-4" />
-                                        Aşağı Taşı
-                                      </DropdownMenuItem>
-                                      <DropdownMenuSeparator />
-                                      <DropdownMenuItem onClick={(e) => { e.stopPropagation(); setActiveDeptForGroup(dept.id); setIsNewGroupOpen(true); }}>
-                                        <PlusCircle className="mr-2 h-4 w-4" />
-                                        Yeni Grup Ekle
-                                      </DropdownMenuItem>
-                                      {departmentGroups.length > 0 && departmentGroups.map(g => (
-                                        <DropdownMenuItem key={g.id} onClick={(e) => { e.stopPropagation(); handleAssignDeptToGroup(dept.id, g.id); }}>
-                                          <FolderOpen className="mr-2 h-4 w-4" />
-                                          {g.name}'a Taşı
-                                        </DropdownMenuItem>
-                                      ))}
-                                      <DropdownMenuItem onClick={(e) => { e.stopPropagation(); setEditingDept({ id: dept.id, name: dept.name }); setEditDeptOpen(true); }}>
-                                        <Pencil className="mr-2 h-4 w-4" />
-                                        Düzenle
-                                      </DropdownMenuItem>
-                                      <DropdownMenuItem onClick={(e) => { e.stopPropagation(); handleDeleteDepartment(dept.id, dept.name); }} className="text-destructive">
-                                        <Trash2 className="mr-2 h-4 w-4" />
-                                        Sil
-                                      </DropdownMenuItem>
-                                    </DropdownMenuContent>
-                                  </DropdownMenu>
-                                )}
-                              </div>
+                        <AccordionItem key={dept.id} value={dept.id} className="border-b border-border/50">
+                          <AccordionTrigger className="hover:no-underline py-0 [&>svg]:absolute [&>svg]:right-2 [&>svg]:top-1/2 [&>svg]:-translate-y-1/2">
+                            <div className="w-full overflow-x-auto">
+                              <table className="w-full text-xs">
+                                <tbody>
+                                  <tr className="bg-muted/50">
+                                    <td className="w-[200px] text-left p-2 font-semibold sticky left-0 bg-muted/50 z-10">
+                                      <div className="flex items-center gap-2">
+                                        <Building2 className="h-4 w-4 text-muted-foreground" />
+                                        <span className="text-foreground">{dept.name}</span>
+                                        <span className="px-2 py-0.5 rounded-full bg-background text-[10px] font-medium text-muted-foreground">{dept.costGroups.length} Grup</span>
+                                      </div>
+                                    </td>
+                                    {months.map((m, idx) => (
+                                      <td key={m} className="text-right min-w-[80px] p-2">
+                                        <span className="font-mono font-semibold text-foreground">{formatMoney(deptMonthlyTotals[idx])}</span>
+                                      </td>
+                                    ))}
+                                    <td className="text-right w-[150px] p-2 bg-primary/10">
+                                      <div className="flex items-center justify-end gap-2 pr-6">
+                                        <span className="font-mono font-bold text-foreground">€ {formatMoney(deptTotal)}</span>
+                                        {currentUser?.role === 'admin' && (
+                                          <DropdownMenu>
+                                            <DropdownMenuTrigger asChild onClick={(e) => e.stopPropagation()}>
+                                              <Button variant="ghost" size="icon" className="h-7 w-7">
+                                                <MoreHorizontal className="h-3 w-3" />
+                                              </Button>
+                                            </DropdownMenuTrigger>
+                                            <DropdownMenuContent align="end">
+                                              <DropdownMenuItem onClick={(e) => { e.stopPropagation(); handleReorderDepartment(dept.id, 'up', null); }}>
+                                                <ArrowUp className="mr-2 h-4 w-4" />
+                                                Yukarı Taşı
+                                              </DropdownMenuItem>
+                                              <DropdownMenuItem onClick={(e) => { e.stopPropagation(); handleReorderDepartment(dept.id, 'down', null); }}>
+                                                <ArrowDown className="mr-2 h-4 w-4" />
+                                                Aşağı Taşı
+                                              </DropdownMenuItem>
+                                              <DropdownMenuSeparator />
+                                              <DropdownMenuItem onClick={(e) => { e.stopPropagation(); setActiveDeptForGroup(dept.id); setIsNewGroupOpen(true); }}>
+                                                <PlusCircle className="mr-2 h-4 w-4" />
+                                                Yeni Grup Ekle
+                                              </DropdownMenuItem>
+                                              {departmentGroups.length > 0 && departmentGroups.map(g => (
+                                                <DropdownMenuItem key={g.id} onClick={(e) => { e.stopPropagation(); handleAssignDeptToGroup(dept.id, g.id); }}>
+                                                  <FolderOpen className="mr-2 h-4 w-4" />
+                                                  {g.name}'a Taşı
+                                                </DropdownMenuItem>
+                                              ))}
+                                              <DropdownMenuItem onClick={(e) => { e.stopPropagation(); setEditingDept({ id: dept.id, name: dept.name }); setEditDeptOpen(true); }}>
+                                                <Pencil className="mr-2 h-4 w-4" />
+                                                Düzenle
+                                              </DropdownMenuItem>
+                                              <DropdownMenuItem onClick={(e) => { e.stopPropagation(); handleDeleteDepartment(dept.id, dept.name); }} className="text-destructive">
+                                                <Trash2 className="mr-2 h-4 w-4" />
+                                                Sil
+                                              </DropdownMenuItem>
+                                            </DropdownMenuContent>
+                                          </DropdownMenu>
+                                        )}
+                                      </div>
+                                    </td>
+                                  </tr>
+                                </tbody>
+                              </table>
                             </div>
                           </AccordionTrigger>
                           <AccordionContent className="pb-4 pt-2">
