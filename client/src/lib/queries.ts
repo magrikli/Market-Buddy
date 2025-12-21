@@ -12,6 +12,9 @@ export const queryKeys = {
   projects: (year: number, companyId?: string | null) => ['projects', year, companyId] as const,
   transactions: (limit?: number) => ['transactions', limit] as const,
   dashboardStats: (year: number, companyId?: string | null) => ['dashboardStats', year, companyId] as const,
+  expenseRatio: (year: number, companyId?: string | null) => ['expenseRatio', year, companyId] as const,
+  departmentGroupsBreakdown: (year: number, companyId?: string | null, departmentId?: string | null) => ['departmentGroupsBreakdown', year, companyId, departmentId] as const,
+  projectPhasesBreakdown: (year: number, companyId?: string | null, projectId?: string | null) => ['projectPhasesBreakdown', year, companyId, projectId] as const,
 };
 
 // === AUTH ===
@@ -350,6 +353,27 @@ export function useDashboardStats(year: number, companyId?: string | null) {
   return useQuery({
     queryKey: queryKeys.dashboardStats(year, companyId),
     queryFn: () => api.getDashboardStats(year, companyId),
+  });
+}
+
+export function useExpenseRatio(year: number, companyId?: string | null) {
+  return useQuery({
+    queryKey: queryKeys.expenseRatio(year, companyId),
+    queryFn: () => api.getExpenseRatio(year, companyId),
+  });
+}
+
+export function useDepartmentGroupsBreakdown(year: number, companyId?: string | null, departmentId?: string | null) {
+  return useQuery({
+    queryKey: queryKeys.departmentGroupsBreakdown(year, companyId, departmentId),
+    queryFn: () => api.getDepartmentGroupsBreakdown(year, companyId, departmentId),
+  });
+}
+
+export function useProjectPhasesBreakdown(year: number, companyId?: string | null, projectId?: string | null) {
+  return useQuery({
+    queryKey: queryKeys.projectPhasesBreakdown(year, companyId, projectId),
+    queryFn: () => api.getProjectPhases(year, companyId, projectId),
   });
 }
 

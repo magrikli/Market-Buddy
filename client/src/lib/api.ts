@@ -330,6 +330,37 @@ export async function getDashboardStats(year: number, companyId?: string | null)
   return fetchAPI(`/dashboard/stats?${params.toString()}`);
 }
 
+export interface PieChartDataItem {
+  name: string;
+  value: number;
+  percentage: number;
+}
+
+export interface PieChartResponse {
+  data: PieChartDataItem[];
+  total: number;
+}
+
+export async function getExpenseRatio(year: number, companyId?: string | null): Promise<PieChartResponse> {
+  const params = new URLSearchParams({ year: String(year) });
+  if (companyId) params.append('companyId', companyId);
+  return fetchAPI(`/dashboard/expense-ratio?${params.toString()}`);
+}
+
+export async function getDepartmentGroupsBreakdown(year: number, companyId?: string | null, departmentId?: string | null): Promise<PieChartResponse> {
+  const params = new URLSearchParams({ year: String(year) });
+  if (companyId) params.append('companyId', companyId);
+  if (departmentId) params.append('departmentId', departmentId);
+  return fetchAPI(`/dashboard/department-groups?${params.toString()}`);
+}
+
+export async function getProjectPhases(year: number, companyId?: string | null, projectId?: string | null): Promise<PieChartResponse> {
+  const params = new URLSearchParams({ year: String(year) });
+  if (companyId) params.append('companyId', companyId);
+  if (projectId) params.append('projectId', projectId);
+  return fetchAPI(`/dashboard/project-phases?${params.toString()}`);
+}
+
 // === COMPANIES ===
 
 export async function getCompanies(): Promise<Company[]> {
