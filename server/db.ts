@@ -13,3 +13,26 @@ export const pool = new Pool({
 });
 
 export const db = drizzle(pool, { schema });
+
+// Initialize settings table if it doesn't exist
+export async function initializeDatabase() {
+  try {
+    await pool.query(`
+      CREATE TABLE IF NOT EXISTS settings (
+        key VARCHAR(255) PRIMARY KEY,
+        value TEXT
+      )
+    `);
+    
+    // Insert default values if not present
+    await pool.query(`
+      INSERT INTO settings (key, value) 
+      VALUES ('Version', '1.1'), ('BuildNo', '100')
+      ON CONFLICT (key) DO NOTHING
+    `);
+    
+    console.log('Database settings table initialized');
+  } catch (error) {
+    console.error('Failed to initialize database settings:', error);
+  }
+}

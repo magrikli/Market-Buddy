@@ -9,43 +9,6 @@ import {
 } from "@shared/schema";
 import { z } from "zod";
 import bcrypt from "bcrypt";
-import { readFileSync, existsSync } from "fs";
-import { execSync } from "child_process";
-
-function getBuildVersion(): string {
-  // First try version.json (Docker production builds)
-  if (existsSync("version.json")) {
-    try {
-      const versionFile = JSON.parse(readFileSync("version.json", "utf-8"));
-      if (versionFile.version) {
-        return versionFile.version;
-      }
-    } catch {
-      // Fall through
-    }
-  }
-  
-  // Development: use package.json major.minor + git commit count
-  try {
-    const pkg = JSON.parse(readFileSync("package.json", "utf-8"));
-    const parts = pkg.version.split('.');
-    const major = parts[0] || '1';
-    const minor = parts[1] || '0';
-    
-    try {
-      const commitCount = execSync('git rev-list --count HEAD').toString().trim();
-      return `${major}.${minor}.${commitCount}`;
-    } catch {
-      return pkg.version || "1.0.0";
-    }
-  } catch {
-    return "1.0.0";
-  }
-}
-
-const BUILD_INFO = {
-  version: getBuildVersion(),
-};
 
 export async function registerRoutes(server: Server, app: Express): Promise<Server> {
   // ===== HEALTH CHECK =====
@@ -54,8 +17,30 @@ export async function registerRoutes(server: Server, app: Express): Promise<Serv
   });
 
   // ===== VERSION INFO =====
-  app.get("/api/version", (_req: Request, res: Response) => {
-    res.json(BUILD_INFO);
+  app.get("/api/version", async (_req: Request, res: Response) => {
+    try {
+      const versionInfo = await storage.getVersionInfo();
+      res.json({
+        version: `${versionInfo.version}.${versionInfo.buildNo}`
+      });
+    } catch (error) {
+      console.error("Version API error:", error);
+      res.json({ version: "1.0.0" });
+    }
+  });
+
+  // Increment build number (called during build/deploy)
+  app.post("/api/version/increment", async (_req: Request, res: Response) => {
+    try {
+      const newBuildNo = await storage.incrementBuildNo();
+      const versionInfo = await storage.getVersionInfo();
+      res.json({
+        version: `${versionInfo.version}.${newBuildNo}`,
+        buildNo: newBuildNo
+      });
+    } catch (error) {
+      res.status(500).json({ message: "Failed to increment build number" });
+    }
   });
 
   // ===== AUTHENTICATION =====

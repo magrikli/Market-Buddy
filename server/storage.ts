@@ -3,7 +3,7 @@ import {
   users, departments, costGroups, projects, projectPhases, budgetItems, budgetRevisions, 
   transactions, userDepartmentAssignments, userProjectAssignments, departmentGroups,
   companies, userCompanyAssignments, projectProcesses, processRevisions,
-  projectTypes, projectTypePhases,
+  projectTypes, projectTypePhases, settings,
   type User, type InsertUser, type Department, type InsertDepartment,
   type CostGroup, type InsertCostGroup, type Project, type InsertProject,
   type ProjectPhase, type InsertProjectPhase, type BudgetItem, type InsertBudgetItem,
@@ -13,7 +13,8 @@ import {
   type ProjectProcess, type InsertProjectProcess,
   type ProcessRevision, type InsertProcessRevision,
   type ProjectType, type InsertProjectType,
-  type ProjectTypePhase, type InsertProjectTypePhase
+  type ProjectTypePhase, type InsertProjectTypePhase,
+  type Settings
 } from '@shared/schema';
 import { eq, and, sql, inArray, asc, max } from 'drizzle-orm';
 
@@ -129,6 +130,12 @@ export interface IStorage {
   updateProjectTypePhase(id: string, updates: Partial<ProjectTypePhase>): Promise<ProjectTypePhase | undefined>;
   deleteProjectTypePhase(id: string): Promise<void>;
   reorderProjectTypePhases(id1: string, id2: string): Promise<void>;
+  
+  // Settings
+  getSetting(key: string): Promise<string | undefined>;
+  setSetting(key: string, value: string): Promise<void>;
+  getVersionInfo(): Promise<{ version: string; buildNo: string }>;
+  incrementBuildNo(): Promise<string>;
 }
 
 export class DatabaseStorage implements IStorage {
@@ -851,6 +858,35 @@ export class DatabaseStorage implements IStorage {
       await tx.update(projectTypePhases).set({ sortOrder: order2 }).where(eq(projectTypePhases.id, id1));
       await tx.update(projectTypePhases).set({ sortOrder: order1 }).where(eq(projectTypePhases.id, id2));
     });
+  }
+
+  // === SETTINGS ===
+  async getSetting(key: string): Promise<string | undefined> {
+    const result = await db.select().from(settings).where(eq(settings.key, key)).limit(1);
+    return result[0]?.value;
+  }
+
+  async setSetting(key: string, value: string): Promise<void> {
+    await db.insert(settings)
+      .values({ key, value })
+      .onConflictDoUpdate({ target: settings.key, set: { value } });
+  }
+
+  async getVersionInfo(): Promise<{ version: string; buildNo: string }> {
+    const versionResult = await db.select().from(settings).where(eq(settings.key, 'Version')).limit(1);
+    const buildNoResult = await db.select().from(settings).where(eq(settings.key, 'BuildNo')).limit(1);
+    
+    return {
+      version: versionResult[0]?.value || '1.0',
+      buildNo: buildNoResult[0]?.value || '0'
+    };
+  }
+
+  async incrementBuildNo(): Promise<string> {
+    const current = await this.getSetting('BuildNo');
+    const newBuildNo = String(parseInt(current || '0', 10) + 1);
+    await this.setSetting('BuildNo', newBuildNo);
+    return newBuildNo;
   }
 }
 
