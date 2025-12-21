@@ -17,7 +17,13 @@ console.log('Connecting to database:', sanitizedUrl);
 
 export const pool = new Pool({
   connectionString,
-  ssl: false, // Adjust based on your database SSL requirements
+  ssl: false,
+  connectionTimeoutMillis: 10000, // 10 second timeout
+});
+
+// Handle pool errors
+pool.on('error', (err) => {
+  console.error('Database pool error:', err.message);
 });
 
 export const db = drizzle(pool, { schema });
