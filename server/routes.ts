@@ -643,12 +643,14 @@ export async function registerRoutes(server: Server, app: Express): Promise<Serv
   app.patch("/api/budget-items/:id", async (req: Request, res: Response) => {
     try {
       const { id } = req.params;
-      const { monthlyValues, status } = req.body;
+      const { monthlyValues, status, sortOrder } = req.body;
       
-      const updated = await storage.updateBudgetItem(id, { 
-        monthlyValues,
-        ...(status && { status }),
-      });
+      const updates: any = {};
+      if (monthlyValues !== undefined) updates.monthlyValues = monthlyValues;
+      if (status !== undefined) updates.status = status;
+      if (sortOrder !== undefined) updates.sortOrder = sortOrder;
+      
+      const updated = await storage.updateBudgetItem(id, updates);
       
       if (!updated) {
         return res.status(404).json({ message: "Budget item not found" });

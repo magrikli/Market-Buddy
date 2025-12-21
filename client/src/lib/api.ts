@@ -241,7 +241,7 @@ export async function createBudgetItem(data: {
   });
 }
 
-export async function updateBudgetItem(id: string, data: { monthlyValues?: any; status?: string }): Promise<any> {
+export async function updateBudgetItem(id: string, data: { monthlyValues?: any; status?: string; sortOrder?: number }): Promise<any> {
   return fetchAPI(`/budget-items/${id}`, {
     method: 'PATCH',
     body: JSON.stringify(data),

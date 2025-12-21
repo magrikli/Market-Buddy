@@ -6,10 +6,10 @@ import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from "@/
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from "@/components/ui/dropdown-menu";
+import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger, DropdownMenuSeparator } from "@/components/ui/dropdown-menu";
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
-import { PlusCircle, Download, Filter, Loader2, Plus, MoreHorizontal, Pencil, Trash2, FolderOpen, Building2, Upload } from "lucide-react";
+import { PlusCircle, Download, Filter, Loader2, Plus, MoreHorizontal, Pencil, Trash2, FolderOpen, Building2, Upload, ArrowUp, ArrowDown } from "lucide-react";
 import { useState, useRef } from "react";
 import { AddEntityDialog, AddBudgetItemDialog } from "@/components/budget/AddEntityDialogs";
 import { toast } from "sonner";
@@ -126,7 +126,7 @@ export default function DepartmentBudget() {
 
   const handleUpdateItem = async (itemId: string, values: BudgetMonthValues) => {
     try {
-      await updateBudgetItemMutation.mutateAsync({ id: itemId, data: { monthlyValues: values } });
+      await updateBudgetItemMutation.mutateAsync({ id: itemId, updates: { monthlyValues: values } });
       toast.success("Güncellendi");
     } catch (error: any) {
       toast.error("Hata", { description: error.message });
@@ -153,7 +153,7 @@ export default function DepartmentBudget() {
 
   const handleSubmitForApproval = async (itemId: string) => {
     try {
-      await updateBudgetItemMutation.mutateAsync({ id: itemId, data: { status: 'pending' } });
+      await updateBudgetItemMutation.mutateAsync({ id: itemId, updates: { status: 'pending' } });
       toast.success("Onaya gönderildi");
     } catch (error: any) {
       toast.error("Hata", { description: error.message });
@@ -162,7 +162,7 @@ export default function DepartmentBudget() {
 
   const handleWithdraw = async (itemId: string) => {
     try {
-      await updateBudgetItemMutation.mutateAsync({ id: itemId, data: { status: 'draft' } });
+      await updateBudgetItemMutation.mutateAsync({ id: itemId, updates: { status: 'draft' } });
       toast.success("Geri çekildi");
     } catch (error: any) {
       toast.error("Hata", { description: error.message });
@@ -270,6 +270,105 @@ export default function DepartmentBudget() {
       toast.success("Bütçe kalemi silindi", { description: name });
     } catch (error: any) {
       toast.error("Hata", { description: error.message });
+    }
+  };
+
+  // Reorder Department Groups
+  const handleReorderDeptGroup = async (groupId: string, direction: 'up' | 'down') => {
+    const sortedGroups = [...departmentGroups].sort((a, b) => (a.sortOrder ?? 0) - (b.sortOrder ?? 0));
+    const currentIndex = sortedGroups.findIndex(g => g.id === groupId);
+    if (currentIndex === -1) return;
+    
+    const swapIndex = direction === 'up' ? currentIndex - 1 : currentIndex + 1;
+    if (swapIndex < 0 || swapIndex >= sortedGroups.length) return;
+    
+    const currentGroup = sortedGroups[currentIndex];
+    const swapGroup = sortedGroups[swapIndex];
+    
+    try {
+      await Promise.all([
+        updateDepartmentGroupMutation.mutateAsync({ id: currentGroup.id, updates: { sortOrder: swapGroup.sortOrder ?? swapIndex } }),
+        updateDepartmentGroupMutation.mutateAsync({ id: swapGroup.id, updates: { sortOrder: currentGroup.sortOrder ?? currentIndex } }),
+      ]);
+    } catch (error: any) {
+      toast.error("Sıralama güncellenemedi", { description: error.message });
+    }
+  };
+
+  // Reorder Departments within a group
+  const handleReorderDepartment = async (deptId: string, direction: 'up' | 'down', groupId: string | null) => {
+    const deptsInGroup = departments.filter(d => d.groupId === groupId).sort((a, b) => (a.sortOrder ?? 0) - (b.sortOrder ?? 0));
+    const currentIndex = deptsInGroup.findIndex(d => d.id === deptId);
+    if (currentIndex === -1) return;
+    
+    const swapIndex = direction === 'up' ? currentIndex - 1 : currentIndex + 1;
+    if (swapIndex < 0 || swapIndex >= deptsInGroup.length) return;
+    
+    const currentDept = deptsInGroup[currentIndex];
+    const swapDept = deptsInGroup[swapIndex];
+    
+    try {
+      await Promise.all([
+        updateDepartmentMutation.mutateAsync({ id: currentDept.id, updates: { sortOrder: swapDept.sortOrder ?? swapIndex } }),
+        updateDepartmentMutation.mutateAsync({ id: swapDept.id, updates: { sortOrder: currentDept.sortOrder ?? currentIndex } }),
+      ]);
+    } catch (error: any) {
+      toast.error("Sıralama güncellenemedi", { description: error.message });
+    }
+  };
+
+  // Reorder Cost Groups within a department
+  const handleReorderCostGroup = async (costGroupId: string, direction: 'up' | 'down', deptId: string) => {
+    const dept = departments.find(d => d.id === deptId);
+    if (!dept) return;
+    
+    const costGroups = [...dept.costGroups].sort((a, b) => (a.sortOrder ?? 0) - (b.sortOrder ?? 0));
+    const currentIndex = costGroups.findIndex(g => g.id === costGroupId);
+    if (currentIndex === -1) return;
+    
+    const swapIndex = direction === 'up' ? currentIndex - 1 : currentIndex + 1;
+    if (swapIndex < 0 || swapIndex >= costGroups.length) return;
+    
+    const currentCostGroup = costGroups[currentIndex];
+    const swapCostGroup = costGroups[swapIndex];
+    
+    try {
+      await Promise.all([
+        updateCostGroupMutation.mutateAsync({ id: currentCostGroup.id, updates: { sortOrder: swapCostGroup.sortOrder ?? swapIndex } }),
+        updateCostGroupMutation.mutateAsync({ id: swapCostGroup.id, updates: { sortOrder: currentCostGroup.sortOrder ?? currentIndex } }),
+      ]);
+    } catch (error: any) {
+      toast.error("Sıralama güncellenemedi", { description: error.message });
+    }
+  };
+
+  // Reorder Budget Items within a cost group
+  const handleReorderBudgetItem = async (itemId: string, direction: 'up' | 'down', costGroupId: string) => {
+    let items: any[] = [];
+    for (const dept of departments) {
+      const costGroup = dept.costGroups.find((g: any) => g.id === costGroupId);
+      if (costGroup) {
+        items = [...costGroup.items].sort((a: any, b: any) => (a.sortOrder ?? 0) - (b.sortOrder ?? 0));
+        break;
+      }
+    }
+    
+    const currentIndex = items.findIndex((i: any) => i.id === itemId);
+    if (currentIndex === -1) return;
+    
+    const swapIndex = direction === 'up' ? currentIndex - 1 : currentIndex + 1;
+    if (swapIndex < 0 || swapIndex >= items.length) return;
+    
+    const currentItem = items[currentIndex];
+    const swapItem = items[swapIndex];
+    
+    try {
+      await Promise.all([
+        updateBudgetItemMutation.mutateAsync({ id: currentItem.id, updates: { sortOrder: swapItem.sortOrder ?? swapIndex } }),
+        updateBudgetItemMutation.mutateAsync({ id: swapItem.id, updates: { sortOrder: currentItem.sortOrder ?? currentIndex } }),
+      ]);
+    } catch (error: any) {
+      toast.error("Sıralama güncellenemedi", { description: error.message });
     }
   };
 
@@ -440,7 +539,7 @@ export default function DepartmentBudget() {
             });
             await updateBudgetItemMutation.mutateAsync({ 
               id: row.itemId, 
-              data: { monthlyValues: monthlyValuesObj } 
+              updates: { monthlyValues: monthlyValuesObj } 
             });
             successCount++;
           } else if (row.status === 'create' && row.matchedCostGroupId) {
@@ -751,6 +850,15 @@ export default function DepartmentBudget() {
                               </Button>
                             </DropdownMenuTrigger>
                             <DropdownMenuContent align="end">
+                              <DropdownMenuItem onClick={() => handleReorderDeptGroup(group.id, 'up')}>
+                                <ArrowUp className="mr-2 h-4 w-4" />
+                                Yukarı Taşı
+                              </DropdownMenuItem>
+                              <DropdownMenuItem onClick={() => handleReorderDeptGroup(group.id, 'down')}>
+                                <ArrowDown className="mr-2 h-4 w-4" />
+                                Aşağı Taşı
+                              </DropdownMenuItem>
+                              <DropdownMenuSeparator />
                               <DropdownMenuItem onClick={() => { setEditingDeptGroup({ id: group.id, name: group.name }); setEditDeptGroupOpen(true); }}>
                                 <Pencil className="mr-2 h-4 w-4" />
                                 Düzenle
@@ -766,7 +874,7 @@ export default function DepartmentBudget() {
                     </div>
 
                     <Accordion type="multiple" className="w-full pl-4 border-l-2 border-primary/20">
-                      {groupDepts.map((dept) => {
+                      {groupDepts.map((dept, deptIndex) => {
                         const deptTotal = dept.costGroups.reduce((acc, g) => acc + g.items.reduce((iAcc, i) => iAcc + Object.values(i.values).reduce((vAcc, v) => vAcc + v, 0), 0), 0);
                         return (
                           <AccordionItem key={dept.id} value={dept.id} className="border-b border-border/50 px-4">
@@ -787,6 +895,15 @@ export default function DepartmentBudget() {
                                         </Button>
                                       </DropdownMenuTrigger>
                                       <DropdownMenuContent align="end">
+                                        <DropdownMenuItem onClick={(e) => { e.stopPropagation(); handleReorderDepartment(dept.id, 'up', dept.groupId); }}>
+                                          <ArrowUp className="mr-2 h-4 w-4" />
+                                          Yukarı Taşı
+                                        </DropdownMenuItem>
+                                        <DropdownMenuItem onClick={(e) => { e.stopPropagation(); handleReorderDepartment(dept.id, 'down', dept.groupId); }}>
+                                          <ArrowDown className="mr-2 h-4 w-4" />
+                                          Aşağı Taşı
+                                        </DropdownMenuItem>
+                                        <DropdownMenuSeparator />
                                         <DropdownMenuItem onClick={(e) => { e.stopPropagation(); setActiveDeptForGroup(dept.id); setIsNewGroupOpen(true); }}>
                                           <PlusCircle className="mr-2 h-4 w-4" />
                                           Yeni Grup Ekle
@@ -811,7 +928,7 @@ export default function DepartmentBudget() {
                             </AccordionTrigger>
                             <AccordionContent className="pb-4 pt-2">
                               <div className="space-y-4 pl-4 border-l-2 border-border/50 ml-2">
-                                {dept.costGroups.map((costGroup) => {
+                                {dept.costGroups.map((costGroup, costGroupIndex) => {
                                   const costGroupTotal = costGroup.items.reduce((acc, i) => acc + Object.values(i.values).reduce((vAcc, v) => vAcc + v, 0), 0);
                                   const monthlyTotals = getMonthlyTotals(costGroup.items);
                                   return (
@@ -846,6 +963,15 @@ export default function DepartmentBudget() {
                                                           </Button>
                                                         </DropdownMenuTrigger>
                                                         <DropdownMenuContent align="end">
+                                                          <DropdownMenuItem onClick={() => handleReorderCostGroup(costGroup.id, 'up', dept.id)}>
+                                                            <ArrowUp className="mr-2 h-4 w-4" />
+                                                            Yukarı Taşı
+                                                          </DropdownMenuItem>
+                                                          <DropdownMenuItem onClick={() => handleReorderCostGroup(costGroup.id, 'down', dept.id)}>
+                                                            <ArrowDown className="mr-2 h-4 w-4" />
+                                                            Aşağı Taşı
+                                                          </DropdownMenuItem>
+                                                          <DropdownMenuSeparator />
                                                           <DropdownMenuItem onClick={() => { setActiveGroupForItem(costGroup.id); setIsNewItemOpen(true); }}>
                                                             <Plus className="mr-2 h-4 w-4" />
                                                             Yeni Kalem Ekle
@@ -878,6 +1004,7 @@ export default function DepartmentBudget() {
                                         onSubmitForApproval={handleSubmitForApproval}
                                         onWithdraw={handleWithdraw}
                                         onRevert={handleRevertItem}
+                                        onReorder={(itemId, direction) => handleReorderBudgetItem(itemId, direction, costGroup.id)}
                                       />
                                     </div>
                                   );
@@ -922,6 +1049,15 @@ export default function DepartmentBudget() {
                                       </Button>
                                     </DropdownMenuTrigger>
                                     <DropdownMenuContent align="end">
+                                      <DropdownMenuItem onClick={(e) => { e.stopPropagation(); handleReorderDepartment(dept.id, 'up', null); }}>
+                                        <ArrowUp className="mr-2 h-4 w-4" />
+                                        Yukarı Taşı
+                                      </DropdownMenuItem>
+                                      <DropdownMenuItem onClick={(e) => { e.stopPropagation(); handleReorderDepartment(dept.id, 'down', null); }}>
+                                        <ArrowDown className="mr-2 h-4 w-4" />
+                                        Aşağı Taşı
+                                      </DropdownMenuItem>
+                                      <DropdownMenuSeparator />
                                       <DropdownMenuItem onClick={(e) => { e.stopPropagation(); setActiveDeptForGroup(dept.id); setIsNewGroupOpen(true); }}>
                                         <PlusCircle className="mr-2 h-4 w-4" />
                                         Yeni Grup Ekle
@@ -948,7 +1084,7 @@ export default function DepartmentBudget() {
                           </AccordionTrigger>
                           <AccordionContent className="pb-4 pt-2">
                             <div className="space-y-4 pl-4 border-l-2 border-border/50 ml-2">
-                              {dept.costGroups.map((costGroup) => {
+                              {dept.costGroups.map((costGroup, costGroupIndex) => {
                                 const costGroupTotal = costGroup.items.reduce((acc, i) => acc + Object.values(i.values).reduce((vAcc, v) => vAcc + v, 0), 0);
                                 const monthlyTotals = getMonthlyTotals(costGroup.items);
                                 return (
@@ -983,6 +1119,15 @@ export default function DepartmentBudget() {
                                                         </Button>
                                                       </DropdownMenuTrigger>
                                                       <DropdownMenuContent align="end">
+                                                        <DropdownMenuItem onClick={() => handleReorderCostGroup(costGroup.id, 'up', dept.id)}>
+                                                          <ArrowUp className="mr-2 h-4 w-4" />
+                                                          Yukarı Taşı
+                                                        </DropdownMenuItem>
+                                                        <DropdownMenuItem onClick={() => handleReorderCostGroup(costGroup.id, 'down', dept.id)}>
+                                                          <ArrowDown className="mr-2 h-4 w-4" />
+                                                          Aşağı Taşı
+                                                        </DropdownMenuItem>
+                                                        <DropdownMenuSeparator />
                                                         <DropdownMenuItem onClick={() => { setActiveGroupForItem(costGroup.id); setIsNewItemOpen(true); }}>
                                                           <Plus className="mr-2 h-4 w-4" />
                                                           Yeni Kalem Ekle
@@ -1015,6 +1160,7 @@ export default function DepartmentBudget() {
                                       onSubmitForApproval={handleSubmitForApproval}
                                       onWithdraw={handleWithdraw}
                                       onRevert={handleRevertItem}
+                                      onReorder={(itemId, direction) => handleReorderBudgetItem(itemId, direction, costGroup.id)}
                                     />
                                   </div>
                                 );

@@ -288,10 +288,10 @@ export function useCreateBudgetItem() {
 export function useUpdateBudgetItem() {
   const queryClient = useQueryClient();
   return useMutation({
-    mutationFn: ({ id, data }: { id: string; data: { monthlyValues?: any; status?: string } }) =>
-      api.updateBudgetItem(id, data),
+    mutationFn: ({ id, updates }: { id: string; updates: { monthlyValues?: any; status?: string; sortOrder?: number } }) =>
+      api.updateBudgetItem(id, updates),
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['departments'] });
+      queryClient.invalidateQueries({ predicate: (query) => query.queryKey[0] === 'departments' });
       queryClient.invalidateQueries({ queryKey: ['projects'] });
     },
   });

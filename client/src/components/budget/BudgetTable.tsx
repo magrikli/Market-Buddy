@@ -1,12 +1,12 @@
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Table, TableBody, TableCell, TableRow } from "@/components/ui/table";
-import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from "@/components/ui/dropdown-menu";
+import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger, DropdownMenuSeparator } from "@/components/ui/dropdown-menu";
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Textarea } from "@/components/ui/textarea";
 import { Label } from "@/components/ui/label";
 import { cn } from "@/lib/utils";
-import { Save, X, History, Lock, CheckCircle, Trash2, MoreHorizontal, Edit2, Clock, FileEdit, Send, Undo2, RotateCcw } from "lucide-react";
+import { Save, X, History, Lock, CheckCircle, Trash2, MoreHorizontal, Edit2, Clock, FileEdit, Send, Undo2, RotateCcw, ArrowUp, ArrowDown } from "lucide-react";
 import { useState, Fragment } from "react";
 import { CostItem, RevenueItem, BudgetMonthValues } from "@/lib/store";
 import { RevisionHistoryDialog } from "./RevisionHistoryDialog";
@@ -20,6 +20,7 @@ interface BudgetTableProps {
   onSubmitForApproval?: (itemId: string) => void;
   onWithdraw?: (itemId: string) => void;
   onRevert?: (itemId: string) => void;
+  onReorder?: (itemId: string, direction: 'up' | 'down') => void;
   isAdmin?: boolean;
   type?: 'cost' | 'revenue';
 }
@@ -35,7 +36,7 @@ const formatMoney = (amount: number) => {
 
 const currentMonth = new Date().getMonth(); // 0-indexed (0 = January, 11 = December)
 
-export function BudgetTable({ items, onSave, onRevise, onApprove, onDelete, onSubmitForApproval, onWithdraw, onRevert, isAdmin = false, type = 'cost' }: BudgetTableProps) {
+export function BudgetTable({ items, onSave, onRevise, onApprove, onDelete, onSubmitForApproval, onWithdraw, onRevert, onReorder, isAdmin = false, type = 'cost' }: BudgetTableProps) {
   const [editingId, setEditingId] = useState<string | null>(null);
   const [editValues, setEditValues] = useState<BudgetMonthValues>({});
   
@@ -174,6 +175,19 @@ export function BudgetTable({ items, onSave, onRevise, onApprove, onDelete, onSu
                                 </Button>
                               </DropdownMenuTrigger>
                               <DropdownMenuContent align="end">
+                                {isAdmin && onReorder && (
+                                  <>
+                                    <DropdownMenuItem onClick={() => onReorder(item.id, 'up')}>
+                                      <ArrowUp className="mr-2 h-4 w-4" />
+                                      Yukarı Taşı
+                                    </DropdownMenuItem>
+                                    <DropdownMenuItem onClick={() => onReorder(item.id, 'down')}>
+                                      <ArrowDown className="mr-2 h-4 w-4" />
+                                      Aşağı Taşı
+                                    </DropdownMenuItem>
+                                    <DropdownMenuSeparator />
+                                  </>
+                                )}
                                 {item.status === 'approved' ? (
                                   <DropdownMenuItem onClick={() => openRevisionDialog(item.id)}>
                                     <Lock className="mr-2 h-4 w-4 text-amber-600" />
