@@ -145,7 +145,8 @@ export function AddProjectDialog({ isOpen, onClose, onSave, projectTypes, isLoad
 
     const handleSave = () => {
         if (name.trim()) {
-            onSave(name, projectTypeId || undefined);
+            const typeId = projectTypeId && projectTypeId !== "__none__" ? projectTypeId : undefined;
+            onSave(name, typeId);
             setName("");
             setProjectTypeId("");
             onClose();
@@ -180,12 +181,12 @@ export function AddProjectDialog({ isOpen, onClose, onSave, projectTypes, isLoad
                     {projectTypes.length > 0 && (
                         <div className="space-y-2">
                             <Label>Proje Tipi (opsiyonel)</Label>
-                            <Select value={projectTypeId} onValueChange={setProjectTypeId}>
+                            <Select value={projectTypeId || "__none__"} onValueChange={setProjectTypeId}>
                                 <SelectTrigger data-testid="select-project-type">
                                     <SelectValue placeholder="Tip seçin..." />
                                 </SelectTrigger>
                                 <SelectContent>
-                                    <SelectItem value="">Tip seçilmedi (genel fazlar)</SelectItem>
+                                    <SelectItem value="__none__">Tip seçilmedi (boş proje)</SelectItem>
                                     {projectTypes.map((type) => (
                                         <SelectItem key={type.id} value={type.id}>
                                             {type.name}{type.code ? ` (${type.code})` : ''}
