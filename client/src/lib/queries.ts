@@ -146,7 +146,7 @@ export function useCreateCostGroup() {
   return useMutation({
     mutationFn: (data: { name: string; departmentId: string }) => api.createCostGroup(data),
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: queryKeys.departments(2025) });
+      queryClient.invalidateQueries({ predicate: (query) => query.queryKey[0] === 'departments' });
     },
   });
 }
@@ -167,7 +167,7 @@ export function useDeleteDepartment() {
   return useMutation({
     mutationFn: (id: string) => api.deleteDepartment(id),
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: queryKeys.departments(2025) });
+      queryClient.invalidateQueries({ predicate: (query) => query.queryKey[0] === 'departments' });
     },
   });
 }
@@ -187,7 +187,7 @@ export function useDeleteCostGroup() {
   return useMutation({
     mutationFn: (id: string) => api.deleteCostGroup(id),
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: queryKeys.departments(2025) });
+      queryClient.invalidateQueries({ predicate: (query) => query.queryKey[0] === 'departments' });
     },
   });
 }
@@ -216,7 +216,7 @@ export function useUpdateProject() {
   return useMutation({
     mutationFn: ({ id, name }: { id: string; name: string }) => api.updateProject(id, name),
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: queryKeys.projects(2025) });
+      queryClient.invalidateQueries({ predicate: (query) => query.queryKey[0] === 'projects' });
     },
   });
 }
@@ -236,7 +236,7 @@ export function useCreateProjectPhase() {
   return useMutation({
     mutationFn: (data: { name: string; projectId: string }) => api.createProjectPhase(data),
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: queryKeys.projects(2025) });
+      queryClient.invalidateQueries({ predicate: (query) => query.queryKey[0] === 'projects' });
     },
   });
 }
@@ -246,7 +246,7 @@ export function useUpdateProjectPhase() {
   return useMutation({
     mutationFn: ({ id, name }: { id: string; name: string }) => api.updateProjectPhase(id, name),
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: queryKeys.projects(2025) });
+      queryClient.invalidateQueries({ predicate: (query) => query.queryKey[0] === 'projects' });
     },
   });
 }
@@ -256,7 +256,7 @@ export function useDeleteProjectPhase() {
   return useMutation({
     mutationFn: (id: string) => api.deleteProjectPhase(id),
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: queryKeys.projects(2025) });
+      queryClient.invalidateQueries({ predicate: (query) => query.queryKey[0] === 'projects' });
     },
   });
 }
