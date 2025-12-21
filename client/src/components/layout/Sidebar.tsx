@@ -99,7 +99,7 @@ export function Sidebar() {
           {collapsed && <span className="font-bold text-xl text-primary mx-auto">FF</span>}
         </div>
         {!collapsed && versionInfo.version && (
-          <span className="text-[10px] text-muted-foreground/60 font-mono">
+          <span className="text-xs text-primary/80 font-mono bg-primary/10 px-2 py-0.5 rounded">
             v{versionInfo.version}
           </span>
         )}
