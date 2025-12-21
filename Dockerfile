@@ -1,10 +1,6 @@
 # Build stage
 FROM node:20-alpine AS builder
 
-# Build arguments for version info
-ARG GIT_COMMIT_HASH=dev
-ARG BUILD_TIME=""
-
 WORKDIR /app
 
 # Copy package files first for better caching
@@ -15,9 +11,6 @@ RUN npm ci
 
 # Copy source code
 COPY . .
-
-# Write version info to a file that the server can read
-RUN echo "{\"commitHash\":\"${GIT_COMMIT_HASH}\",\"buildTime\":\"${BUILD_TIME}\"}" > version.json
 
 # Build the application
 RUN npm run build
@@ -36,8 +29,8 @@ RUN npm ci --omit=dev
 # Copy built files from builder stage
 COPY --from=builder /app/dist ./dist
 
-# Copy version info file
-COPY --from=builder /app/version.json ./version.json
+# Copy package.json for version info
+COPY --from=builder /app/package.json ./package.json
 
 # Set environment variables
 ENV NODE_ENV=production

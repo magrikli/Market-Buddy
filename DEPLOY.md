@@ -25,9 +25,14 @@ SESSION_SECRET=your-secure-random-session-secret-here
 
 2. Create the `.env` file with your environment variables
 
-3. Build and run (with version info):
+3. Bump version (optional - increases patch version):
    ```bash
-   GIT_COMMIT_HASH=$(git rev-parse --short HEAD) BUILD_TIME=$(date -u +"%Y-%m-%dT%H:%M:%SZ") docker-compose up -d --build
+   npm run bump-version
+   ```
+
+4. Build and run:
+   ```bash
+   docker-compose up -d --build
    ```
 
 4. View logs:
@@ -42,12 +47,14 @@ SESSION_SECRET=your-secure-random-session-secret-here
 
 ### Option 2: Using Docker Directly
 
-1. Build the Docker image (with version info):
+1. Bump version (optional - increases patch version):
    ```bash
-   docker build -t finflow:latest \
-     --build-arg GIT_COMMIT_HASH=$(git rev-parse --short HEAD) \
-     --build-arg BUILD_TIME=$(date -u +"%Y-%m-%dT%H:%M:%SZ") \
-     .
+   npm run bump-version
+   ```
+
+2. Build the Docker image:
+   ```bash
+   docker build -t finflow:latest .
    ```
 
 2. Run the container:

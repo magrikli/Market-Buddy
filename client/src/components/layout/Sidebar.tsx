@@ -13,8 +13,7 @@ import {
   ChevronLeft,
   ChevronRight,
   Key,
-  Loader2,
-  GitCommit
+  Loader2
 } from "lucide-react";
 import { useState, useEffect } from "react";
 import { Button } from "@/components/ui/button";
@@ -35,13 +34,13 @@ export function Sidebar() {
   const [newPassword, setNewPassword] = useState("");
   const [confirmPassword, setConfirmPassword] = useState("");
   const [isChangingPassword, setIsChangingPassword] = useState(false);
-  const [versionInfo, setVersionInfo] = useState<{ version: string; commitHash: string }>({ version: "", commitHash: "" });
+  const [versionInfo, setVersionInfo] = useState<{ version: string }>({ version: "" });
 
   useEffect(() => {
     fetch("/api/version")
       .then(res => res.json())
-      .then(data => setVersionInfo({ version: data.version || "", commitHash: data.commitHash || "" }))
-      .catch(() => setVersionInfo({ version: "", commitHash: "" }));
+      .then(data => setVersionInfo({ version: data.version || "" }))
+      .catch(() => setVersionInfo({ version: "" }));
   }, []);
 
   if (!currentUser) return null;
@@ -99,15 +98,9 @@ export function Sidebar() {
           {!collapsed && <span className="font-bold text-xl text-primary tracking-tight">FinFlow</span>}
           {collapsed && <span className="font-bold text-xl text-primary mx-auto">FF</span>}
         </div>
-        {!collapsed && (versionInfo.version || versionInfo.commitHash) && (
-          <span className="text-[10px] text-muted-foreground/60 font-mono flex items-center gap-1" title={`v${versionInfo.version} (${versionInfo.commitHash})`}>
-            {versionInfo.version && <span>v{versionInfo.version}</span>}
-            {versionInfo.commitHash && (
-              <>
-                <GitCommit className="h-3 w-3" />
-                {versionInfo.commitHash}
-              </>
-            )}
+        {!collapsed && versionInfo.version && (
+          <span className="text-[10px] text-muted-foreground/60 font-mono">
+            v{versionInfo.version}
           </span>
         )}
       </div>
