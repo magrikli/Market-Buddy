@@ -35,6 +35,7 @@ export interface BaseItem {
   revision: number;
   lastUpdated: string;
   history: RevisionHistory[];
+  sortOrder?: number;
 }
 
 export interface RevisionHistory {
@@ -51,11 +52,13 @@ export interface CostGroup {
   id: string;
   name: string;
   items: CostItem[];
+  sortOrder?: number;
 }
 
 export interface DepartmentGroup {
   id: string;
   name: string;
+  sortOrder?: number;
 }
 
 export interface Department {
@@ -63,6 +66,7 @@ export interface Department {
   name: string;
   groupId: string | null;
   costGroups: CostGroup[];
+  sortOrder?: number;
 }
 
 export interface ProjectPhase {

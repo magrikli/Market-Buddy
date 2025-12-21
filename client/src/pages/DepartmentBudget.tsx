@@ -285,10 +285,14 @@ export default function DepartmentBudget() {
     const currentGroup = sortedGroups[currentIndex];
     const swapGroup = sortedGroups[swapIndex];
     
+    // Use array indices for new sortOrder values to ensure proper ordering
+    const newCurrentSortOrder = swapIndex;
+    const newSwapSortOrder = currentIndex;
+    
     try {
       await Promise.all([
-        updateDepartmentGroupMutation.mutateAsync({ id: currentGroup.id, updates: { sortOrder: swapGroup.sortOrder ?? swapIndex } }),
-        updateDepartmentGroupMutation.mutateAsync({ id: swapGroup.id, updates: { sortOrder: currentGroup.sortOrder ?? currentIndex } }),
+        updateDepartmentGroupMutation.mutateAsync({ id: currentGroup.id, updates: { sortOrder: newCurrentSortOrder } }),
+        updateDepartmentGroupMutation.mutateAsync({ id: swapGroup.id, updates: { sortOrder: newSwapSortOrder } }),
       ]);
     } catch (error: any) {
       toast.error("Sıralama güncellenemedi", { description: error.message });
@@ -307,10 +311,14 @@ export default function DepartmentBudget() {
     const currentDept = deptsInGroup[currentIndex];
     const swapDept = deptsInGroup[swapIndex];
     
+    // Use array indices for new sortOrder values to ensure proper ordering
+    const newCurrentSortOrder = swapIndex;
+    const newSwapSortOrder = currentIndex;
+    
     try {
       await Promise.all([
-        updateDepartmentMutation.mutateAsync({ id: currentDept.id, updates: { sortOrder: swapDept.sortOrder ?? swapIndex } }),
-        updateDepartmentMutation.mutateAsync({ id: swapDept.id, updates: { sortOrder: currentDept.sortOrder ?? currentIndex } }),
+        updateDepartmentMutation.mutateAsync({ id: currentDept.id, updates: { sortOrder: newCurrentSortOrder } }),
+        updateDepartmentMutation.mutateAsync({ id: swapDept.id, updates: { sortOrder: newSwapSortOrder } }),
       ]);
     } catch (error: any) {
       toast.error("Sıralama güncellenemedi", { description: error.message });
@@ -332,10 +340,14 @@ export default function DepartmentBudget() {
     const currentCostGroup = costGroups[currentIndex];
     const swapCostGroup = costGroups[swapIndex];
     
+    // Use array indices for new sortOrder values to ensure proper ordering
+    const newCurrentSortOrder = swapIndex;
+    const newSwapSortOrder = currentIndex;
+    
     try {
       await Promise.all([
-        updateCostGroupMutation.mutateAsync({ id: currentCostGroup.id, updates: { sortOrder: swapCostGroup.sortOrder ?? swapIndex } }),
-        updateCostGroupMutation.mutateAsync({ id: swapCostGroup.id, updates: { sortOrder: currentCostGroup.sortOrder ?? currentIndex } }),
+        updateCostGroupMutation.mutateAsync({ id: currentCostGroup.id, updates: { sortOrder: newCurrentSortOrder } }),
+        updateCostGroupMutation.mutateAsync({ id: swapCostGroup.id, updates: { sortOrder: newSwapSortOrder } }),
       ]);
     } catch (error: any) {
       toast.error("Sıralama güncellenemedi", { description: error.message });
@@ -362,10 +374,14 @@ export default function DepartmentBudget() {
     const currentItem = items[currentIndex];
     const swapItem = items[swapIndex];
     
+    // Use array indices for new sortOrder values to ensure proper ordering
+    const newCurrentSortOrder = swapIndex;
+    const newSwapSortOrder = currentIndex;
+    
     try {
       await Promise.all([
-        updateBudgetItemMutation.mutateAsync({ id: currentItem.id, updates: { sortOrder: swapItem.sortOrder ?? swapIndex } }),
-        updateBudgetItemMutation.mutateAsync({ id: swapItem.id, updates: { sortOrder: currentItem.sortOrder ?? currentIndex } }),
+        updateBudgetItemMutation.mutateAsync({ id: currentItem.id, updates: { sortOrder: newCurrentSortOrder } }),
+        updateBudgetItemMutation.mutateAsync({ id: swapItem.id, updates: { sortOrder: newSwapSortOrder } }),
       ]);
     } catch (error: any) {
       toast.error("Sıralama güncellenemedi", { description: error.message });
