@@ -15,6 +15,9 @@ export const queryKeys = {
   expenseRatio: (year: number, companyId?: string | null) => ['expenseRatio', year, companyId] as const,
   departmentGroupsBreakdown: (year: number, companyId?: string | null, departmentId?: string | null) => ['departmentGroupsBreakdown', year, companyId, departmentId] as const,
   projectPhasesBreakdown: (year: number, companyId?: string | null, projectId?: string | null) => ['projectPhasesBreakdown', year, companyId, projectId] as const,
+  budgetRatio: (year: number, companyId?: string | null) => ['budgetRatio', year, companyId] as const,
+  budgetDepartmentGroupsBreakdown: (year: number, companyId?: string | null, departmentId?: string | null) => ['budgetDepartmentGroupsBreakdown', year, companyId, departmentId] as const,
+  budgetProjectPhasesBreakdown: (year: number, companyId?: string | null, projectId?: string | null) => ['budgetProjectPhasesBreakdown', year, companyId, projectId] as const,
 };
 
 // === AUTH ===
@@ -374,6 +377,27 @@ export function useProjectPhasesBreakdown(year: number, companyId?: string | nul
   return useQuery({
     queryKey: queryKeys.projectPhasesBreakdown(year, companyId, projectId),
     queryFn: () => api.getProjectPhases(year, companyId, projectId),
+  });
+}
+
+export function useBudgetRatio(year: number, companyId?: string | null) {
+  return useQuery({
+    queryKey: queryKeys.budgetRatio(year, companyId),
+    queryFn: () => api.getBudgetRatio(year, companyId),
+  });
+}
+
+export function useBudgetDepartmentGroupsBreakdown(year: number, companyId?: string | null, departmentId?: string | null) {
+  return useQuery({
+    queryKey: queryKeys.budgetDepartmentGroupsBreakdown(year, companyId, departmentId),
+    queryFn: () => api.getBudgetDepartmentGroupsBreakdown(year, companyId, departmentId),
+  });
+}
+
+export function useBudgetProjectPhasesBreakdown(year: number, companyId?: string | null, projectId?: string | null) {
+  return useQuery({
+    queryKey: queryKeys.budgetProjectPhasesBreakdown(year, companyId, projectId),
+    queryFn: () => api.getBudgetProjectPhasesBreakdown(year, companyId, projectId),
   });
 }
 

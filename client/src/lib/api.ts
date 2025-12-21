@@ -361,6 +361,26 @@ export async function getProjectPhases(year: number, companyId?: string | null, 
   return fetchAPI(`/dashboard/project-phases?${params.toString()}`);
 }
 
+export async function getBudgetRatio(year: number, companyId?: string | null): Promise<PieChartResponse> {
+  const params = new URLSearchParams({ year: String(year) });
+  if (companyId) params.append('companyId', companyId);
+  return fetchAPI(`/dashboard/budget-ratio?${params.toString()}`);
+}
+
+export async function getBudgetDepartmentGroupsBreakdown(year: number, companyId?: string | null, departmentId?: string | null): Promise<PieChartResponse> {
+  const params = new URLSearchParams({ year: String(year) });
+  if (companyId) params.append('companyId', companyId);
+  if (departmentId) params.append('departmentId', departmentId);
+  return fetchAPI(`/dashboard/budget-department-groups?${params.toString()}`);
+}
+
+export async function getBudgetProjectPhasesBreakdown(year: number, companyId?: string | null, projectId?: string | null): Promise<PieChartResponse> {
+  const params = new URLSearchParams({ year: String(year) });
+  if (companyId) params.append('companyId', companyId);
+  if (projectId) params.append('projectId', projectId);
+  return fetchAPI(`/dashboard/budget-project-phases?${params.toString()}`);
+}
+
 // === COMPANIES ===
 
 export async function getCompanies(): Promise<Company[]> {

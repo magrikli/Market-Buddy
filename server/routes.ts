@@ -1387,6 +1387,223 @@ export async function registerRoutes(server: Server, app: Express): Promise<Serv
     }
   });
 
+  // Dashboard budget ratio (Project vs Department budgets)
+  app.get("/api/dashboard/budget-ratio", async (req: Request, res: Response) => {
+    try {
+      const year = parseInt(req.query.year as string) || new Date().getFullYear();
+      const companyId = req.query.companyId as string | undefined;
+      
+      // Validate company access and determine allowed companies
+      let allowedCompanyIds: string[] | null = null;
+      if (req.session.role !== 'admin' && req.session.userId) {
+        allowedCompanyIds = await storage.getUserCompanies(req.session.userId);
+        if (companyId && !allowedCompanyIds.includes(companyId)) {
+          return res.status(403).json({ message: "Unauthorized access to this company" });
+        }
+      }
+      
+      const allDepartments = await storage.getAllDepartments();
+      const allProjects = await storage.getAllProjects();
+      
+      // Filter by company: use specific company, user's allowed companies, or all (admin only)
+      let filteredDepartments = allDepartments;
+      let filteredProjects = allProjects;
+      if (companyId) {
+        filteredDepartments = allDepartments.filter(d => d.companyId === companyId);
+        filteredProjects = allProjects.filter(p => p.companyId === companyId);
+      } else if (allowedCompanyIds) {
+        filteredDepartments = allDepartments.filter(d => d.companyId && allowedCompanyIds!.includes(d.companyId));
+        filteredProjects = allProjects.filter(p => p.companyId && allowedCompanyIds!.includes(p.companyId));
+      }
+      
+      let departmentBudget = 0;
+      let projectBudget = 0;
+      
+      for (const dept of filteredDepartments) {
+        const groups = await storage.getCostGroupsByDepartment(dept.id);
+        for (const group of groups) {
+          const items = await storage.getBudgetItemsByCostGroup(group.id, year);
+          items.forEach((item: any) => {
+            const values = item.monthlyValues as Record<string, number>;
+            if (values) {
+              departmentBudget += Object.values(values).reduce((sum, v) => sum + (v || 0), 0);
+            }
+          });
+        }
+      }
+      
+      for (const proj of filteredProjects) {
+        const phases = await storage.getPhasesByProject(proj.id);
+        for (const phase of phases) {
+          const items = await storage.getBudgetItemsByProjectPhase(phase.id, year);
+          items.forEach((item: any) => {
+            if (item.type === 'cost') {
+              const values = item.monthlyValues as Record<string, number>;
+              if (values) {
+                projectBudget += Object.values(values).reduce((sum, v) => sum + (v || 0), 0);
+              }
+            }
+          });
+        }
+      }
+      
+      const total = departmentBudget + projectBudget;
+      
+      return res.json({
+        data: [
+          { name: 'Departman Bütçesi', value: Math.round(departmentBudget), percentage: total > 0 ? Math.round((departmentBudget / total) * 100) : 0 },
+          { name: 'Proje Bütçesi', value: Math.round(projectBudget), percentage: total > 0 ? Math.round((projectBudget / total) * 100) : 0 },
+        ],
+        total: Math.round(total),
+      });
+    } catch (error) {
+      console.error('Budget ratio error:', error);
+      return res.status(500).json({ message: "Server error" });
+    }
+  });
+
+  // Dashboard department groups budget breakdown
+  app.get("/api/dashboard/budget-department-groups", async (req: Request, res: Response) => {
+    try {
+      const year = parseInt(req.query.year as string) || new Date().getFullYear();
+      const companyId = req.query.companyId as string | undefined;
+      const departmentId = req.query.departmentId as string | undefined;
+      
+      // Validate company access and determine allowed companies
+      let allowedCompanyIds: string[] | null = null;
+      if (req.session.role !== 'admin' && req.session.userId) {
+        allowedCompanyIds = await storage.getUserCompanies(req.session.userId);
+        if (companyId && !allowedCompanyIds.includes(companyId)) {
+          return res.status(403).json({ message: "Unauthorized access to this company" });
+        }
+      }
+      
+      const groupBudgets: { [groupId: string]: { name: string; value: number } } = {};
+      
+      const allDepartments = await storage.getAllDepartments();
+      
+      // Filter by company: use specific company, user's allowed companies, or all (admin only)
+      let filteredDepartments = allDepartments;
+      if (companyId) {
+        filteredDepartments = allDepartments.filter(d => d.companyId === companyId);
+      } else if (allowedCompanyIds) {
+        filteredDepartments = allDepartments.filter(d => d.companyId && allowedCompanyIds!.includes(d.companyId));
+      }
+      
+      if (departmentId && departmentId !== 'all') {
+        filteredDepartments = filteredDepartments.filter(d => d.id === departmentId);
+      }
+      
+      for (const dept of filteredDepartments) {
+        const groups = await storage.getCostGroupsByDepartment(dept.id);
+        for (const group of groups) {
+          const items = await storage.getBudgetItemsByCostGroup(group.id, year);
+          let groupTotal = 0;
+          items.forEach((item: any) => {
+            const values = item.monthlyValues as Record<string, number>;
+            if (values) {
+              groupTotal += Object.values(values).reduce((sum, v) => sum + (v || 0), 0);
+            }
+          });
+          
+          if (groupTotal > 0) {
+            if (!groupBudgets[group.id]) {
+              groupBudgets[group.id] = { name: group.name, value: 0 };
+            }
+            groupBudgets[group.id].value += groupTotal;
+          }
+        }
+      }
+      
+      const data = Object.values(groupBudgets)
+        .map(g => ({ ...g, value: Math.round(g.value) }))
+        .sort((a, b) => b.value - a.value);
+      
+      const total = data.reduce((sum, d) => sum + d.value, 0);
+      const dataWithPercentage = data.map(d => ({
+        ...d,
+        percentage: total > 0 ? Math.round((d.value / total) * 100) : 0,
+      }));
+      
+      return res.json({ data: dataWithPercentage, total });
+    } catch (error) {
+      console.error('Budget department groups error:', error);
+      return res.status(500).json({ message: "Server error" });
+    }
+  });
+
+  // Dashboard project phases budget breakdown
+  app.get("/api/dashboard/budget-project-phases", async (req: Request, res: Response) => {
+    try {
+      const year = parseInt(req.query.year as string) || new Date().getFullYear();
+      const companyId = req.query.companyId as string | undefined;
+      const projectId = req.query.projectId as string | undefined;
+      
+      // Validate company access and determine allowed companies
+      let allowedCompanyIds: string[] | null = null;
+      if (req.session.role !== 'admin' && req.session.userId) {
+        allowedCompanyIds = await storage.getUserCompanies(req.session.userId);
+        if (companyId && !allowedCompanyIds.includes(companyId)) {
+          return res.status(403).json({ message: "Unauthorized access to this company" });
+        }
+      }
+      
+      const phaseBudgets: { [phaseId: string]: { name: string; value: number } } = {};
+      
+      const allProjects = await storage.getAllProjects();
+      
+      // Filter by company: use specific company, user's allowed companies, or all (admin only)
+      let filteredProjects = allProjects;
+      if (companyId) {
+        filteredProjects = allProjects.filter(p => p.companyId === companyId);
+      } else if (allowedCompanyIds) {
+        filteredProjects = allProjects.filter(p => p.companyId && allowedCompanyIds!.includes(p.companyId));
+      }
+      
+      if (projectId && projectId !== 'all') {
+        filteredProjects = filteredProjects.filter(p => p.id === projectId);
+      }
+      
+      for (const proj of filteredProjects) {
+        const phases = await storage.getPhasesByProject(proj.id);
+        for (const phase of phases) {
+          const items = await storage.getBudgetItemsByProjectPhase(phase.id, year);
+          let phaseTotal = 0;
+          items.forEach((item: any) => {
+            if (item.type === 'cost') {
+              const values = item.monthlyValues as Record<string, number>;
+              if (values) {
+                phaseTotal += Object.values(values).reduce((sum, v) => sum + (v || 0), 0);
+              }
+            }
+          });
+          
+          if (phaseTotal > 0) {
+            if (!phaseBudgets[phase.id]) {
+              phaseBudgets[phase.id] = { name: phase.name, value: 0 };
+            }
+            phaseBudgets[phase.id].value += phaseTotal;
+          }
+        }
+      }
+      
+      const data = Object.values(phaseBudgets)
+        .map(p => ({ ...p, value: Math.round(p.value) }))
+        .sort((a, b) => b.value - a.value);
+      
+      const total = data.reduce((sum, d) => sum + d.value, 0);
+      const dataWithPercentage = data.map(d => ({
+        ...d,
+        percentage: total > 0 ? Math.round((d.value / total) * 100) : 0,
+      }));
+      
+      return res.json({ data: dataWithPercentage, total });
+    } catch (error) {
+      console.error('Budget project phases error:', error);
+      return res.status(500).json({ message: "Server error" });
+    }
+  });
+
   // ===== USERS & ASSIGNMENTS =====
   
   app.get("/api/users", async (req: Request, res: Response) => {
