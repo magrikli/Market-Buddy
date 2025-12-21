@@ -7,7 +7,7 @@ import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, D
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Checkbox } from "@/components/ui/checkbox";
 import { useStore } from "@/lib/store";
-import { useDepartments, useProjects, useUsers, useCreateUser, useUpdateUser, useDeleteUser, useUpdateUserAssignments, useCompanies, useCreateCompany, useUpdateCompany, useDeleteCompany, useUpdateUserCompanyAssignments, usePendingProcesses, useApproveProcess, useRejectProcess, useBulkApproveProcesses, usePendingBudgetItems, useApproveBudgetItem, useRejectBudgetItem, useBulkApproveBudgetItems, useProjectTypes, useCreateProjectType, useUpdateProjectType, useDeleteProjectType, useReorderProjectTypes, useProjectTypePhases, useCreateProjectTypePhase, useDeleteProjectTypePhase, useReorderProjectTypePhases } from "@/lib/queries";
+import { useDepartments, useDepartmentGroups, useProjects, useUsers, useCreateUser, useUpdateUser, useDeleteUser, useUpdateUserAssignments, useCompanies, useCreateCompany, useUpdateCompany, useDeleteCompany, useUpdateUserCompanyAssignments, usePendingProcesses, useApproveProcess, useRejectProcess, useBulkApproveProcesses, usePendingBudgetItems, useApproveBudgetItem, useRejectBudgetItem, useBulkApproveBudgetItems, useProjectTypes, useCreateProjectType, useUpdateProjectType, useDeleteProjectType, useReorderProjectTypes, useProjectTypePhases, useCreateProjectTypePhase, useDeleteProjectTypePhase, useReorderProjectTypePhases } from "@/lib/queries";
 import { Search, UserPlus, CheckCheck, Pencil, Trash2, Loader2, Users, Building2, Plus, X, Settings, ArrowUp, ArrowDown } from "lucide-react";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { toast } from "sonner";
@@ -16,6 +16,7 @@ import { useState } from "react";
 export default function Admin() {
   const { currentYear } = useStore();
   const { data: departments = [] } = useDepartments(currentYear);
+  const { data: departmentGroups = [] } = useDepartmentGroups();
   const { data: projects = [] } = useProjects(currentYear);
   const { data: users = [], isLoading: usersLoading } = useUsers();
   const { data: companies = [], isLoading: companiesLoading } = useCompanies();
@@ -548,20 +549,68 @@ export default function Admin() {
               {departments.length === 0 ? (
                 <p className="text-sm text-muted-foreground">Henüz departman bulunmuyor.</p>
               ) : (
-                <div className="space-y-2 border rounded-lg p-3">
-                  {departments.map((dept) => (
-                    <div key={dept.id} className="flex items-center gap-2">
-                      <Checkbox
-                        id={`dept-${dept.id}`}
-                        checked={selectedDepartments.includes(dept.id)}
-                        onCheckedChange={() => toggleDepartment(dept.id)}
-                        data-testid={`checkbox-dept-${dept.id}`}
-                      />
-                      <label htmlFor={`dept-${dept.id}`} className="text-sm cursor-pointer flex-1">
-                        {dept.name}
-                      </label>
-                    </div>
-                  ))}
+                <div className="space-y-3 border rounded-lg p-3">
+                  {departmentGroups
+                    .slice()
+                    .sort((a, b) => (a.sortOrder ?? 0) - (b.sortOrder ?? 0))
+                    .map((group) => {
+                      const groupDepts = departments
+                        .filter((d) => d.groupId === group.id)
+                        .sort((a, b) => (a.sortOrder ?? 0) - (b.sortOrder ?? 0));
+                      if (groupDepts.length === 0) return null;
+                      return (
+                        <div key={group.id} className="space-y-1">
+                          <div className="text-xs font-semibold text-muted-foreground uppercase tracking-wide border-b pb-1">
+                            {group.name}
+                          </div>
+                          <div className="space-y-1 pl-2">
+                            {groupDepts.map((dept) => (
+                              <div key={dept.id} className="flex items-center gap-2">
+                                <Checkbox
+                                  id={`dept-${dept.id}`}
+                                  checked={selectedDepartments.includes(dept.id)}
+                                  onCheckedChange={() => toggleDepartment(dept.id)}
+                                  data-testid={`checkbox-dept-${dept.id}`}
+                                />
+                                <label htmlFor={`dept-${dept.id}`} className="text-sm cursor-pointer flex-1">
+                                  {dept.name}
+                                </label>
+                              </div>
+                            ))}
+                          </div>
+                        </div>
+                      );
+                    })}
+                  {(() => {
+                    const ungroupedDepts = departments
+                      .filter((d) => !d.groupId)
+                      .sort((a, b) => (a.sortOrder ?? 0) - (b.sortOrder ?? 0));
+                    if (ungroupedDepts.length === 0) return null;
+                    return (
+                      <div className="space-y-1">
+                        {departmentGroups.length > 0 && (
+                          <div className="text-xs font-semibold text-muted-foreground uppercase tracking-wide border-b pb-1">
+                            Diğer
+                          </div>
+                        )}
+                        <div className={departmentGroups.length > 0 ? "space-y-1 pl-2" : "space-y-1"}>
+                          {ungroupedDepts.map((dept) => (
+                            <div key={dept.id} className="flex items-center gap-2">
+                              <Checkbox
+                                id={`dept-${dept.id}`}
+                                checked={selectedDepartments.includes(dept.id)}
+                                onCheckedChange={() => toggleDepartment(dept.id)}
+                                data-testid={`checkbox-dept-${dept.id}`}
+                              />
+                              <label htmlFor={`dept-${dept.id}`} className="text-sm cursor-pointer flex-1">
+                                {dept.name}
+                              </label>
+                            </div>
+                          ))}
+                        </div>
+                      </div>
+                    );
+                  })()}
                 </div>
               )}
             </div>
