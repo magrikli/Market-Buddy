@@ -41,6 +41,19 @@ export async function registerRoutes(server: Server, app: Express): Promise<Serv
     }
   });
 
+  // Update setting (admin only)
+  app.put("/api/settings/:key", async (req: Request, res: Response) => {
+    try {
+      const { key } = req.params;
+      const { value } = req.body;
+      await storage.setSetting(key, value);
+      res.json({ key, value });
+    } catch (error) {
+      console.error("Settings update error:", error);
+      res.status(500).json({ error: "Failed to update setting" });
+    }
+  });
+
   // Increment build number (called during build/deploy)
   app.post("/api/version/increment", async (_req: Request, res: Response) => {
     try {

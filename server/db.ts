@@ -41,14 +41,8 @@ export async function initializeDatabase() {
       )
     `);
     
-    // Insert default values if not present
-    await pool.query(`
-      INSERT INTO settings (key, value) 
-      VALUES ('Version', '1.1'), ('BuildNo', '100')
-      ON CONFLICT (key) DO NOTHING
-    `);
-    
-    console.log('Database settings table initialized');
+    // Don't insert default values - use existing data from database
+    console.log('Database settings table ready');
   } catch (error) {
     console.error('Failed to initialize database settings:', error);
   }
