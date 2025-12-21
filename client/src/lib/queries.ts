@@ -277,10 +277,10 @@ export function useCreateBudgetItem() {
     }) => api.createBudgetItem(data),
     onSuccess: (_, variables) => {
       if (variables.costGroupId) {
-        queryClient.invalidateQueries({ queryKey: queryKeys.departments(variables.year || 2025) });
+        queryClient.invalidateQueries({ predicate: (query) => query.queryKey[0] === 'departments' });
       }
       if (variables.projectPhaseId) {
-        queryClient.invalidateQueries({ queryKey: queryKeys.projects(variables.year || 2025) });
+        queryClient.invalidateQueries({ predicate: (query) => query.queryKey[0] === 'projects' });
       }
     },
   });

@@ -809,6 +809,7 @@ export default function ProjectBudget() {
                                     <BudgetTable 
                                       items={phase.costItems || []}
                                       isAdmin={currentUser?.role === 'admin'}
+                                      selectedYear={currentYear}
                                       onSave={handleUpdateItem}
                                       onRevise={handleReviseItem}
                                       onApprove={handleApproveItem}
@@ -896,6 +897,7 @@ export default function ProjectBudget() {
                                     <BudgetTable 
                                       items={phase.revenueItems || []}
                                       isAdmin={currentUser?.role === 'admin'}
+                                      selectedYear={currentYear}
                                       onSave={handleUpdateItem}
                                       onRevise={handleReviseItem}
                                       onApprove={handleApproveItem}

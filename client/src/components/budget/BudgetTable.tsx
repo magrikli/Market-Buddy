@@ -23,6 +23,7 @@ interface BudgetTableProps {
   onReorder?: (itemId: string, direction: 'up' | 'down') => void;
   isAdmin?: boolean;
   type?: 'cost' | 'revenue';
+  selectedYear?: number;
 }
 
 const months = [
@@ -34,9 +35,12 @@ const formatMoney = (amount: number) => {
   return new Intl.NumberFormat('tr-TR', { minimumFractionDigits: 0, maximumFractionDigits: 0 }).format(amount);
 };
 
+const currentYear = new Date().getFullYear();
 const currentMonth = new Date().getMonth(); // 0-indexed (0 = January, 11 = December)
 
-export function BudgetTable({ items, onSave, onRevise, onApprove, onDelete, onSubmitForApproval, onWithdraw, onRevert, onReorder, isAdmin = false, type = 'cost' }: BudgetTableProps) {
+export function BudgetTable({ items, onSave, onRevise, onApprove, onDelete, onSubmitForApproval, onWithdraw, onRevert, onReorder, isAdmin = false, type = 'cost', selectedYear }: BudgetTableProps) {
+  // If selected year is in the future, all months are editable
+  const isFutureYear = selectedYear ? selectedYear > currentYear : false;
   const [editingId, setEditingId] = useState<string | null>(null);
   const [editValues, setEditValues] = useState<BudgetMonthValues>({});
   
@@ -128,7 +132,7 @@ export function BudgetTable({ items, onSave, onRevise, onApprove, onDelete, onSu
                         </div>
                       </TableCell>
                       {months.map((_, index) => {
-                        const isPastMonth = index < currentMonth;
+                        const isPastMonth = !isFutureYear && index < currentMonth;
                         return (
                           <TableCell key={index} className={cn("min-w-[80px] text-right p-2", isPastMonth && "bg-muted/30")}>
                             {isEditing ? (
