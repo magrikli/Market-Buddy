@@ -1,8 +1,6 @@
 # Build stage
 FROM node:20-alpine AS builder
 
-RUN apk add --no-cache git
-
 WORKDIR /app
 
 # Copy package files first for better caching
@@ -11,11 +9,8 @@ COPY package.json package-lock.json ./
 # Install all dependencies (including dev dependencies for build)
 RUN npm ci
 
-# Copy source code (including .git for version generation)
+# Copy source code
 COPY . .
-
-# Generate version info from git commit count
-RUN node scripts/generate-version.js
 
 # Build the application
 RUN npm run build
@@ -33,9 +28,6 @@ RUN npm ci --omit=dev
 
 # Copy built files from builder stage
 COPY --from=builder /app/dist ./dist
-
-# Copy version info
-COPY --from=builder /app/version.json ./version.json
 
 # Set environment variables
 ENV NODE_ENV=production
