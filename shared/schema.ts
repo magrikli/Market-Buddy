@@ -258,6 +258,7 @@ export const projectTypePhases = pgTable("project_type_phases", {
   id: varchar("id", { length: 255 }).primaryKey().default(sql`gen_random_uuid()`),
   projectTypeId: varchar("project_type_id", { length: 255 }).notNull().references(() => projectTypes.id, { onDelete: 'cascade' }),
   name: text("name").notNull(),
+  type: varchar("type", { length: 50 }).notNull().default('cost'), // 'cost' or 'revenue'
   sortOrder: integer("sort_order").notNull().default(0),
   createdAt: timestamp("created_at").defaultNow().notNull(),
 });
