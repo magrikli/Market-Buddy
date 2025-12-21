@@ -534,6 +534,7 @@ export async function registerRoutes(server: Server, app: Express): Promise<Serv
               return {
                 id: phase.id,
                 name: phase.name,
+                type: phase.type, // Include phase type (cost/revenue)
                 costItems: costItems.map((item, idx) => ({
                   id: item.id,
                   name: item.name,
@@ -590,14 +591,15 @@ export async function registerRoutes(server: Server, app: Express): Promise<Serv
       const data = insertProjectSchema.parse(req.body);
       const project = await storage.createProject(data);
       
-      // Auto-create phases based on project type
+      // Auto-create phases based on project type (both cost and revenue)
       if (data.projectTypeId) {
-        // Get phases from the selected project type
+        // Get all phases (cost and revenue) from the selected project type
         const typePhases = await storage.getPhasesByProjectType(data.projectTypeId);
         for (const typePhase of typePhases) {
           await storage.createProjectPhase({
             name: typePhase.name,
             projectId: project.id,
+            type: typePhase.type, // Copy the phase type (cost/revenue)
             sortOrder: typePhase.sortOrder
           });
         }

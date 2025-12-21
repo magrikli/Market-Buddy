@@ -720,14 +720,14 @@ export default function ProjectBudget() {
                           </div>
 
                           <TabsContent value="costs" className="space-y-4">
-                            {(project.phases || []).length === 0 ? (
+                            {(project.phases || []).filter((p: any) => p.type === 'cost' || !p.type).length === 0 ? (
                               <div className="text-center p-8 bg-muted/10 rounded-lg border border-dashed">
                                 <Layers className="h-8 w-8 mx-auto text-muted-foreground opacity-50 mb-2" />
-                                <p className="text-muted-foreground text-sm">Henüz faz eklenmemiş. Faz eklemek için sağ üstteki butonu kullanın.</p>
+                                <p className="text-muted-foreground text-sm">Henüz gider fazı eklenmemiş. Faz eklemek için sağ üstteki butonu kullanın.</p>
                               </div>
                             ) : (
                             <div className="space-y-4 pl-4 border-l-2 border-border/50 ml-2">
-                              {(project.phases || []).map((phase: any) => {
+                              {(project.phases || []).filter((p: any) => p.type === 'cost' || !p.type).map((phase: any) => {
                                 const phaseTotal = (phase.costItems || []).reduce((acc: number, i: any) => acc + Object.values(i.values as Record<string, number>).reduce((vAcc, v) => vAcc + v, 0), 0);
                                 const monthlyTotals = getMonthlyTotals(phase.costItems || []);
                                 
@@ -807,14 +807,14 @@ export default function ProjectBudget() {
                           </TabsContent>
 
                           <TabsContent value="revenue" className="space-y-4">
-                            {(project.phases || []).length === 0 ? (
+                            {(project.phases || []).filter((p: any) => p.type === 'revenue').length === 0 ? (
                               <div className="text-center p-8 bg-muted/10 rounded-lg border border-dashed">
                                 <Layers className="h-8 w-8 mx-auto text-muted-foreground opacity-50 mb-2" />
-                                <p className="text-muted-foreground text-sm">Henüz faz eklenmemiş. Faz eklemek için sağ üstteki butonu kullanın.</p>
+                                <p className="text-muted-foreground text-sm">Henüz gelir fazı eklenmemiş. Faz eklemek için sağ üstteki butonu kullanın.</p>
                               </div>
                             ) : (
                             <div className="space-y-4 pl-4 border-l-2 border-border/50 ml-2">
-                              {(project.phases || []).map((phase: any) => {
+                              {(project.phases || []).filter((p: any) => p.type === 'revenue').map((phase: any) => {
                                 const phaseTotal = (phase.revenueItems || []).reduce((acc: number, i: any) => acc + Object.values(i.values as Record<string, number>).reduce((vAcc, v) => vAcc + v, 0), 0);
                                 const monthlyTotals = getMonthlyTotals(phase.revenueItems || []);
                                 
