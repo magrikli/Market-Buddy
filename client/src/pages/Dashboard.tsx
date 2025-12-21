@@ -171,43 +171,82 @@ export default function Dashboard() {
         </Card>
       </div>
 
-      {/* Expense Ratio Pie Chart */}
+      {/* Expense & Budget Ratio Pie Charts */}
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
         <Card className="shadow-md">
           <CardHeader>
-            <CardTitle>Proje / Departman Gider Oranı</CardTitle>
+            <CardTitle>Proje / Departman Oranı</CardTitle>
           </CardHeader>
           <CardContent>
-            <div className="h-[300px] w-full">
-              {expenseRatioData && expenseRatioData.data.some(d => d.value > 0) ? (
-                <ResponsiveContainer width="100%" height="100%">
-                  <PieChart>
-                    <Pie
-                      data={expenseRatioData.data}
-                      cx="50%"
-                      cy="50%"
-                      labelLine={false}
-                      label={renderCustomLabel}
-                      outerRadius={100}
-                      fill="#8884d8"
-                      dataKey="value"
-                    >
-                      {expenseRatioData.data.map((_, index) => (
-                        <Cell key={`cell-${index}`} fill={COLORS[index % COLORS.length]} />
-                      ))}
-                    </Pie>
-                    <Tooltip 
-                      formatter={(value: number) => `€${new Intl.NumberFormat('tr-TR').format(value)}`}
-                      contentStyle={{ backgroundColor: 'white', borderRadius: '8px', border: '1px solid #e5e7eb' }}
-                    />
-                    <Legend />
-                  </PieChart>
-                </ResponsiveContainer>
-              ) : (
-                <div className="flex items-center justify-center h-full text-muted-foreground">
-                  Henüz gider kaydı yok
+            <div className="grid grid-cols-2 gap-4">
+              <div>
+                <h4 className="text-sm font-medium text-center mb-2 text-muted-foreground">Gerçekleşen</h4>
+                <div className="h-[250px] w-full">
+                  {expenseRatioData && expenseRatioData.data.some(d => d.value > 0) ? (
+                    <ResponsiveContainer width="100%" height="100%">
+                      <PieChart>
+                        <Pie
+                          data={expenseRatioData.data}
+                          cx="50%"
+                          cy="50%"
+                          labelLine={false}
+                          label={renderCustomLabel}
+                          outerRadius={70}
+                          fill="#8884d8"
+                          dataKey="value"
+                        >
+                          {expenseRatioData.data.map((_, index) => (
+                            <Cell key={`cell-${index}`} fill={COLORS[index % COLORS.length]} />
+                          ))}
+                        </Pie>
+                        <Tooltip 
+                          formatter={(value: number) => `€${new Intl.NumberFormat('tr-TR').format(value)}`}
+                          contentStyle={{ backgroundColor: 'white', borderRadius: '8px', border: '1px solid #e5e7eb' }}
+                        />
+                        <Legend wrapperStyle={{ fontSize: '11px' }} />
+                      </PieChart>
+                    </ResponsiveContainer>
+                  ) : (
+                    <div className="flex items-center justify-center h-full text-muted-foreground text-sm">
+                      Gider kaydı yok
+                    </div>
+                  )}
                 </div>
-              )}
+              </div>
+              <div>
+                <h4 className="text-sm font-medium text-center mb-2 text-muted-foreground">Bütçe</h4>
+                <div className="h-[250px] w-full">
+                  {budgetRatioData && budgetRatioData.data.some(d => d.value > 0) ? (
+                    <ResponsiveContainer width="100%" height="100%">
+                      <PieChart>
+                        <Pie
+                          data={budgetRatioData.data}
+                          cx="50%"
+                          cy="50%"
+                          labelLine={false}
+                          label={renderCustomLabel}
+                          outerRadius={70}
+                          fill="#8884d8"
+                          dataKey="value"
+                        >
+                          {budgetRatioData.data.map((_, index) => (
+                            <Cell key={`cell-${index}`} fill={COLORS[index % COLORS.length]} />
+                          ))}
+                        </Pie>
+                        <Tooltip 
+                          formatter={(value: number) => `€${new Intl.NumberFormat('tr-TR').format(value)}`}
+                          contentStyle={{ backgroundColor: 'white', borderRadius: '8px', border: '1px solid #e5e7eb' }}
+                        />
+                        <Legend wrapperStyle={{ fontSize: '11px' }} />
+                      </PieChart>
+                    </ResponsiveContainer>
+                  ) : (
+                    <div className="flex items-center justify-center h-full text-muted-foreground text-sm">
+                      Bütçe kaydı yok
+                    </div>
+                  )}
+                </div>
+              </div>
             </div>
           </CardContent>
         </Card>
@@ -414,48 +453,6 @@ export default function Dashboard() {
                   )}
                 </div>
               </div>
-            </div>
-          </CardContent>
-        </Card>
-      </div>
-
-      {/* Budget Ratio Chart */}
-      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-        <Card className="shadow-md">
-          <CardHeader>
-            <CardTitle>Proje / Departman Bütçe Oranı</CardTitle>
-          </CardHeader>
-          <CardContent>
-            <div className="h-[300px] w-full">
-              {budgetRatioData && budgetRatioData.data.some(d => d.value > 0) ? (
-                <ResponsiveContainer width="100%" height="100%">
-                  <PieChart>
-                    <Pie
-                      data={budgetRatioData.data}
-                      cx="50%"
-                      cy="50%"
-                      labelLine={false}
-                      label={renderCustomLabel}
-                      outerRadius={100}
-                      fill="#8884d8"
-                      dataKey="value"
-                    >
-                      {budgetRatioData.data.map((_, index) => (
-                        <Cell key={`cell-${index}`} fill={COLORS[index % COLORS.length]} />
-                      ))}
-                    </Pie>
-                    <Tooltip 
-                      formatter={(value: number) => `€${new Intl.NumberFormat('tr-TR').format(value)}`}
-                      contentStyle={{ backgroundColor: 'white', borderRadius: '8px', border: '1px solid #e5e7eb' }}
-                    />
-                    <Legend />
-                  </PieChart>
-                </ResponsiveContainer>
-              ) : (
-                <div className="flex items-center justify-center h-full text-muted-foreground">
-                  Henüz bütçe kaydı yok
-                </div>
-              )}
             </div>
           </CardContent>
         </Card>
