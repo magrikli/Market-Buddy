@@ -3,6 +3,7 @@ import {
   users, departments, costGroups, projects, projectPhases, budgetItems, budgetRevisions, 
   transactions, userDepartmentAssignments, userProjectAssignments, departmentGroups,
   companies, userCompanyAssignments, projectProcesses, processRevisions, defaultProjectPhases,
+  projectTypes, projectTypePhases,
   type User, type InsertUser, type Department, type InsertDepartment,
   type CostGroup, type InsertCostGroup, type Project, type InsertProject,
   type ProjectPhase, type InsertProjectPhase, type BudgetItem, type InsertBudgetItem,
@@ -11,7 +12,9 @@ import {
   type Company, type InsertCompany,
   type ProjectProcess, type InsertProjectProcess,
   type ProcessRevision, type InsertProcessRevision,
-  type DefaultProjectPhase, type InsertDefaultProjectPhase
+  type DefaultProjectPhase, type InsertDefaultProjectPhase,
+  type ProjectType, type InsertProjectType,
+  type ProjectTypePhase, type InsertProjectTypePhase
 } from '@shared/schema';
 import { eq, and, sql, inArray, asc, max } from 'drizzle-orm';
 
@@ -119,6 +122,20 @@ export interface IStorage {
   updateDefaultProjectPhase(id: string, updates: Partial<DefaultProjectPhase>): Promise<DefaultProjectPhase | undefined>;
   deleteDefaultProjectPhase(id: string): Promise<void>;
   reorderDefaultProjectPhases(id1: string, id2: string): Promise<void>;
+  
+  // Project Types
+  getAllProjectTypes(): Promise<ProjectType[]>;
+  getProjectType(id: string): Promise<ProjectType | undefined>;
+  createProjectType(type: InsertProjectType): Promise<ProjectType>;
+  updateProjectType(id: string, updates: Partial<ProjectType>): Promise<ProjectType | undefined>;
+  deleteProjectType(id: string): Promise<void>;
+  
+  // Project Type Phases
+  getPhasesByProjectType(projectTypeId: string): Promise<ProjectTypePhase[]>;
+  createProjectTypePhase(phase: InsertProjectTypePhase): Promise<ProjectTypePhase>;
+  updateProjectTypePhase(id: string, updates: Partial<ProjectTypePhase>): Promise<ProjectTypePhase | undefined>;
+  deleteProjectTypePhase(id: string): Promise<void>;
+  reorderProjectTypePhases(id1: string, id2: string): Promise<void>;
 }
 
 export class DatabaseStorage implements IStorage {
@@ -775,6 +792,88 @@ export class DatabaseStorage implements IStorage {
       
       await tx.update(defaultProjectPhases).set({ sortOrder: order2 }).where(eq(defaultProjectPhases.id, id1));
       await tx.update(defaultProjectPhases).set({ sortOrder: order1 }).where(eq(defaultProjectPhases.id, id2));
+    });
+  }
+
+  // === PROJECT TYPES ===
+  async getAllProjectTypes(): Promise<ProjectType[]> {
+    return await db.select().from(projectTypes).orderBy(asc(projectTypes.sortOrder));
+  }
+
+  async getProjectType(id: string): Promise<ProjectType | undefined> {
+    const result = await db.select().from(projectTypes).where(eq(projectTypes.id, id)).limit(1);
+    return result[0];
+  }
+
+  async createProjectType(type: InsertProjectType): Promise<ProjectType> {
+    const maxResult = await db.select({ maxOrder: max(projectTypes.sortOrder) }).from(projectTypes);
+    const nextSortOrder = (maxResult[0]?.maxOrder ?? -1) + 1;
+    
+    const result = await db.insert(projectTypes).values({
+      ...type,
+      sortOrder: type.sortOrder ?? nextSortOrder
+    }).returning();
+    return result[0];
+  }
+
+  async updateProjectType(id: string, updates: Partial<ProjectType>): Promise<ProjectType | undefined> {
+    const result = await db.update(projectTypes)
+      .set(updates)
+      .where(eq(projectTypes.id, id))
+      .returning();
+    return result[0];
+  }
+
+  async deleteProjectType(id: string): Promise<void> {
+    await db.delete(projectTypes).where(eq(projectTypes.id, id));
+  }
+
+  // === PROJECT TYPE PHASES ===
+  async getPhasesByProjectType(projectTypeId: string): Promise<ProjectTypePhase[]> {
+    return await db.select().from(projectTypePhases)
+      .where(eq(projectTypePhases.projectTypeId, projectTypeId))
+      .orderBy(asc(projectTypePhases.sortOrder));
+  }
+
+  async createProjectTypePhase(phase: InsertProjectTypePhase): Promise<ProjectTypePhase> {
+    const maxResult = await db.select({ maxOrder: max(projectTypePhases.sortOrder) })
+      .from(projectTypePhases)
+      .where(eq(projectTypePhases.projectTypeId, phase.projectTypeId));
+    const nextSortOrder = (maxResult[0]?.maxOrder ?? -1) + 1;
+    
+    const result = await db.insert(projectTypePhases).values({
+      ...phase,
+      sortOrder: phase.sortOrder ?? nextSortOrder
+    }).returning();
+    return result[0];
+  }
+
+  async updateProjectTypePhase(id: string, updates: Partial<ProjectTypePhase>): Promise<ProjectTypePhase | undefined> {
+    const result = await db.update(projectTypePhases)
+      .set(updates)
+      .where(eq(projectTypePhases.id, id))
+      .returning();
+    return result[0];
+  }
+
+  async deleteProjectTypePhase(id: string): Promise<void> {
+    await db.delete(projectTypePhases).where(eq(projectTypePhases.id, id));
+  }
+
+  async reorderProjectTypePhases(id1: string, id2: string): Promise<void> {
+    await db.transaction(async (tx) => {
+      const phase1 = await tx.select().from(projectTypePhases).where(eq(projectTypePhases.id, id1)).limit(1);
+      const phase2 = await tx.select().from(projectTypePhases).where(eq(projectTypePhases.id, id2)).limit(1);
+      
+      if (!phase1[0] || !phase2[0]) {
+        throw new Error('One or both phases not found');
+      }
+      
+      const order1 = phase1[0].sortOrder;
+      const order2 = phase2[0].sortOrder;
+      
+      await tx.update(projectTypePhases).set({ sortOrder: order2 }).where(eq(projectTypePhases.id, id1));
+      await tx.update(projectTypePhases).set({ sortOrder: order1 }).where(eq(projectTypePhases.id, id2));
     });
   }
 }
