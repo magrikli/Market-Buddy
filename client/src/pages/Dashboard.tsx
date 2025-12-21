@@ -16,7 +16,8 @@ const currentYearValue = new Date().getFullYear();
 const yearOptions = [currentYearValue - 2, currentYearValue - 1, currentYearValue, currentYearValue + 1, currentYearValue + 2];
 
 export default function Dashboard() {
-  const { currentYear, setYear, selectedCompanyId } = useStore();
+  const { currentYear, setYear, selectedCompanyId, currentUser } = useStore();
+  const isAdmin = currentUser?.role === 'admin';
   const [selectedDepartmentId, setSelectedDepartmentId] = useState<string>('all');
   const [selectedProjectId, setSelectedProjectId] = useState<string>('all');
 
@@ -185,7 +186,8 @@ export default function Dashboard() {
       </div>
 
       {/* Expense & Budget Ratio Pie Charts */}
-      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+      <div className={`grid grid-cols-1 ${isAdmin ? 'lg:grid-cols-2' : ''} gap-6`}>
+        {isAdmin && (
         <Card className="shadow-md">
           <CardHeader>
             <CardTitle>Proje / Departman Oranı</CardTitle>
@@ -263,6 +265,7 @@ export default function Dashboard() {
             </div>
           </CardContent>
         </Card>
+        )}
 
         <Card className="shadow-md">
             <CardHeader>

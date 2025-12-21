@@ -1187,54 +1187,79 @@ export async function registerRoutes(server: Server, app: Express): Promise<Serv
       const year = parseInt(req.query.year as string) || new Date().getFullYear();
       const companyId = req.query.companyId as string | undefined;
       
-      // Validate user access to the requested company
+      // Get user permissions
       let allowedCompanyIds: string[] | null = null;
+      let allowedDepartmentIds: string[] | null = null;
+      let allowedProjectIds: string[] | null = null;
+      
       if (req.session.role !== 'admin' && req.session.userId) {
         allowedCompanyIds = await storage.getUserCompanies(req.session.userId);
+        allowedDepartmentIds = await storage.getUserDepartments(req.session.userId);
+        allowedProjectIds = await storage.getUserProjects(req.session.userId);
         if (companyId && !allowedCompanyIds.includes(companyId)) {
           return res.status(403).json({ message: "Unauthorized access to this company" });
         }
       }
       
-      // Get all budget item IDs for the selected company
-      let companyBudgetItemIds: Set<string> = new Set();
+      // Get all budget item IDs for the selected company and user permissions
+      let allowedBudgetItemIds: Set<string> = new Set();
+      
+      // Get departments and their budget items
+      const allDepartments = await storage.getAllDepartments();
+      let filteredDepartments = allDepartments;
       if (companyId) {
-        // Get departments and their budget items
-        const allDepartments = await storage.getAllDepartments();
-        const companyDepartments = allDepartments.filter(d => d.companyId === companyId);
-        
-        for (const dept of companyDepartments) {
-          const groups = await storage.getCostGroupsByDepartment(dept.id);
-          for (const group of groups) {
-            const items = await storage.getBudgetItemsByCostGroup(group.id, year);
-            items.forEach((item: BudgetItem) => companyBudgetItemIds.add(item.id));
-          }
+        filteredDepartments = allDepartments.filter(d => d.companyId === companyId);
+      } else if (allowedCompanyIds) {
+        filteredDepartments = allDepartments.filter(d => d.companyId && allowedCompanyIds!.includes(d.companyId));
+      }
+      // Also filter by assigned departments for non-admin
+      if (allowedDepartmentIds) {
+        filteredDepartments = filteredDepartments.filter(d => allowedDepartmentIds!.includes(d.id));
+      }
+      
+      for (const dept of filteredDepartments) {
+        const groups = await storage.getCostGroupsByDepartment(dept.id);
+        for (const group of groups) {
+          const items = await storage.getBudgetItemsByCostGroup(group.id, year);
+          items.forEach((item: BudgetItem) => allowedBudgetItemIds.add(item.id));
         }
-        
-        // Get projects and their budget items
-        const allProjects = await storage.getAllProjects();
-        const companyProjects = allProjects.filter(p => p.companyId === companyId);
-        
-        for (const proj of companyProjects) {
-          const phases = await storage.getPhasesByProject(proj.id);
-          for (const phase of phases) {
-            const costItems = await storage.getBudgetItemsByProjectPhase(phase.id, year);
-            const revenueItems = await storage.getBudgetItemsByProjectPhase(phase.id, year);
-            costItems.forEach((item: BudgetItem) => companyBudgetItemIds.add(item.id));
-            revenueItems.forEach((item: BudgetItem) => companyBudgetItemIds.add(item.id));
-          }
+      }
+      
+      // Get projects and their budget items
+      const allProjects = await storage.getAllProjects();
+      let filteredProjects = allProjects;
+      if (companyId) {
+        filteredProjects = allProjects.filter(p => p.companyId === companyId);
+      } else if (allowedCompanyIds) {
+        filteredProjects = allProjects.filter(p => p.companyId && allowedCompanyIds!.includes(p.companyId));
+      }
+      // Also filter by assigned projects for non-admin
+      if (allowedProjectIds) {
+        filteredProjects = filteredProjects.filter(p => allowedProjectIds!.includes(p.id));
+      }
+      
+      for (const proj of filteredProjects) {
+        const phases = await storage.getPhasesByProject(proj.id);
+        for (const phase of phases) {
+          const costItems = await storage.getBudgetItemsByProjectPhase(phase.id, year);
+          const revenueItems = await storage.getBudgetItemsByProjectPhase(phase.id, year);
+          costItems.forEach((item: BudgetItem) => allowedBudgetItemIds.add(item.id));
+          revenueItems.forEach((item: BudgetItem) => allowedBudgetItemIds.add(item.id));
         }
       }
       
       // Get all transactions for the year
       const allTransactions = await storage.getAllTransactions(10000);
       
-      // Filter by year and company
+      // Filter by year and user permissions
       const yearTransactions = allTransactions.filter(t => {
         const txDate = new Date(t.date);
         const yearMatch = txDate.getFullYear() === year;
-        if (!companyId) return yearMatch;
-        return yearMatch && t.budgetItemId && companyBudgetItemIds.has(t.budgetItemId);
+        // For non-admin users, filter by allowed budget items
+        if (allowedBudgetItemIds.size > 0) {
+          return yearMatch && t.budgetItemId && allowedBudgetItemIds.has(t.budgetItemId);
+        }
+        return yearMatch;
       });
       
       // Calculate total actuals (expenses)
@@ -1258,20 +1283,22 @@ export async function registerRoutes(server: Server, app: Express): Promise<Serv
         }
       });
       
-      // Count pending items (processes with pending status) - filter by company
+      // Count pending items (processes with pending status) - filter by user permissions
       const allPendingProcesses = await storage.getPendingProcesses();
       let pendingCount = allPendingProcesses.length;
-      if (companyId) {
-        const allProjects = await storage.getAllProjects();
-        const companyProjectIds = new Set(allProjects.filter(p => p.companyId === companyId).map(p => p.id));
+      if (allowedProjectIds) {
+        const allowedProjectSet = new Set(allowedProjectIds);
+        pendingCount = allPendingProcesses.filter(p => allowedProjectSet.has(p.projectId)).length;
+      } else if (companyId) {
+        const companyProjectIds = new Set(filteredProjects.map(p => p.id));
         pendingCount = allPendingProcesses.filter(p => companyProjectIds.has(p.projectId)).length;
       }
       
-      // Get recent transactions for activity feed (filtered by company)
-      const companyTransactions = companyId 
-        ? allTransactions.filter(t => t.budgetItemId && companyBudgetItemIds.has(t.budgetItemId))
+      // Get recent transactions for activity feed (filtered by permissions)
+      const filteredTransactions = allowedBudgetItemIds.size > 0
+        ? allTransactions.filter(t => t.budgetItemId && allowedBudgetItemIds.has(t.budgetItemId))
         : allTransactions;
-      const recentTransactions = companyTransactions.slice(0, 5);
+      const recentTransactions = filteredTransactions.slice(0, 5);
       
       return res.json({
         totalActuals,
@@ -1376,10 +1403,12 @@ export async function registerRoutes(server: Server, app: Express): Promise<Serv
       const companyId = req.query.companyId as string | undefined;
       const departmentId = req.query.departmentId as string | undefined;
       
-      // Validate company access and determine allowed companies
+      // Get user permissions
       let allowedCompanyIds: string[] | null = null;
+      let allowedDepartmentIds: string[] | null = null;
       if (req.session.role !== 'admin' && req.session.userId) {
         allowedCompanyIds = await storage.getUserCompanies(req.session.userId);
+        allowedDepartmentIds = await storage.getUserDepartments(req.session.userId);
         if (companyId && !allowedCompanyIds.includes(companyId)) {
           return res.status(403).json({ message: "Unauthorized access to this company" });
         }
@@ -1397,12 +1426,16 @@ export async function registerRoutes(server: Server, app: Express): Promise<Serv
       
       const allDepartments = await storage.getAllDepartments();
       
-      // Filter by company: use specific company, user's allowed companies, or all (admin only)
+      // Filter by company and user's assigned departments
       let filteredDepartments = allDepartments;
       if (companyId) {
         filteredDepartments = allDepartments.filter(d => d.companyId === companyId);
       } else if (allowedCompanyIds) {
         filteredDepartments = allDepartments.filter(d => d.companyId && allowedCompanyIds!.includes(d.companyId));
+      }
+      // Also filter by assigned departments for non-admin
+      if (allowedDepartmentIds) {
+        filteredDepartments = filteredDepartments.filter(d => allowedDepartmentIds!.includes(d.id));
       }
       
       if (departmentId && departmentId !== 'all') {
@@ -1452,10 +1485,12 @@ export async function registerRoutes(server: Server, app: Express): Promise<Serv
       const companyId = req.query.companyId as string | undefined;
       const projectId = req.query.projectId as string | undefined;
       
-      // Validate company access and determine allowed companies
+      // Get user permissions
       let allowedCompanyIds: string[] | null = null;
+      let allowedProjectIds: string[] | null = null;
       if (req.session.role !== 'admin' && req.session.userId) {
         allowedCompanyIds = await storage.getUserCompanies(req.session.userId);
+        allowedProjectIds = await storage.getUserProjects(req.session.userId);
         if (companyId && !allowedCompanyIds.includes(companyId)) {
           return res.status(403).json({ message: "Unauthorized access to this company" });
         }
@@ -1473,12 +1508,16 @@ export async function registerRoutes(server: Server, app: Express): Promise<Serv
       
       const allProjects = await storage.getAllProjects();
       
-      // Filter by company: use specific company, user's allowed companies, or all (admin only)
+      // Filter by company and user's assigned projects
       let filteredProjects = allProjects;
       if (companyId) {
         filteredProjects = allProjects.filter(p => p.companyId === companyId);
       } else if (allowedCompanyIds) {
         filteredProjects = allProjects.filter(p => p.companyId && allowedCompanyIds!.includes(p.companyId));
+      }
+      // Also filter by assigned projects for non-admin
+      if (allowedProjectIds) {
+        filteredProjects = filteredProjects.filter(p => allowedProjectIds!.includes(p.id));
       }
       
       if (projectId && projectId !== 'all') {
@@ -1527,10 +1566,14 @@ export async function registerRoutes(server: Server, app: Express): Promise<Serv
       const year = parseInt(req.query.year as string) || new Date().getFullYear();
       const companyId = req.query.companyId as string | undefined;
       
-      // Validate company access and determine allowed companies
+      // Get user permissions
       let allowedCompanyIds: string[] | null = null;
+      let allowedDepartmentIds: string[] | null = null;
+      let allowedProjectIds: string[] | null = null;
       if (req.session.role !== 'admin' && req.session.userId) {
         allowedCompanyIds = await storage.getUserCompanies(req.session.userId);
+        allowedDepartmentIds = await storage.getUserDepartments(req.session.userId);
+        allowedProjectIds = await storage.getUserProjects(req.session.userId);
         if (companyId && !allowedCompanyIds.includes(companyId)) {
           return res.status(403).json({ message: "Unauthorized access to this company" });
         }
@@ -1539,7 +1582,7 @@ export async function registerRoutes(server: Server, app: Express): Promise<Serv
       const allDepartments = await storage.getAllDepartments();
       const allProjects = await storage.getAllProjects();
       
-      // Filter by company: use specific company, user's allowed companies, or all (admin only)
+      // Filter by company and user's assigned departments/projects
       let filteredDepartments = allDepartments;
       let filteredProjects = allProjects;
       if (companyId) {
@@ -1548,6 +1591,13 @@ export async function registerRoutes(server: Server, app: Express): Promise<Serv
       } else if (allowedCompanyIds) {
         filteredDepartments = allDepartments.filter(d => d.companyId && allowedCompanyIds!.includes(d.companyId));
         filteredProjects = allProjects.filter(p => p.companyId && allowedCompanyIds!.includes(p.companyId));
+      }
+      // Also filter by assigned departments/projects for non-admin
+      if (allowedDepartmentIds) {
+        filteredDepartments = filteredDepartments.filter(d => allowedDepartmentIds!.includes(d.id));
+      }
+      if (allowedProjectIds) {
+        filteredProjects = filteredProjects.filter(p => allowedProjectIds!.includes(p.id));
       }
       
       let departmentBudget = 0;
@@ -1603,10 +1653,12 @@ export async function registerRoutes(server: Server, app: Express): Promise<Serv
       const companyId = req.query.companyId as string | undefined;
       const departmentId = req.query.departmentId as string | undefined;
       
-      // Validate company access and determine allowed companies
+      // Get user permissions
       let allowedCompanyIds: string[] | null = null;
+      let allowedDepartmentIds: string[] | null = null;
       if (req.session.role !== 'admin' && req.session.userId) {
         allowedCompanyIds = await storage.getUserCompanies(req.session.userId);
+        allowedDepartmentIds = await storage.getUserDepartments(req.session.userId);
         if (companyId && !allowedCompanyIds.includes(companyId)) {
           return res.status(403).json({ message: "Unauthorized access to this company" });
         }
@@ -1616,12 +1668,16 @@ export async function registerRoutes(server: Server, app: Express): Promise<Serv
       
       const allDepartments = await storage.getAllDepartments();
       
-      // Filter by company: use specific company, user's allowed companies, or all (admin only)
+      // Filter by company and user's assigned departments
       let filteredDepartments = allDepartments;
       if (companyId) {
         filteredDepartments = allDepartments.filter(d => d.companyId === companyId);
       } else if (allowedCompanyIds) {
         filteredDepartments = allDepartments.filter(d => d.companyId && allowedCompanyIds!.includes(d.companyId));
+      }
+      // Also filter by assigned departments for non-admin
+      if (allowedDepartmentIds) {
+        filteredDepartments = filteredDepartments.filter(d => allowedDepartmentIds!.includes(d.id));
       }
       
       if (departmentId && departmentId !== 'all') {
@@ -1673,10 +1729,12 @@ export async function registerRoutes(server: Server, app: Express): Promise<Serv
       const companyId = req.query.companyId as string | undefined;
       const projectId = req.query.projectId as string | undefined;
       
-      // Validate company access and determine allowed companies
+      // Get user permissions
       let allowedCompanyIds: string[] | null = null;
+      let allowedProjectIds: string[] | null = null;
       if (req.session.role !== 'admin' && req.session.userId) {
         allowedCompanyIds = await storage.getUserCompanies(req.session.userId);
+        allowedProjectIds = await storage.getUserProjects(req.session.userId);
         if (companyId && !allowedCompanyIds.includes(companyId)) {
           return res.status(403).json({ message: "Unauthorized access to this company" });
         }
@@ -1686,12 +1744,16 @@ export async function registerRoutes(server: Server, app: Express): Promise<Serv
       
       const allProjects = await storage.getAllProjects();
       
-      // Filter by company: use specific company, user's allowed companies, or all (admin only)
+      // Filter by company and user's assigned projects
       let filteredProjects = allProjects;
       if (companyId) {
         filteredProjects = allProjects.filter(p => p.companyId === companyId);
       } else if (allowedCompanyIds) {
         filteredProjects = allProjects.filter(p => p.companyId && allowedCompanyIds!.includes(p.companyId));
+      }
+      // Also filter by assigned projects for non-admin
+      if (allowedProjectIds) {
+        filteredProjects = filteredProjects.filter(p => allowedProjectIds!.includes(p.id));
       }
       
       if (projectId && projectId !== 'all') {
