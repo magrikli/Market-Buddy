@@ -1759,11 +1759,13 @@ export async function registerRoutes(server: Server, app: Express): Promise<Serv
         allUsers.map(async (user) => {
           const assignedDepartmentIds = await storage.getUserDepartments(user.id);
           const assignedProjectIds = await storage.getUserProjects(user.id);
+          const assignedCompanyIds = await storage.getUserCompanies(user.id);
           return {
             ...user,
             password: undefined,
             assignedDepartmentIds,
             assignedProjectIds,
+            assignedCompanyIds,
           };
         })
       );
