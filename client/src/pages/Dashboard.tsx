@@ -236,11 +236,12 @@ export default function Dashboard() {
         </Card>
       </div>
 
-      {/* Department Groups and Project Phases Pie Charts */}
+      {/* Combined Budget & Expense Pie Charts */}
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+        {/* Department Groups - Combined */}
         <Card className="shadow-md">
           <CardHeader className="flex flex-row items-center justify-between space-y-0">
-            <CardTitle>Departman Grup Giderleri</CardTitle>
+            <CardTitle>Departman Grupları</CardTitle>
             <Select value={selectedDepartmentId} onValueChange={setSelectedDepartmentId}>
               <SelectTrigger className="w-[200px]" data-testid="select-department">
                 <SelectValue placeholder="Departman Seçin" />
@@ -254,43 +255,83 @@ export default function Dashboard() {
             </Select>
           </CardHeader>
           <CardContent>
-            <div className="h-[300px] w-full">
-              {deptGroupsData && deptGroupsData.data.length > 0 ? (
-                <ResponsiveContainer width="100%" height="100%">
-                  <PieChart>
-                    <Pie
-                      data={deptGroupsData.data}
-                      cx="50%"
-                      cy="50%"
-                      labelLine={false}
-                      label={renderCustomLabel}
-                      outerRadius={100}
-                      fill="#8884d8"
-                      dataKey="value"
-                    >
-                      {deptGroupsData.data.map((_, index) => (
-                        <Cell key={`cell-${index}`} fill={COLORS[index % COLORS.length]} />
-                      ))}
-                    </Pie>
-                    <Tooltip 
-                      formatter={(value: number) => `€${new Intl.NumberFormat('tr-TR').format(value)}`}
-                      contentStyle={{ backgroundColor: 'white', borderRadius: '8px', border: '1px solid #e5e7eb' }}
-                    />
-                    <Legend />
-                  </PieChart>
-                </ResponsiveContainer>
-              ) : (
-                <div className="flex items-center justify-center h-full text-muted-foreground">
-                  Seçili departman için gider kaydı yok
+            <div className="grid grid-cols-2 gap-4">
+              <div>
+                <h4 className="text-sm font-medium text-center mb-2 text-muted-foreground">Gerçekleşen</h4>
+                <div className="h-[250px] w-full">
+                  {deptGroupsData && deptGroupsData.data.length > 0 ? (
+                    <ResponsiveContainer width="100%" height="100%">
+                      <PieChart>
+                        <Pie
+                          data={deptGroupsData.data}
+                          cx="50%"
+                          cy="50%"
+                          labelLine={false}
+                          label={renderCustomLabel}
+                          outerRadius={70}
+                          fill="#8884d8"
+                          dataKey="value"
+                        >
+                          {deptGroupsData.data.map((_, index) => (
+                            <Cell key={`cell-${index}`} fill={COLORS[index % COLORS.length]} />
+                          ))}
+                        </Pie>
+                        <Tooltip 
+                          formatter={(value: number) => `€${new Intl.NumberFormat('tr-TR').format(value)}`}
+                          contentStyle={{ backgroundColor: 'white', borderRadius: '8px', border: '1px solid #e5e7eb' }}
+                        />
+                        <Legend wrapperStyle={{ fontSize: '11px' }} />
+                      </PieChart>
+                    </ResponsiveContainer>
+                  ) : (
+                    <div className="flex items-center justify-center h-full text-muted-foreground text-sm">
+                      Gider kaydı yok
+                    </div>
+                  )}
                 </div>
-              )}
+              </div>
+              <div>
+                <h4 className="text-sm font-medium text-center mb-2 text-muted-foreground">Bütçe</h4>
+                <div className="h-[250px] w-full">
+                  {budgetDeptGroupsData && budgetDeptGroupsData.data.length > 0 ? (
+                    <ResponsiveContainer width="100%" height="100%">
+                      <PieChart>
+                        <Pie
+                          data={budgetDeptGroupsData.data}
+                          cx="50%"
+                          cy="50%"
+                          labelLine={false}
+                          label={renderCustomLabel}
+                          outerRadius={70}
+                          fill="#8884d8"
+                          dataKey="value"
+                        >
+                          {budgetDeptGroupsData.data.map((_, index) => (
+                            <Cell key={`cell-${index}`} fill={COLORS[index % COLORS.length]} />
+                          ))}
+                        </Pie>
+                        <Tooltip 
+                          formatter={(value: number) => `€${new Intl.NumberFormat('tr-TR').format(value)}`}
+                          contentStyle={{ backgroundColor: 'white', borderRadius: '8px', border: '1px solid #e5e7eb' }}
+                        />
+                        <Legend wrapperStyle={{ fontSize: '11px' }} />
+                      </PieChart>
+                    </ResponsiveContainer>
+                  ) : (
+                    <div className="flex items-center justify-center h-full text-muted-foreground text-sm">
+                      Bütçe kaydı yok
+                    </div>
+                  )}
+                </div>
+              </div>
             </div>
           </CardContent>
         </Card>
 
+        {/* Project Phases - Combined */}
         <Card className="shadow-md">
           <CardHeader className="flex flex-row items-center justify-between space-y-0">
-            <CardTitle>Proje Faz Giderleri</CardTitle>
+            <CardTitle>Proje Fazları</CardTitle>
             <Select value={selectedProjectId} onValueChange={setSelectedProjectId}>
               <SelectTrigger className="w-[200px]" data-testid="select-project">
                 <SelectValue placeholder="Proje Seçin" />
@@ -304,43 +345,82 @@ export default function Dashboard() {
             </Select>
           </CardHeader>
           <CardContent>
-            <div className="h-[300px] w-full">
-              {projectPhasesData && projectPhasesData.data.length > 0 ? (
-                <ResponsiveContainer width="100%" height="100%">
-                  <PieChart>
-                    <Pie
-                      data={projectPhasesData.data}
-                      cx="50%"
-                      cy="50%"
-                      labelLine={false}
-                      label={renderCustomLabel}
-                      outerRadius={100}
-                      fill="#8884d8"
-                      dataKey="value"
-                    >
-                      {projectPhasesData.data.map((_, index) => (
-                        <Cell key={`cell-${index}`} fill={COLORS[index % COLORS.length]} />
-                      ))}
-                    </Pie>
-                    <Tooltip 
-                      formatter={(value: number) => `€${new Intl.NumberFormat('tr-TR').format(value)}`}
-                      contentStyle={{ backgroundColor: 'white', borderRadius: '8px', border: '1px solid #e5e7eb' }}
-                    />
-                    <Legend />
-                  </PieChart>
-                </ResponsiveContainer>
-              ) : (
-                <div className="flex items-center justify-center h-full text-muted-foreground">
-                  Seçili proje için gider kaydı yok
+            <div className="grid grid-cols-2 gap-4">
+              <div>
+                <h4 className="text-sm font-medium text-center mb-2 text-muted-foreground">Gerçekleşen</h4>
+                <div className="h-[250px] w-full">
+                  {projectPhasesData && projectPhasesData.data.length > 0 ? (
+                    <ResponsiveContainer width="100%" height="100%">
+                      <PieChart>
+                        <Pie
+                          data={projectPhasesData.data}
+                          cx="50%"
+                          cy="50%"
+                          labelLine={false}
+                          label={renderCustomLabel}
+                          outerRadius={70}
+                          fill="#8884d8"
+                          dataKey="value"
+                        >
+                          {projectPhasesData.data.map((_, index) => (
+                            <Cell key={`cell-${index}`} fill={COLORS[index % COLORS.length]} />
+                          ))}
+                        </Pie>
+                        <Tooltip 
+                          formatter={(value: number) => `€${new Intl.NumberFormat('tr-TR').format(value)}`}
+                          contentStyle={{ backgroundColor: 'white', borderRadius: '8px', border: '1px solid #e5e7eb' }}
+                        />
+                        <Legend wrapperStyle={{ fontSize: '11px' }} />
+                      </PieChart>
+                    </ResponsiveContainer>
+                  ) : (
+                    <div className="flex items-center justify-center h-full text-muted-foreground text-sm">
+                      Gider kaydı yok
+                    </div>
+                  )}
                 </div>
-              )}
+              </div>
+              <div>
+                <h4 className="text-sm font-medium text-center mb-2 text-muted-foreground">Bütçe</h4>
+                <div className="h-[250px] w-full">
+                  {budgetProjectPhasesData && budgetProjectPhasesData.data.length > 0 ? (
+                    <ResponsiveContainer width="100%" height="100%">
+                      <PieChart>
+                        <Pie
+                          data={budgetProjectPhasesData.data}
+                          cx="50%"
+                          cy="50%"
+                          labelLine={false}
+                          label={renderCustomLabel}
+                          outerRadius={70}
+                          fill="#8884d8"
+                          dataKey="value"
+                        >
+                          {budgetProjectPhasesData.data.map((_, index) => (
+                            <Cell key={`cell-${index}`} fill={COLORS[index % COLORS.length]} />
+                          ))}
+                        </Pie>
+                        <Tooltip 
+                          formatter={(value: number) => `€${new Intl.NumberFormat('tr-TR').format(value)}`}
+                          contentStyle={{ backgroundColor: 'white', borderRadius: '8px', border: '1px solid #e5e7eb' }}
+                        />
+                        <Legend wrapperStyle={{ fontSize: '11px' }} />
+                      </PieChart>
+                    </ResponsiveContainer>
+                  ) : (
+                    <div className="flex items-center justify-center h-full text-muted-foreground text-sm">
+                      Bütçe kaydı yok
+                    </div>
+                  )}
+                </div>
+              </div>
             </div>
           </CardContent>
         </Card>
       </div>
 
-      {/* Budget Pie Charts */}
-      <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+      {/* Budget Ratio Chart */}
+      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
         <Card className="shadow-md">
           <CardHeader>
             <CardTitle>Proje / Departman Bütçe Oranı</CardTitle>
@@ -374,84 +454,6 @@ export default function Dashboard() {
               ) : (
                 <div className="flex items-center justify-center h-full text-muted-foreground">
                   Henüz bütçe kaydı yok
-                </div>
-              )}
-            </div>
-          </CardContent>
-        </Card>
-
-        <Card className="shadow-md">
-          <CardHeader>
-            <CardTitle>Departman Grup Bütçeleri</CardTitle>
-          </CardHeader>
-          <CardContent>
-            <div className="h-[300px] w-full">
-              {budgetDeptGroupsData && budgetDeptGroupsData.data.length > 0 ? (
-                <ResponsiveContainer width="100%" height="100%">
-                  <PieChart>
-                    <Pie
-                      data={budgetDeptGroupsData.data}
-                      cx="50%"
-                      cy="50%"
-                      labelLine={false}
-                      label={renderCustomLabel}
-                      outerRadius={100}
-                      fill="#8884d8"
-                      dataKey="value"
-                    >
-                      {budgetDeptGroupsData.data.map((_, index) => (
-                        <Cell key={`cell-${index}`} fill={COLORS[index % COLORS.length]} />
-                      ))}
-                    </Pie>
-                    <Tooltip 
-                      formatter={(value: number) => `€${new Intl.NumberFormat('tr-TR').format(value)}`}
-                      contentStyle={{ backgroundColor: 'white', borderRadius: '8px', border: '1px solid #e5e7eb' }}
-                    />
-                    <Legend />
-                  </PieChart>
-                </ResponsiveContainer>
-              ) : (
-                <div className="flex items-center justify-center h-full text-muted-foreground">
-                  Seçili departman için bütçe kaydı yok
-                </div>
-              )}
-            </div>
-          </CardContent>
-        </Card>
-
-        <Card className="shadow-md">
-          <CardHeader>
-            <CardTitle>Proje Faz Bütçeleri</CardTitle>
-          </CardHeader>
-          <CardContent>
-            <div className="h-[300px] w-full">
-              {budgetProjectPhasesData && budgetProjectPhasesData.data.length > 0 ? (
-                <ResponsiveContainer width="100%" height="100%">
-                  <PieChart>
-                    <Pie
-                      data={budgetProjectPhasesData.data}
-                      cx="50%"
-                      cy="50%"
-                      labelLine={false}
-                      label={renderCustomLabel}
-                      outerRadius={100}
-                      fill="#8884d8"
-                      dataKey="value"
-                    >
-                      {budgetProjectPhasesData.data.map((_, index) => (
-                        <Cell key={`cell-${index}`} fill={COLORS[index % COLORS.length]} />
-                      ))}
-                    </Pie>
-                    <Tooltip 
-                      formatter={(value: number) => `€${new Intl.NumberFormat('tr-TR').format(value)}`}
-                      contentStyle={{ backgroundColor: 'white', borderRadius: '8px', border: '1px solid #e5e7eb' }}
-                    />
-                    <Legend />
-                  </PieChart>
-                </ResponsiveContainer>
-              ) : (
-                <div className="flex items-center justify-center h-full text-muted-foreground">
-                  Seçili proje için bütçe kaydı yok
                 </div>
               )}
             </div>
