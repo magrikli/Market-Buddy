@@ -862,6 +862,34 @@ export async function registerRoutes(server: Server, app: Express): Promise<Serv
     }
   });
 
+  app.post("/api/project-processes/:id/reject", async (req: Request, res: Response) => {
+    try {
+      const { id } = req.params;
+      const rejected = await storage.rejectProcess(id);
+      
+      if (!rejected) {
+        return res.status(404).json({ message: "Process not found" });
+      }
+
+      return res.json(rejected);
+    } catch (error) {
+      return res.status(500).json({ message: "Server error" });
+    }
+  });
+
+  app.post("/api/project-processes/bulk-approve", async (req: Request, res: Response) => {
+    try {
+      const { ids } = req.body;
+      if (!Array.isArray(ids) || ids.length === 0) {
+        return res.status(400).json({ message: "ids array required" });
+      }
+      const count = await storage.bulkApproveProcesses(ids);
+      return res.json({ approvedCount: count });
+    } catch (error) {
+      return res.status(500).json({ message: "Server error" });
+    }
+  });
+
   app.post("/api/project-processes/:id/start", async (req: Request, res: Response) => {
     try {
       const { id } = req.params;

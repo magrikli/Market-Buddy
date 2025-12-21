@@ -503,6 +503,19 @@ export async function approveProcess(id: string): Promise<ProjectProcess> {
   });
 }
 
+export async function rejectProcess(id: string): Promise<ProjectProcess> {
+  return fetchAPI(`/project-processes/${id}/reject`, {
+    method: 'POST',
+  });
+}
+
+export async function bulkApproveProcesses(ids: string[]): Promise<{ approvedCount: number }> {
+  return fetchAPI('/project-processes/bulk-approve', {
+    method: 'POST',
+    body: JSON.stringify({ ids }),
+  });
+}
+
 export async function reviseProcess(id: string, editorName: string, revisionReason?: string): Promise<ProjectProcess> {
   return fetchAPI(`/project-processes/${id}/revise`, {
     method: 'POST',

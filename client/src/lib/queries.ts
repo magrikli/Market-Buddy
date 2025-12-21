@@ -539,6 +539,28 @@ export function useApproveProcess() {
   });
 }
 
+export function useRejectProcess() {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: ({ id, projectId }: { id: string; projectId: string }) => api.rejectProcess(id),
+    onSuccess: (_, variables) => {
+      queryClient.invalidateQueries({ queryKey: ['projectProcesses', variables.projectId] });
+      queryClient.invalidateQueries({ queryKey: ['pendingProcesses'] });
+    },
+  });
+}
+
+export function useBulkApproveProcesses() {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: (ids: string[]) => api.bulkApproveProcesses(ids),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['projectProcesses'] });
+      queryClient.invalidateQueries({ queryKey: ['pendingProcesses'] });
+    },
+  });
+}
+
 export function useStartProcess() {
   const queryClient = useQueryClient();
   return useMutation({

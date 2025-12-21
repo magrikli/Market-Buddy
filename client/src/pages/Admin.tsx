@@ -7,8 +7,8 @@ import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, D
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Checkbox } from "@/components/ui/checkbox";
 import { useStore } from "@/lib/store";
-import { useDepartments, useProjects, useUsers, useCreateUser, useUpdateUser, useDeleteUser, useUpdateUserAssignments, useCompanies, useCreateCompany, useUpdateCompany, useDeleteCompany, useUpdateUserCompanyAssignments, usePendingProcesses, useApproveProcess } from "@/lib/queries";
-import { Search, UserPlus, Settings, CheckCheck, Pencil, Trash2, Loader2, Users, Building2, Plus } from "lucide-react";
+import { useDepartments, useProjects, useUsers, useCreateUser, useUpdateUser, useDeleteUser, useUpdateUserAssignments, useCompanies, useCreateCompany, useUpdateCompany, useDeleteCompany, useUpdateUserCompanyAssignments, usePendingProcesses, useApproveProcess, useRejectProcess, useBulkApproveProcesses } from "@/lib/queries";
+import { Search, UserPlus, Settings, CheckCheck, Pencil, Trash2, Loader2, Users, Building2, Plus, X } from "lucide-react";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { toast } from "sonner";
 import { useState } from "react";
@@ -21,6 +21,8 @@ export default function Admin() {
   const { data: companies = [], isLoading: companiesLoading } = useCompanies();
   const { data: pendingProcesses = [], isLoading: pendingProcessesLoading } = usePendingProcesses();
   const approveProcessMutation = useApproveProcess();
+  const rejectProcessMutation = useRejectProcess();
+  const bulkApproveMutation = useBulkApproveProcesses();
   const createUserMutation = useCreateUser();
   const updateUserMutation = useUpdateUser();
   const deleteUserMutation = useDeleteUser();
@@ -57,10 +59,6 @@ export default function Admin() {
   const [editCompanyName, setEditCompanyName] = useState("");
   const [editCompanyCode, setEditCompanyCode] = useState("");
 
-  const handleBulkApprove = () => {
-    toast.success("5 adet bütçe kalemi onaylandı");
-  };
-
   const handleApproveProcess = async (processId: string, projectId: string) => {
     try {
       await approveProcessMutation.mutateAsync({ id: processId, projectId });
@@ -68,6 +66,31 @@ export default function Admin() {
     } catch (error: any) {
       toast.error("Hata", { description: error.message });
     }
+  };
+
+  const handleRejectProcess = async (processId: string, projectId: string) => {
+    try {
+      await rejectProcessMutation.mutateAsync({ id: processId, projectId });
+      toast.success("Süreç reddedildi");
+    } catch (error: any) {
+      toast.error("Hata", { description: error.message });
+    }
+  };
+
+  const handleBulkApprove = async () => {
+    if (pendingProcesses.length === 0) return;
+    try {
+      const ids = pendingProcesses.map(p => p.id);
+      const result = await bulkApproveMutation.mutateAsync(ids);
+      toast.success(`${result.approvedCount} süreç onaylandı`);
+    } catch (error: any) {
+      toast.error("Hata", { description: error.message });
+    }
+  };
+
+  const getProjectName = (projectId: string) => {
+    const project = projects.find(p => p.id === projectId);
+    return project?.name || 'Bilinmeyen Proje';
   };
 
   const handleCreateUser = async () => {
@@ -460,11 +483,23 @@ export default function Admin() {
           </Card>
 
           <Card className="shadow-md mt-6">
-            <CardHeader>
+            <CardHeader className="flex flex-row items-center justify-between">
               <div>
                 <CardTitle>Onay Bekleyen Süreçler</CardTitle>
                 <CardDescription>Projelerden gelen onay bekleyen süreçler</CardDescription>
               </div>
+              {pendingProcesses.length > 0 && (
+                <Button 
+                  onClick={handleBulkApprove} 
+                  className="bg-emerald-600 hover:bg-emerald-700" 
+                  disabled={bulkApproveMutation.isPending}
+                  data-testid="button-bulk-approve-processes"
+                >
+                  {bulkApproveMutation.isPending && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
+                  <CheckCheck className="mr-2 h-4 w-4" />
+                  Tümünü Onayla ({pendingProcesses.length})
+                </Button>
+              )}
             </CardHeader>
             <CardContent>
               {pendingProcessesLoading ? (
@@ -479,7 +514,7 @@ export default function Admin() {
                 <Table>
                   <TableHeader>
                     <TableRow>
-                      <TableHead>WBS</TableHead>
+                      <TableHead>Proje</TableHead>
                       <TableHead>Süreç Adı</TableHead>
                       <TableHead>Başlangıç</TableHead>
                       <TableHead>Bitiş</TableHead>
@@ -489,20 +524,31 @@ export default function Admin() {
                   <TableBody>
                     {pendingProcesses.map((process) => (
                       <TableRow key={process.id}>
-                        <TableCell className="font-mono text-sm">{process.wbs}</TableCell>
-                        <TableCell className="font-medium">{process.name}</TableCell>
+                        <TableCell className="font-medium">{getProjectName(process.projectId)}</TableCell>
+                        <TableCell>{process.name}</TableCell>
                         <TableCell className="text-sm text-muted-foreground">{new Date(process.startDate).toLocaleDateString('tr-TR')}</TableCell>
                         <TableCell className="text-sm text-muted-foreground">{new Date(process.endDate).toLocaleDateString('tr-TR')}</TableCell>
                         <TableCell className="text-center">
-                          <Button 
-                            size="sm" 
-                            variant="ghost" 
-                            className="text-emerald-600 hover:text-emerald-700 hover:bg-emerald-50"
-                            onClick={() => handleApproveProcess(process.id, process.projectId)}
-                            disabled={approveProcessMutation.isPending}
-                          >
-                            Onayla
-                          </Button>
+                          <div className="flex items-center justify-center gap-1">
+                            <Button 
+                              size="sm" 
+                              variant="ghost" 
+                              className="text-emerald-600 hover:text-emerald-700 hover:bg-emerald-50"
+                              onClick={() => handleApproveProcess(process.id, process.projectId)}
+                              disabled={approveProcessMutation.isPending}
+                            >
+                              Onayla
+                            </Button>
+                            <Button 
+                              size="sm" 
+                              variant="ghost" 
+                              className="text-red-600 hover:text-red-700 hover:bg-red-50"
+                              onClick={() => handleRejectProcess(process.id, process.projectId)}
+                              disabled={rejectProcessMutation.isPending}
+                            >
+                              Reddet
+                            </Button>
+                          </div>
                         </TableCell>
                       </TableRow>
                     ))}

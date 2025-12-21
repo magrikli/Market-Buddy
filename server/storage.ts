@@ -100,6 +100,8 @@ export interface IStorage {
   updateProcess(id: string, updates: Partial<ProjectProcess>): Promise<ProjectProcess | undefined>;
   submitProcessForApproval(id: string): Promise<ProjectProcess | undefined>;
   approveProcess(id: string): Promise<ProjectProcess | undefined>;
+  rejectProcess(id: string): Promise<ProjectProcess | undefined>;
+  bulkApproveProcesses(ids: string[]): Promise<number>;
   revertProcess(id: string): Promise<ProjectProcess | undefined>;
   deleteProcess(id: string): Promise<void>;
   
@@ -526,6 +528,33 @@ export class DatabaseStorage implements IStorage {
       .where(eq(projectProcesses.id, id))
       .returning();
     return result[0];
+  }
+
+  async rejectProcess(id: string): Promise<ProjectProcess | undefined> {
+    const process = await this.getProcess(id);
+    if (!process) return undefined;
+    
+    const result = await db.update(projectProcesses)
+      .set({ 
+        startDate: process.previousStartDate || process.startDate,
+        endDate: process.previousEndDate || process.endDate,
+        previousStartDate: null,
+        previousEndDate: null,
+        status: 'approved',
+        updatedAt: new Date() 
+      })
+      .where(eq(projectProcesses.id, id))
+      .returning();
+    return result[0];
+  }
+
+  async bulkApproveProcesses(ids: string[]): Promise<number> {
+    if (ids.length === 0) return 0;
+    const result = await db.update(projectProcesses)
+      .set({ status: 'approved', previousStartDate: null, previousEndDate: null, updatedAt: new Date() })
+      .where(inArray(projectProcesses.id, ids))
+      .returning();
+    return result.length;
   }
 
   async revertProcess(id: string): Promise<ProjectProcess | undefined> {
