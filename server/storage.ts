@@ -12,7 +12,7 @@ import {
   type ProjectProcess, type InsertProjectProcess,
   type ProcessRevision, type InsertProcessRevision
 } from '@shared/schema';
-import { eq, and, sql, inArray } from 'drizzle-orm';
+import { eq, and, sql, inArray, asc } from 'drizzle-orm';
 
 export interface IStorage {
   // Companies
@@ -227,7 +227,7 @@ export class DatabaseStorage implements IStorage {
 
   // === DEPARTMENT GROUPS ===
   async getAllDepartmentGroups(): Promise<DepartmentGroup[]> {
-    return await db.select().from(departmentGroups);
+    return await db.select().from(departmentGroups).orderBy(asc(departmentGroups.sortOrder));
   }
 
   async createDepartmentGroup(group: InsertDepartmentGroup): Promise<DepartmentGroup> {
@@ -249,7 +249,7 @@ export class DatabaseStorage implements IStorage {
 
   // === DEPARTMENTS ===
   async getAllDepartments(): Promise<Department[]> {
-    return await db.select().from(departments);
+    return await db.select().from(departments).orderBy(asc(departments.sortOrder));
   }
 
   async getDepartment(id: string): Promise<Department | undefined> {
@@ -276,7 +276,9 @@ export class DatabaseStorage implements IStorage {
 
   // === COST GROUPS ===
   async getCostGroupsByDepartment(departmentId: string): Promise<CostGroup[]> {
-    return await db.select().from(costGroups).where(eq(costGroups.departmentId, departmentId));
+    return await db.select().from(costGroups)
+      .where(eq(costGroups.departmentId, departmentId))
+      .orderBy(asc(costGroups.sortOrder));
   }
 
   async createCostGroup(group: InsertCostGroup): Promise<CostGroup> {
@@ -353,12 +355,14 @@ export class DatabaseStorage implements IStorage {
   // === BUDGET ITEMS ===
   async getBudgetItemsByCostGroup(costGroupId: string, year: number): Promise<BudgetItem[]> {
     return await db.select().from(budgetItems)
-      .where(and(eq(budgetItems.costGroupId, costGroupId), eq(budgetItems.year, year)));
+      .where(and(eq(budgetItems.costGroupId, costGroupId), eq(budgetItems.year, year)))
+      .orderBy(asc(budgetItems.sortOrder));
   }
 
   async getBudgetItemsByProjectPhase(projectPhaseId: string, year: number): Promise<BudgetItem[]> {
     return await db.select().from(budgetItems)
-      .where(and(eq(budgetItems.projectPhaseId, projectPhaseId), eq(budgetItems.year, year)));
+      .where(and(eq(budgetItems.projectPhaseId, projectPhaseId), eq(budgetItems.year, year)))
+      .orderBy(asc(budgetItems.sortOrder));
   }
 
   async getBudgetItem(id: string): Promise<BudgetItem | undefined> {
