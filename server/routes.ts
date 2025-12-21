@@ -217,10 +217,6 @@ export async function registerRoutes(server: Server, app: Express): Promise<Serv
 
   app.post("/api/companies", async (req: Request, res: Response) => {
     try {
-      // Admin only
-      if (req.session.role !== 'admin') {
-        return res.status(403).json({ message: "Admin access required" });
-      }
       const data = insertCompanySchema.parse(req.body);
       const company = await storage.createCompany(data);
       return res.status(201).json(company);
@@ -234,10 +230,6 @@ export async function registerRoutes(server: Server, app: Express): Promise<Serv
 
   app.put("/api/companies/:id", async (req: Request, res: Response) => {
     try {
-      // Admin only
-      if (req.session.role !== 'admin') {
-        return res.status(403).json({ message: "Admin access required" });
-      }
       const { id } = req.params;
       const { name, code } = req.body;
       const company = await storage.updateCompany(id, { name, code });
@@ -252,10 +244,6 @@ export async function registerRoutes(server: Server, app: Express): Promise<Serv
 
   app.delete("/api/companies/:id", async (req: Request, res: Response) => {
     try {
-      // Admin only
-      if (req.session.role !== 'admin') {
-        return res.status(403).json({ message: "Admin access required" });
-      }
       const { id } = req.params;
       await storage.deleteCompany(id);
       return res.status(204).send();
