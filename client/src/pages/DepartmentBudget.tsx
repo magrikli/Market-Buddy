@@ -597,13 +597,36 @@ export default function DepartmentBudget() {
     ? departments 
     : departments.filter(d => currentUser?.assignedDepartmentIds.includes(d.id));
 
-  // Group departments by their groupId
-  const groupedDepartments = departmentGroups.map(group => ({
+  // Group departments by their groupId - sorted by sortOrder
+  const sortedDepartmentGroups = [...departmentGroups].sort((a, b) => (a.sortOrder ?? 0) - (b.sortOrder ?? 0));
+  const groupedDepartments = sortedDepartmentGroups.map(group => ({
     group,
-    departments: visibleDepartments.filter(d => d.groupId === group.id)
+    departments: visibleDepartments
+      .filter(d => d.groupId === group.id)
+      .sort((a, b) => (a.sortOrder ?? 0) - (b.sortOrder ?? 0))
+      .map(dept => ({
+        ...dept,
+        costGroups: [...dept.costGroups]
+          .sort((a, b) => (a.sortOrder ?? 0) - (b.sortOrder ?? 0))
+          .map(cg => ({
+            ...cg,
+            items: [...cg.items].sort((a, b) => (a.sortOrder ?? 0) - (b.sortOrder ?? 0))
+          }))
+      }))
   })).filter(g => g.departments.length > 0);
 
-  const ungroupedDepartments = visibleDepartments.filter(d => !d.groupId);
+  const ungroupedDepartments = visibleDepartments
+    .filter(d => !d.groupId)
+    .sort((a, b) => (a.sortOrder ?? 0) - (b.sortOrder ?? 0))
+    .map(dept => ({
+      ...dept,
+      costGroups: [...dept.costGroups]
+        .sort((a, b) => (a.sortOrder ?? 0) - (b.sortOrder ?? 0))
+        .map(cg => ({
+          ...cg,
+          items: [...cg.items].sort((a, b) => (a.sortOrder ?? 0) - (b.sortOrder ?? 0))
+        }))
+    }));
 
   const totalBudget = visibleDepartments.reduce((acc, dep) => {
       return acc + dep.costGroups.reduce((gAcc, group) => {
