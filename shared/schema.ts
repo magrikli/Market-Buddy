@@ -238,3 +238,15 @@ export const userCompanyAssignments = pgTable("user_company_assignments", {
 
 export const insertUserCompanyAssignmentSchema = createInsertSchema(userCompanyAssignments);
 export type UserCompanyAssignment = typeof userCompanyAssignments.$inferSelect;
+
+// ===== DEFAULT PROJECT PHASES (Settings) =====
+export const defaultProjectPhases = pgTable("default_project_phases", {
+  id: varchar("id", { length: 255 }).primaryKey().default(sql`gen_random_uuid()`),
+  name: text("name").notNull(),
+  sortOrder: integer("sort_order").notNull().default(0),
+  createdAt: timestamp("created_at").defaultNow().notNull(),
+});
+
+export const insertDefaultProjectPhaseSchema = createInsertSchema(defaultProjectPhases).omit({ id: true, createdAt: true });
+export type InsertDefaultProjectPhase = z.infer<typeof insertDefaultProjectPhaseSchema>;
+export type DefaultProjectPhase = typeof defaultProjectPhases.$inferSelect;

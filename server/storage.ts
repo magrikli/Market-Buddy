@@ -2,7 +2,7 @@ import { db } from './db';
 import { 
   users, departments, costGroups, projects, projectPhases, budgetItems, budgetRevisions, 
   transactions, userDepartmentAssignments, userProjectAssignments, departmentGroups,
-  companies, userCompanyAssignments, projectProcesses, processRevisions,
+  companies, userCompanyAssignments, projectProcesses, processRevisions, defaultProjectPhases,
   type User, type InsertUser, type Department, type InsertDepartment,
   type CostGroup, type InsertCostGroup, type Project, type InsertProject,
   type ProjectPhase, type InsertProjectPhase, type BudgetItem, type InsertBudgetItem,
@@ -10,7 +10,8 @@ import {
   type DepartmentGroup, type InsertDepartmentGroup,
   type Company, type InsertCompany,
   type ProjectProcess, type InsertProjectProcess,
-  type ProcessRevision, type InsertProcessRevision
+  type ProcessRevision, type InsertProcessRevision,
+  type DefaultProjectPhase, type InsertDefaultProjectPhase
 } from '@shared/schema';
 import { eq, and, sql, inArray, asc, max } from 'drizzle-orm';
 
@@ -111,6 +112,12 @@ export interface IStorage {
   // Process Revisions
   createProcessRevision(revision: InsertProcessRevision): Promise<ProcessRevision>;
   getRevisionsByProcess(processId: string): Promise<ProcessRevision[]>;
+  
+  // Default Project Phases (Settings)
+  getAllDefaultProjectPhases(): Promise<DefaultProjectPhase[]>;
+  createDefaultProjectPhase(phase: InsertDefaultProjectPhase): Promise<DefaultProjectPhase>;
+  updateDefaultProjectPhase(id: string, updates: Partial<DefaultProjectPhase>): Promise<DefaultProjectPhase | undefined>;
+  deleteDefaultProjectPhase(id: string): Promise<void>;
 }
 
 export class DatabaseStorage implements IStorage {
@@ -721,6 +728,35 @@ export class DatabaseStorage implements IStorage {
     return await db.select().from(processRevisions)
       .where(eq(processRevisions.processId, processId))
       .orderBy(processRevisions.revisionNumber);
+  }
+
+  // === DEFAULT PROJECT PHASES (Settings) ===
+  async getAllDefaultProjectPhases(): Promise<DefaultProjectPhase[]> {
+    return await db.select().from(defaultProjectPhases).orderBy(asc(defaultProjectPhases.sortOrder));
+  }
+
+  async createDefaultProjectPhase(phase: InsertDefaultProjectPhase): Promise<DefaultProjectPhase> {
+    // Get max sortOrder and add 1
+    const maxResult = await db.select({ maxOrder: max(defaultProjectPhases.sortOrder) }).from(defaultProjectPhases);
+    const nextSortOrder = (maxResult[0]?.maxOrder ?? -1) + 1;
+    
+    const result = await db.insert(defaultProjectPhases).values({
+      ...phase,
+      sortOrder: phase.sortOrder ?? nextSortOrder
+    }).returning();
+    return result[0];
+  }
+
+  async updateDefaultProjectPhase(id: string, updates: Partial<DefaultProjectPhase>): Promise<DefaultProjectPhase | undefined> {
+    const result = await db.update(defaultProjectPhases)
+      .set(updates)
+      .where(eq(defaultProjectPhases.id, id))
+      .returning();
+    return result[0];
+  }
+
+  async deleteDefaultProjectPhase(id: string): Promise<void> {
+    await db.delete(defaultProjectPhases).where(eq(defaultProjectPhases.id, id));
   }
 }
 

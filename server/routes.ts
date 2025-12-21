@@ -577,6 +577,17 @@ export async function registerRoutes(server: Server, app: Express): Promise<Serv
     try {
       const data = insertProjectSchema.parse(req.body);
       const project = await storage.createProject(data);
+      
+      // Auto-create default project phases
+      const defaultPhases = await storage.getAllDefaultProjectPhases();
+      for (const defaultPhase of defaultPhases) {
+        await storage.createProjectPhase({
+          name: defaultPhase.name,
+          projectId: project.id,
+          sortOrder: defaultPhase.sortOrder
+        });
+      }
+      
       return res.status(201).json(project);
     } catch (error) {
       if (error instanceof z.ZodError) {
@@ -1830,6 +1841,70 @@ export async function registerRoutes(server: Server, app: Express): Promise<Serv
       
       return res.json({ assignedCompanyIds });
     } catch (error) {
+      return res.status(500).json({ message: "Server error" });
+    }
+  });
+
+  // ===== DEFAULT PROJECT PHASES (Settings) =====
+  
+  app.get("/api/default-project-phases", async (req: Request, res: Response) => {
+    try {
+      const phases = await storage.getAllDefaultProjectPhases();
+      return res.json(phases);
+    } catch (error) {
+      console.error('Get default phases error:', error);
+      return res.status(500).json({ message: "Server error" });
+    }
+  });
+
+  app.post("/api/default-project-phases", async (req: Request, res: Response) => {
+    try {
+      if (req.session.role !== 'admin') {
+        return res.status(403).json({ message: "Admin access required" });
+      }
+      const { name, sortOrder } = req.body;
+      if (!name) {
+        return res.status(400).json({ message: "Name is required" });
+      }
+      const phase = await storage.createDefaultProjectPhase({ name, sortOrder });
+      return res.status(201).json(phase);
+    } catch (error) {
+      console.error('Create default phase error:', error);
+      return res.status(500).json({ message: "Server error" });
+    }
+  });
+
+  app.put("/api/default-project-phases/:id", async (req: Request, res: Response) => {
+    try {
+      if (req.session.role !== 'admin') {
+        return res.status(403).json({ message: "Admin access required" });
+      }
+      const { id } = req.params;
+      const { name, sortOrder } = req.body;
+      const updates: { name?: string; sortOrder?: number } = {};
+      if (name !== undefined) updates.name = name;
+      if (sortOrder !== undefined) updates.sortOrder = sortOrder;
+      const updated = await storage.updateDefaultProjectPhase(id, updates);
+      if (!updated) {
+        return res.status(404).json({ message: "Default phase not found" });
+      }
+      return res.json(updated);
+    } catch (error) {
+      console.error('Update default phase error:', error);
+      return res.status(500).json({ message: "Server error" });
+    }
+  });
+
+  app.delete("/api/default-project-phases/:id", async (req: Request, res: Response) => {
+    try {
+      if (req.session.role !== 'admin') {
+        return res.status(403).json({ message: "Admin access required" });
+      }
+      const { id } = req.params;
+      await storage.deleteDefaultProjectPhase(id);
+      return res.status(204).send();
+    } catch (error) {
+      console.error('Delete default phase error:', error);
       return res.status(500).json({ message: "Server error" });
     }
   });
