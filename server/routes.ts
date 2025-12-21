@@ -11,6 +11,11 @@ import { z } from "zod";
 import bcrypt from "bcrypt";
 
 export async function registerRoutes(server: Server, app: Express): Promise<Server> {
+  // ===== HEALTH CHECK =====
+  app.get("/api/health", (_req: Request, res: Response) => {
+    res.json({ status: "ok", timestamp: new Date().toISOString() });
+  });
+
   // ===== AUTHENTICATION =====
   
   app.post("/api/auth/login", async (req: Request, res: Response) => {

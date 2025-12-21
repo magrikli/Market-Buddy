@@ -1,6 +1,7 @@
 import express, { type Request, Response, NextFunction } from "express";
 import session from "express-session";
 import MemoryStore from "memorystore";
+import connectPgSimple from "connect-pg-simple";
 import { registerRoutes } from "./routes";
 import { serveStatic } from "./static";
 import { createServer } from "http";
@@ -8,21 +9,36 @@ import { createServer } from "http";
 const app = express();
 const httpServer = createServer(app);
 
-// Trust the proxy (Replit terminates HTTPS before forwarding to the app)
+// Trust the proxy (reverse proxy terminates HTTPS before forwarding to the app)
 app.set('trust proxy', 1);
 
-const MemoryStoreSession = MemoryStore(session);
+const isProduction = process.env.NODE_ENV === 'production';
+
+// Use PostgreSQL session store in production, MemoryStore in development
+let sessionStore: session.Store;
+
+if (isProduction && process.env.DATABASE_URL) {
+  const PgSession = connectPgSimple(session);
+  sessionStore = new PgSession({
+    conString: process.env.DATABASE_URL,
+    tableName: 'session',
+    createTableIfMissing: true,
+  });
+} else {
+  const MemoryStoreSession = MemoryStore(session);
+  sessionStore = new MemoryStoreSession({
+    checkPeriod: 86400000, // prune expired entries every 24h
+  });
+}
 
 app.use(
   session({
-    store: new MemoryStoreSession({
-      checkPeriod: 86400000, // prune expired entries every 24h
-    }),
+    store: sessionStore,
     secret: process.env.SESSION_SECRET || 'finflow-secret-key-2025',
     resave: false,
     saveUninitialized: false,
     cookie: {
-      secure: false, // Allow cookies over HTTP for development
+      secure: isProduction, // Secure cookies in production (requires HTTPS)
       httpOnly: true,
       maxAge: 30 * 24 * 60 * 60 * 1000, // 30 days
       sameSite: 'lax',

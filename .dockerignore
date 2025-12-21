@@ -1,0 +1,41 @@
+# Dependencies
+node_modules
+
+# Build output
+dist
+
+# Development files
+.git
+.gitignore
+*.md
+.env
+.env.*
+
+# IDE
+.vscode
+.idea
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Logs
+*.log
+npm-debug.log*
+
+# Temporary files
+tmp
+temp
+.tmp
+
+# Test files
+*.test.ts
+*.spec.ts
+__tests__
+coverage
+
+# Replit specific
+.replit
+replit.nix
+.upm
+.cache

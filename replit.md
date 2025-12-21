@@ -82,3 +82,33 @@ Database schema includes:
 - `@replit/vite-plugin-cartographer`: Development tooling
 - `@replit/vite-plugin-dev-banner`: Development banner
 - Custom `vite-plugin-meta-images`: OpenGraph image URL handling for deployments
+
+## Docker Deployment
+
+The application is fully containerized and can be deployed to any server with Docker.
+
+### Files
+- `Dockerfile`: Multi-stage build for production
+- `docker-compose.yml`: Orchestration configuration
+- `.dockerignore`: Files excluded from Docker build
+- `DEPLOY.md`: Complete deployment instructions
+
+### Configuration
+- **Internal Port**: 5000 (inside container)
+- **External Port**: 7013 (host mapping)
+- **Database**: External PostgreSQL (set via DATABASE_URL)
+- **Sessions**: PostgreSQL-backed sessions in production for persistence
+
+### Quick Deploy
+```bash
+# Using docker-compose
+docker-compose up -d --build
+
+# Or direct Docker
+docker build -t finflow:latest .
+docker run -d -p 7013:5000 -e DATABASE_URL="..." -e SESSION_SECRET="..." finflow:latest
+```
+
+### Health Check
+- Endpoint: `GET /api/health`
+- Returns: `{"status": "ok", "timestamp": "..."}`
