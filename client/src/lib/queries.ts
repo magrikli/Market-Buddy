@@ -104,9 +104,10 @@ export function useCreateDepartmentGroup() {
 export function useUpdateDepartmentGroup() {
   const queryClient = useQueryClient();
   return useMutation({
-    mutationFn: ({ id, name }: { id: string; name: string }) => api.updateDepartmentGroup(id, name),
+    mutationFn: ({ id, updates }: { id: string; updates: { name?: string; sortOrder?: number } }) => api.updateDepartmentGroup(id, updates),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: queryKeys.departmentGroups });
+      queryClient.invalidateQueries({ predicate: (query) => query.queryKey[0] === 'departments' });
     },
   });
 }
@@ -153,10 +154,10 @@ export function useCreateCostGroup() {
 export function useUpdateDepartment() {
   const queryClient = useQueryClient();
   return useMutation({
-    mutationFn: ({ id, updates }: { id: string; updates: { name?: string; groupId?: string | null } }) => 
+    mutationFn: ({ id, updates }: { id: string; updates: { name?: string; groupId?: string | null; sortOrder?: number } }) => 
       api.updateDepartment(id, updates),
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: queryKeys.departments(2025) });
+      queryClient.invalidateQueries({ predicate: (query) => query.queryKey[0] === 'departments' });
     },
   });
 }
@@ -174,9 +175,9 @@ export function useDeleteDepartment() {
 export function useUpdateCostGroup() {
   const queryClient = useQueryClient();
   return useMutation({
-    mutationFn: ({ id, name }: { id: string; name: string }) => api.updateCostGroup(id, name),
+    mutationFn: ({ id, updates }: { id: string; updates: { name?: string; sortOrder?: number } }) => api.updateCostGroup(id, updates),
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: queryKeys.departments(2025) });
+      queryClient.invalidateQueries({ predicate: (query) => query.queryKey[0] === 'departments' });
     },
   });
 }

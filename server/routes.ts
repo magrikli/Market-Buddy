@@ -275,8 +275,11 @@ export async function registerRoutes(server: Server, app: Express): Promise<Serv
   app.patch("/api/department-groups/:id", async (req: Request, res: Response) => {
     try {
       const { id } = req.params;
-      const { name } = req.body;
-      const group = await storage.updateDepartmentGroup(id, { name });
+      const { name, sortOrder } = req.body;
+      const updates: { name?: string; sortOrder?: number } = {};
+      if (name !== undefined) updates.name = name;
+      if (sortOrder !== undefined) updates.sortOrder = sortOrder;
+      const group = await storage.updateDepartmentGroup(id, updates);
       if (!group) {
         return res.status(404).json({ message: "Department group not found" });
       }
@@ -388,10 +391,11 @@ export async function registerRoutes(server: Server, app: Express): Promise<Serv
   app.patch("/api/departments/:id", async (req: Request, res: Response) => {
     try {
       const { id } = req.params;
-      const { name, groupId } = req.body;
-      const updates: { name?: string; groupId?: string | null } = {};
+      const { name, groupId, sortOrder } = req.body;
+      const updates: { name?: string; groupId?: string | null; sortOrder?: number } = {};
       if (name !== undefined) updates.name = name;
       if (groupId !== undefined) updates.groupId = groupId;
+      if (sortOrder !== undefined) updates.sortOrder = sortOrder;
       const department = await storage.updateDepartment(id, updates);
       if (!department) {
         return res.status(404).json({ message: "Department not found" });
@@ -428,8 +432,11 @@ export async function registerRoutes(server: Server, app: Express): Promise<Serv
   app.patch("/api/cost-groups/:id", async (req: Request, res: Response) => {
     try {
       const { id } = req.params;
-      const { name } = req.body;
-      const group = await storage.updateCostGroup(id, { name });
+      const { name, sortOrder } = req.body;
+      const updates: { name?: string; sortOrder?: number } = {};
+      if (name !== undefined) updates.name = name;
+      if (sortOrder !== undefined) updates.sortOrder = sortOrder;
+      const group = await storage.updateCostGroup(id, updates);
       if (!group) {
         return res.status(404).json({ message: "Cost group not found" });
       }

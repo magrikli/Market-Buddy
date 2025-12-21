@@ -110,10 +110,10 @@ export async function createDepartmentGroup(name: string): Promise<DepartmentGro
   });
 }
 
-export async function updateDepartmentGroup(id: string, name: string): Promise<DepartmentGroup> {
+export async function updateDepartmentGroup(id: string, updates: { name?: string; sortOrder?: number }): Promise<DepartmentGroup> {
   return fetchAPI(`/department-groups/${id}`, {
     method: 'PATCH',
-    body: JSON.stringify({ name }),
+    body: JSON.stringify(updates),
   });
 }
 
@@ -138,7 +138,7 @@ export async function createDepartment(name: string, companyId?: string | null):
   });
 }
 
-export async function updateDepartment(id: string, updates: { name?: string; groupId?: string | null }): Promise<Department> {
+export async function updateDepartment(id: string, updates: { name?: string; groupId?: string | null; sortOrder?: number }): Promise<Department> {
   return fetchAPI(`/departments/${id}`, {
     method: 'PATCH',
     body: JSON.stringify(updates),
@@ -158,10 +158,10 @@ export async function createCostGroup(data: { name: string; departmentId: string
   });
 }
 
-export async function updateCostGroup(id: string, name: string): Promise<any> {
+export async function updateCostGroup(id: string, updates: { name?: string; sortOrder?: number }): Promise<any> {
   return fetchAPI(`/cost-groups/${id}`, {
     method: 'PATCH',
-    body: JSON.stringify({ name }),
+    body: JSON.stringify(updates),
   });
 }
 

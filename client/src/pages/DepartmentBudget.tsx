@@ -203,7 +203,7 @@ export default function DepartmentBudget() {
   const handleEditDeptGroup = async (name: string) => {
     if (!editingDeptGroup) return;
     try {
-      await updateDepartmentGroupMutation.mutateAsync({ id: editingDeptGroup.id, name });
+      await updateDepartmentGroupMutation.mutateAsync({ id: editingDeptGroup.id, updates: { name } });
       toast.success("Departman grubu güncellendi", { description: name });
       setEditDeptGroupOpen(false);
       setEditingDeptGroup(null);
@@ -244,7 +244,7 @@ export default function DepartmentBudget() {
   const handleEditGroup = async (name: string) => {
     if (!editingGroup) return;
     try {
-      await updateCostGroupMutation.mutateAsync({ id: editingGroup.id, name });
+      await updateCostGroupMutation.mutateAsync({ id: editingGroup.id, updates: { name } });
       toast.success("Maliyet grubu güncellendi", { description: name });
       setEditGroupOpen(false);
       setEditingGroup(null);
