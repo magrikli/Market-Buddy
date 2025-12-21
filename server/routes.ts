@@ -1383,7 +1383,9 @@ export async function registerRoutes(server: Server, app: Express): Promise<Serv
         const groups = await storage.getCostGroupsByDepartment(dept.id);
         for (const group of groups) {
           const items = await storage.getBudgetItemsByCostGroup(group.id, year);
-          items.forEach((item: BudgetItem) => departmentBudgetItemIds.add(item.id));
+          // Only include approved budget items
+          items.filter((item: BudgetItem) => item.status === 'approved')
+            .forEach((item: BudgetItem) => departmentBudgetItemIds.add(item.id));
         }
       }
       
@@ -1391,7 +1393,9 @@ export async function registerRoutes(server: Server, app: Express): Promise<Serv
         const phases = await storage.getPhasesByProject(proj.id);
         for (const phase of phases) {
           const items = await storage.getBudgetItemsByProjectPhase(phase.id, year);
-          items.forEach((item: BudgetItem) => projectBudgetItemIds.add(item.id));
+          // Only include approved budget items
+          items.filter((item: BudgetItem) => item.status === 'approved')
+            .forEach((item: BudgetItem) => projectBudgetItemIds.add(item.id));
         }
       }
       
@@ -1473,7 +1477,9 @@ export async function registerRoutes(server: Server, app: Express): Promise<Serv
         const groups = await storage.getCostGroupsByDepartment(dept.id);
         for (const group of groups) {
           const items = await storage.getBudgetItemsByCostGroup(group.id, year);
-          const itemIds = new Set(items.map((i: BudgetItem) => i.id));
+          // Only include approved budget items
+          const approvedItems = items.filter((i: BudgetItem) => i.status === 'approved');
+          const itemIds = new Set(approvedItems.map((i: BudgetItem) => i.id));
           
           const groupTotal = yearTransactions
             .filter(t => t.budgetItemId && itemIds.has(t.budgetItemId))
@@ -1555,7 +1561,9 @@ export async function registerRoutes(server: Server, app: Express): Promise<Serv
         const phases = await storage.getPhasesByProject(proj.id);
         for (const phase of phases) {
           const items = await storage.getBudgetItemsByProjectPhase(phase.id, year);
-          const itemIds = new Set(items.map((i: BudgetItem) => i.id));
+          // Only include approved budget items
+          const approvedItems = items.filter((i: BudgetItem) => i.status === 'approved');
+          const itemIds = new Set(approvedItems.map((i: BudgetItem) => i.id));
           
           const phaseTotal = yearTransactions
             .filter(t => t.budgetItemId && itemIds.has(t.budgetItemId))
@@ -1634,7 +1642,8 @@ export async function registerRoutes(server: Server, app: Express): Promise<Serv
         const groups = await storage.getCostGroupsByDepartment(dept.id);
         for (const group of groups) {
           const items = await storage.getBudgetItemsByCostGroup(group.id, year);
-          items.forEach((item: any) => {
+          // Only include approved budget items
+          items.filter((item: any) => item.status === 'approved').forEach((item: any) => {
             const values = item.monthlyValues as Record<string, number>;
             if (values) {
               departmentBudget += Object.values(values).reduce((sum, v) => sum + (v || 0), 0);
@@ -1647,7 +1656,8 @@ export async function registerRoutes(server: Server, app: Express): Promise<Serv
         const phases = await storage.getPhasesByProject(proj.id);
         for (const phase of phases) {
           const items = await storage.getBudgetItemsByProjectPhase(phase.id, year);
-          items.forEach((item: any) => {
+          // Only include approved budget items
+          items.filter((item: any) => item.status === 'approved').forEach((item: any) => {
             if (item.type === 'cost') {
               const values = item.monthlyValues as Record<string, number>;
               if (values) {
@@ -1716,7 +1726,8 @@ export async function registerRoutes(server: Server, app: Express): Promise<Serv
         for (const group of groups) {
           const items = await storage.getBudgetItemsByCostGroup(group.id, year);
           let groupTotal = 0;
-          items.forEach((item: any) => {
+          // Only include approved budget items
+          items.filter((item: any) => item.status === 'approved').forEach((item: any) => {
             const values = item.monthlyValues as Record<string, number>;
             if (values) {
               groupTotal += Object.values(values).reduce((sum, v) => sum + (v || 0), 0);
@@ -1792,7 +1803,8 @@ export async function registerRoutes(server: Server, app: Express): Promise<Serv
         for (const phase of phases) {
           const items = await storage.getBudgetItemsByProjectPhase(phase.id, year);
           let phaseTotal = 0;
-          items.forEach((item: any) => {
+          // Only include approved budget items
+          items.filter((item: any) => item.status === 'approved').forEach((item: any) => {
             if (item.type === 'cost') {
               const values = item.monthlyValues as Record<string, number>;
               if (values) {
