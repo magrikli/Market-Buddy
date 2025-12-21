@@ -75,6 +75,7 @@ export const projects = pgTable("projects", {
   code: varchar("code", { length: 50 }),
   name: text("name").notNull(),
   companyId: varchar("company_id", { length: 255 }).references(() => companies.id, { onDelete: 'cascade' }),
+  projectTypeId: varchar("project_type_id", { length: 255 }), // Reference to project type
   sortOrder: integer("sort_order").notNull().default(0),
   createdAt: timestamp("created_at").defaultNow().notNull(),
 });
@@ -239,7 +240,33 @@ export const userCompanyAssignments = pgTable("user_company_assignments", {
 export const insertUserCompanyAssignmentSchema = createInsertSchema(userCompanyAssignments);
 export type UserCompanyAssignment = typeof userCompanyAssignments.$inferSelect;
 
-// ===== DEFAULT PROJECT PHASES (Settings) =====
+// ===== PROJECT TYPES =====
+export const projectTypes = pgTable("project_types", {
+  id: varchar("id", { length: 255 }).primaryKey().default(sql`gen_random_uuid()`),
+  name: text("name").notNull(),
+  code: varchar("code", { length: 50 }),
+  sortOrder: integer("sort_order").notNull().default(0),
+  createdAt: timestamp("created_at").defaultNow().notNull(),
+});
+
+export const insertProjectTypeSchema = createInsertSchema(projectTypes).omit({ id: true, createdAt: true });
+export type InsertProjectType = z.infer<typeof insertProjectTypeSchema>;
+export type ProjectType = typeof projectTypes.$inferSelect;
+
+// ===== PROJECT TYPE PHASES (Default phases for each project type) =====
+export const projectTypePhases = pgTable("project_type_phases", {
+  id: varchar("id", { length: 255 }).primaryKey().default(sql`gen_random_uuid()`),
+  projectTypeId: varchar("project_type_id", { length: 255 }).notNull().references(() => projectTypes.id, { onDelete: 'cascade' }),
+  name: text("name").notNull(),
+  sortOrder: integer("sort_order").notNull().default(0),
+  createdAt: timestamp("created_at").defaultNow().notNull(),
+});
+
+export const insertProjectTypePhaseSchema = createInsertSchema(projectTypePhases).omit({ id: true, createdAt: true });
+export type InsertProjectTypePhase = z.infer<typeof insertProjectTypePhaseSchema>;
+export type ProjectTypePhase = typeof projectTypePhases.$inferSelect;
+
+// ===== DEFAULT PROJECT PHASES (Settings) - Legacy, can be removed later =====
 export const defaultProjectPhases = pgTable("default_project_phases", {
   id: varchar("id", { length: 255 }).primaryKey().default(sql`gen_random_uuid()`),
   name: text("name").notNull(),
