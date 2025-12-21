@@ -11,6 +11,7 @@ export const queryKeys = {
   departments: (year: number, companyId?: string | null) => ['departments', year, companyId] as const,
   projects: (year: number, companyId?: string | null) => ['projects', year, companyId] as const,
   transactions: (limit?: number) => ['transactions', limit] as const,
+  dashboardStats: (year: number, companyId?: string | null) => ['dashboardStats', year, companyId] as const,
 };
 
 // === AUTH ===
@@ -340,6 +341,15 @@ export function useTransactions(limit?: number) {
   return useQuery({
     queryKey: queryKeys.transactions(limit),
     queryFn: () => api.getTransactions(limit),
+  });
+}
+
+// === DASHBOARD ===
+
+export function useDashboardStats(year: number, companyId?: string | null) {
+  return useQuery({
+    queryKey: queryKeys.dashboardStats(year, companyId),
+    queryFn: () => api.getDashboardStats(year, companyId),
   });
 }
 

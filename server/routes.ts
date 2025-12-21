@@ -5,7 +5,7 @@ import {
   insertUserSchema, insertDepartmentSchema, insertCostGroupSchema, 
   insertProjectSchema, insertProjectPhaseSchema, insertBudgetItemSchema, 
   insertTransactionSchema, insertBudgetRevisionSchema, insertDepartmentGroupSchema,
-  insertCompanySchema
+  insertCompanySchema, type BudgetItem
 } from "@shared/schema";
 import { z } from "zod";
 import bcrypt from "bcrypt";
@@ -1045,6 +1045,108 @@ export async function registerRoutes(server: Server, app: Express): Promise<Serv
       return res.json({ deletedCount, fileName });
     } catch (error) {
       console.error('Delete transactions by CSV error:', error);
+      return res.status(500).json({ message: "Server error" });
+    }
+  });
+
+  // ===== DASHBOARD STATS =====
+  
+  app.get("/api/dashboard/stats", async (req: Request, res: Response) => {
+    try {
+      const year = parseInt(req.query.year as string) || new Date().getFullYear();
+      const companyId = req.query.companyId as string | undefined;
+      
+      // Validate user access to the requested company
+      let allowedCompanyIds: string[] | null = null;
+      if (req.session.role !== 'admin' && req.session.userId) {
+        allowedCompanyIds = await storage.getUserCompanies(req.session.userId);
+        if (companyId && !allowedCompanyIds.includes(companyId)) {
+          return res.status(403).json({ message: "Unauthorized access to this company" });
+        }
+      }
+      
+      // Get all budget item IDs for the selected company
+      let companyBudgetItemIds: Set<string> = new Set();
+      if (companyId) {
+        // Get departments and their budget items
+        const allDepartments = await storage.getAllDepartments();
+        const companyDepartments = allDepartments.filter(d => d.companyId === companyId);
+        
+        for (const dept of companyDepartments) {
+          const groups = await storage.getCostGroupsByDepartment(dept.id);
+          for (const group of groups) {
+            const items = await storage.getBudgetItemsByCostGroup(group.id, year);
+            items.forEach((item: BudgetItem) => companyBudgetItemIds.add(item.id));
+          }
+        }
+        
+        // Get projects and their budget items
+        const allProjects = await storage.getAllProjects();
+        const companyProjects = allProjects.filter(p => p.companyId === companyId);
+        
+        for (const proj of companyProjects) {
+          const phases = await storage.getPhasesByProject(proj.id);
+          for (const phase of phases) {
+            const costItems = await storage.getBudgetItemsByProjectPhase(phase.id, year);
+            const revenueItems = await storage.getBudgetItemsByProjectPhase(phase.id, year);
+            costItems.forEach((item: BudgetItem) => companyBudgetItemIds.add(item.id));
+            revenueItems.forEach((item: BudgetItem) => companyBudgetItemIds.add(item.id));
+          }
+        }
+      }
+      
+      // Get all transactions for the year
+      const allTransactions = await storage.getAllTransactions(10000);
+      
+      // Filter by year and company
+      const yearTransactions = allTransactions.filter(t => {
+        const txDate = new Date(t.date);
+        const yearMatch = txDate.getFullYear() === year;
+        if (!companyId) return yearMatch;
+        return yearMatch && t.budgetItemId && companyBudgetItemIds.has(t.budgetItemId);
+      });
+      
+      // Calculate total actuals (expenses)
+      const totalActuals = yearTransactions
+        .filter(t => t.type === 'expense')
+        .reduce((sum, t) => sum + (t.amount || 0), 0) / 100; // Convert from cents
+      
+      // Monthly breakdown
+      const monthlyData: { [month: number]: { budget: number; actual: number } } = {};
+      for (let i = 0; i < 12; i++) {
+        monthlyData[i] = { budget: 0, actual: 0 };
+      }
+      
+      yearTransactions.forEach(t => {
+        const month = new Date(t.date).getMonth();
+        if (t.type === 'expense') {
+          monthlyData[month].actual += (t.amount || 0) / 100;
+        }
+      });
+      
+      // Count pending items (processes with pending status) - filter by company
+      const allPendingProcesses = await storage.getPendingProcesses();
+      let pendingCount = allPendingProcesses.length;
+      if (companyId) {
+        const allProjects = await storage.getAllProjects();
+        const companyProjectIds = new Set(allProjects.filter(p => p.companyId === companyId).map(p => p.id));
+        pendingCount = allPendingProcesses.filter(p => companyProjectIds.has(p.projectId)).length;
+      }
+      
+      // Get recent transactions for activity feed (filtered by company)
+      const companyTransactions = companyId 
+        ? allTransactions.filter(t => t.budgetItemId && companyBudgetItemIds.has(t.budgetItemId))
+        : allTransactions;
+      const recentTransactions = companyTransactions.slice(0, 5);
+      
+      return res.json({
+        totalActuals,
+        pendingCount,
+        monthlyData,
+        recentTransactions,
+      });
+    } catch (error) {
+      console.error('Dashboard stats error:', error);
       return res.status(500).json({ message: "Server error" });
     }
   });

@@ -315,6 +315,21 @@ export async function deleteTransactionsByCsvFileName(fileName: string): Promise
   });
 }
 
+// === DASHBOARD ===
+
+export interface DashboardStats {
+  totalActuals: number;
+  pendingCount: number;
+  monthlyData: { [month: number]: { budget: number; actual: number } };
+  recentTransactions: any[];
+}
+
+export async function getDashboardStats(year: number, companyId?: string | null): Promise<DashboardStats> {
+  const params = new URLSearchParams({ year: String(year) });
+  if (companyId) params.append('companyId', companyId);
+  return fetchAPI(`/dashboard/stats?${params.toString()}`);
+}
+
 // === COMPANIES ===
 
 export async function getCompanies(): Promise<Company[]> {
