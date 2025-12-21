@@ -379,6 +379,26 @@ export async function registerRoutes(server: Server, app: Express): Promise<Serv
     try {
       const data = insertDepartmentSchema.parse(req.body);
       const department = await storage.createDepartment(data);
+      
+      // Automatically add standard cost groups to new department
+      const standardCostGroups = [
+        "Personel Giderleri",
+        "Personel Yan Haklar",
+        "Eğitim",
+        "Seyahat",
+        "Ofis Malzemesi",
+        "İletişim",
+        "Temsil ve Ağırlama"
+      ];
+      
+      for (let i = 0; i < standardCostGroups.length; i++) {
+        await storage.createCostGroup({
+          name: standardCostGroups[i],
+          departmentId: department.id,
+          sortOrder: i
+        });
+      }
+      
       return res.status(201).json(department);
     } catch (error) {
       if (error instanceof z.ZodError) {
