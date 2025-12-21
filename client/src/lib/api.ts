@@ -576,46 +576,6 @@ export async function deleteProjectProcess(id: string): Promise<void> {
   });
 }
 
-// === DEFAULT PROJECT PHASES (Settings) ===
-
-export interface DefaultProjectPhase {
-  id: string;
-  name: string;
-  sortOrder: number;
-  createdAt: string;
-}
-
-export async function getDefaultProjectPhases(): Promise<DefaultProjectPhase[]> {
-  return fetchAPI('/default-project-phases');
-}
-
-export async function createDefaultProjectPhase(data: { name: string; sortOrder?: number }): Promise<DefaultProjectPhase> {
-  return fetchAPI('/default-project-phases', {
-    method: 'POST',
-    body: JSON.stringify(data),
-  });
-}
-
-export async function updateDefaultProjectPhase(id: string, data: { name?: string; sortOrder?: number }): Promise<DefaultProjectPhase> {
-  return fetchAPI(`/default-project-phases/${id}`, {
-    method: 'PUT',
-    body: JSON.stringify(data),
-  });
-}
-
-export async function deleteDefaultProjectPhase(id: string): Promise<void> {
-  return fetchAPI(`/default-project-phases/${id}`, {
-    method: 'DELETE',
-  });
-}
-
-export async function reorderDefaultProjectPhases(id1: string, id2: string): Promise<{ success: boolean }> {
-  return fetchAPI('/default-project-phases/reorder', {
-    method: 'POST',
-    body: JSON.stringify({ id1, id2 }),
-  });
-}
-
 // === PROJECT TYPES ===
 
 export interface ProjectType {

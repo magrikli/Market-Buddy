@@ -648,55 +648,6 @@ export function useDeleteProjectProcess() {
   });
 }
 
-// === DEFAULT PROJECT PHASES (Settings) ===
-
-export function useDefaultProjectPhases() {
-  return useQuery({
-    queryKey: ['defaultProjectPhases'] as const,
-    queryFn: () => api.getDefaultProjectPhases(),
-  });
-}
-
-export function useCreateDefaultProjectPhase() {
-  const queryClient = useQueryClient();
-  return useMutation({
-    mutationFn: (data: { name: string; sortOrder?: number }) => api.createDefaultProjectPhase(data),
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['defaultProjectPhases'] });
-    },
-  });
-}
-
-export function useUpdateDefaultProjectPhase() {
-  const queryClient = useQueryClient();
-  return useMutation({
-    mutationFn: ({ id, data }: { id: string; data: { name?: string; sortOrder?: number } }) => api.updateDefaultProjectPhase(id, data),
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['defaultProjectPhases'] });
-    },
-  });
-}
-
-export function useDeleteDefaultProjectPhase() {
-  const queryClient = useQueryClient();
-  return useMutation({
-    mutationFn: (id: string) => api.deleteDefaultProjectPhase(id),
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['defaultProjectPhases'] });
-    },
-  });
-}
-
-export function useReorderDefaultProjectPhases() {
-  const queryClient = useQueryClient();
-  return useMutation({
-    mutationFn: ({ id1, id2 }: { id1: string; id2: string }) => api.reorderDefaultProjectPhases(id1, id2),
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['defaultProjectPhases'] });
-    },
-  });
-}
-
 // === PROJECT TYPES ===
 
 export function useProjectTypes() {

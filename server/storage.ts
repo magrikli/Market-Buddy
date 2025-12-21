@@ -12,7 +12,6 @@ import {
   type Company, type InsertCompany,
   type ProjectProcess, type InsertProjectProcess,
   type ProcessRevision, type InsertProcessRevision,
-  type DefaultProjectPhase, type InsertDefaultProjectPhase,
   type ProjectType, type InsertProjectType,
   type ProjectTypePhase, type InsertProjectTypePhase
 } from '@shared/schema';
@@ -115,13 +114,6 @@ export interface IStorage {
   // Process Revisions
   createProcessRevision(revision: InsertProcessRevision): Promise<ProcessRevision>;
   getRevisionsByProcess(processId: string): Promise<ProcessRevision[]>;
-  
-  // Default Project Phases (Settings)
-  getAllDefaultProjectPhases(): Promise<DefaultProjectPhase[]>;
-  createDefaultProjectPhase(phase: InsertDefaultProjectPhase): Promise<DefaultProjectPhase>;
-  updateDefaultProjectPhase(id: string, updates: Partial<DefaultProjectPhase>): Promise<DefaultProjectPhase | undefined>;
-  deleteDefaultProjectPhase(id: string): Promise<void>;
-  reorderDefaultProjectPhases(id1: string, id2: string): Promise<void>;
   
   // Project Types
   getAllProjectTypes(): Promise<ProjectType[]>;
@@ -746,53 +738,6 @@ export class DatabaseStorage implements IStorage {
     return await db.select().from(processRevisions)
       .where(eq(processRevisions.processId, processId))
       .orderBy(processRevisions.revisionNumber);
-  }
-
-  // === DEFAULT PROJECT PHASES (Settings) ===
-  async getAllDefaultProjectPhases(): Promise<DefaultProjectPhase[]> {
-    return await db.select().from(defaultProjectPhases).orderBy(asc(defaultProjectPhases.sortOrder));
-  }
-
-  async createDefaultProjectPhase(phase: InsertDefaultProjectPhase): Promise<DefaultProjectPhase> {
-    // Get max sortOrder and add 1
-    const maxResult = await db.select({ maxOrder: max(defaultProjectPhases.sortOrder) }).from(defaultProjectPhases);
-    const nextSortOrder = (maxResult[0]?.maxOrder ?? -1) + 1;
-    
-    const result = await db.insert(defaultProjectPhases).values({
-      ...phase,
-      sortOrder: phase.sortOrder ?? nextSortOrder
-    }).returning();
-    return result[0];
-  }
-
-  async updateDefaultProjectPhase(id: string, updates: Partial<DefaultProjectPhase>): Promise<DefaultProjectPhase | undefined> {
-    const result = await db.update(defaultProjectPhases)
-      .set(updates)
-      .where(eq(defaultProjectPhases.id, id))
-      .returning();
-    return result[0];
-  }
-
-  async deleteDefaultProjectPhase(id: string): Promise<void> {
-    await db.delete(defaultProjectPhases).where(eq(defaultProjectPhases.id, id));
-  }
-
-  async reorderDefaultProjectPhases(id1: string, id2: string): Promise<void> {
-    // Swap sort orders atomically within a transaction
-    await db.transaction(async (tx) => {
-      const phase1 = await tx.select().from(defaultProjectPhases).where(eq(defaultProjectPhases.id, id1)).limit(1);
-      const phase2 = await tx.select().from(defaultProjectPhases).where(eq(defaultProjectPhases.id, id2)).limit(1);
-      
-      if (!phase1[0] || !phase2[0]) {
-        throw new Error('One or both phases not found');
-      }
-      
-      const order1 = phase1[0].sortOrder;
-      const order2 = phase2[0].sortOrder;
-      
-      await tx.update(defaultProjectPhases).set({ sortOrder: order2 }).where(eq(defaultProjectPhases.id, id1));
-      await tx.update(defaultProjectPhases).set({ sortOrder: order1 }).where(eq(defaultProjectPhases.id, id2));
-    });
   }
 
   // === PROJECT TYPES ===
