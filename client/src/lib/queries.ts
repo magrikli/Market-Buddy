@@ -699,10 +699,10 @@ export function useReorderProjectTypes() {
 
 // === PROJECT TYPE PHASES ===
 
-export function useProjectTypePhases(projectTypeId: string | null) {
+export function useProjectTypePhases(projectTypeId: string | null, phaseType?: 'cost' | 'revenue') {
   return useQuery({
-    queryKey: ['projectTypePhases', projectTypeId] as const,
-    queryFn: () => projectTypeId ? api.getProjectTypePhases(projectTypeId) : Promise.resolve([]),
+    queryKey: ['projectTypePhases', projectTypeId, phaseType] as const,
+    queryFn: () => projectTypeId ? api.getProjectTypePhases(projectTypeId, phaseType) : Promise.resolve([]),
     enabled: !!projectTypeId,
   });
 }
@@ -710,7 +710,7 @@ export function useProjectTypePhases(projectTypeId: string | null) {
 export function useCreateProjectTypePhase() {
   const queryClient = useQueryClient();
   return useMutation({
-    mutationFn: ({ projectTypeId, data }: { projectTypeId: string; data: { name: string; sortOrder?: number } }) => 
+    mutationFn: ({ projectTypeId, data }: { projectTypeId: string; data: { name: string; sortOrder?: number; type?: 'cost' | 'revenue' } }) => 
       api.createProjectTypePhase(projectTypeId, data),
     onSuccess: (_, variables) => {
       queryClient.invalidateQueries({ queryKey: ['projectTypePhases', variables.projectTypeId] });

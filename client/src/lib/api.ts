@@ -631,11 +631,14 @@ export async function reorderProjectTypes(id1: string, id2: string): Promise<{ s
 
 // === PROJECT TYPE PHASES ===
 
-export async function getProjectTypePhases(projectTypeId: string): Promise<ProjectTypePhase[]> {
-  return fetchAPI(`/project-types/${projectTypeId}/phases`);
+export async function getProjectTypePhases(projectTypeId: string, phaseType?: 'cost' | 'revenue'): Promise<ProjectTypePhase[]> {
+  const url = phaseType 
+    ? `/project-types/${projectTypeId}/phases?type=${phaseType}`
+    : `/project-types/${projectTypeId}/phases`;
+  return fetchAPI(url);
 }
 
-export async function createProjectTypePhase(projectTypeId: string, data: { name: string; sortOrder?: number }): Promise<ProjectTypePhase> {
+export async function createProjectTypePhase(projectTypeId: string, data: { name: string; sortOrder?: number; type?: 'cost' | 'revenue' }): Promise<ProjectTypePhase> {
   return fetchAPI(`/project-types/${projectTypeId}/phases`, {
     method: 'POST',
     body: JSON.stringify(data),

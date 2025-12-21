@@ -43,9 +43,11 @@ export default function Admin() {
   const deleteProjectTypeMutation = useDeleteProjectType();
   const reorderProjectTypesMutation = useReorderProjectTypes();
   
-  // Project type phases
+  // Project type phases - separate queries for cost and revenue
   const [selectedProjectTypeId, setSelectedProjectTypeId] = useState<string | null>(null);
-  const { data: projectTypePhases = [], isLoading: projectTypePhasesLoading } = useProjectTypePhases(selectedProjectTypeId);
+  const { data: costPhases = [], isLoading: costPhasesLoading } = useProjectTypePhases(selectedProjectTypeId, 'cost');
+  const { data: revenuePhases = [], isLoading: revenuePhasesLoading } = useProjectTypePhases(selectedProjectTypeId, 'revenue');
+  const projectTypePhasesLoading = costPhasesLoading || revenuePhasesLoading;
   const createProjectTypePhaseMutation = useCreateProjectTypePhase();
   const deleteProjectTypePhaseMutation = useDeleteProjectTypePhase();
   const reorderProjectTypePhasesMutation = useReorderProjectTypePhases();
@@ -80,7 +82,8 @@ export default function Admin() {
   // Project type state
   const [newProjectTypeName, setNewProjectTypeName] = useState("");
   const [newProjectTypeCode, setNewProjectTypeCode] = useState("");
-  const [newProjectTypePhaseName, setNewProjectTypePhaseName] = useState("");
+  const [newCostPhaseName, setNewCostPhaseName] = useState("");
+  const [newRevenuePhaseName, setNewRevenuePhaseName] = useState("");
 
   const handleApproveProcess = async (processId: string, projectId: string) => {
     try {
@@ -365,19 +368,24 @@ export default function Admin() {
     }
   };
 
-  const handleAddProjectTypePhase = async () => {
+  const handleAddProjectTypePhase = async (phaseType: 'cost' | 'revenue') => {
     if (!selectedProjectTypeId) return;
-    if (!newProjectTypePhaseName.trim()) {
+    const phaseName = phaseType === 'cost' ? newCostPhaseName : newRevenuePhaseName;
+    if (!phaseName.trim()) {
       toast.error("Faz adı gerekli");
       return;
     }
     try {
       await createProjectTypePhaseMutation.mutateAsync({ 
         projectTypeId: selectedProjectTypeId, 
-        data: { name: newProjectTypePhaseName.trim() } 
+        data: { name: phaseName.trim(), type: phaseType } 
       });
       toast.success("Faz eklendi");
-      setNewProjectTypePhaseName("");
+      if (phaseType === 'cost') {
+        setNewCostPhaseName("");
+      } else {
+        setNewRevenuePhaseName("");
+      }
     } catch (error: any) {
       toast.error("Hata", { description: error.message });
     }
@@ -394,16 +402,17 @@ export default function Admin() {
     }
   };
 
-  const handleMoveProjectTypePhase = async (id: string, direction: 'up' | 'down') => {
+  const handleMoveProjectTypePhase = async (id: string, direction: 'up' | 'down', phaseType: 'cost' | 'revenue') => {
     if (!selectedProjectTypeId) return;
-    const currentIndex = projectTypePhases.findIndex(p => p.id === id);
+    const phases = phaseType === 'cost' ? costPhases : revenuePhases;
+    const currentIndex = phases.findIndex(p => p.id === id);
     if (currentIndex === -1) return;
     
     const newIndex = direction === 'up' ? currentIndex - 1 : currentIndex + 1;
-    if (newIndex < 0 || newIndex >= projectTypePhases.length) return;
+    if (newIndex < 0 || newIndex >= phases.length) return;
     
-    const currentPhase = projectTypePhases[currentIndex];
-    const targetPhase = projectTypePhases[newIndex];
+    const currentPhase = phases[currentIndex];
+    const targetPhase = phases[newIndex];
     
     try {
       await reorderProjectTypePhasesMutation.mutateAsync({ 
@@ -1040,55 +1049,107 @@ export default function Admin() {
                       ))}
                     </div>
 
-                    {/* Phases for selected project type */}
-                    <div className="space-y-2">
-                      <h4 className="font-medium text-sm text-muted-foreground mb-2">
+                    {/* Phases for selected project type - Cost and Revenue sections */}
+                    <div className="space-y-4">
+                      <h4 className="font-medium text-sm text-muted-foreground">
                         {selectedProjectTypeId ? `${projectTypes.find(t => t.id === selectedProjectTypeId)?.name} Fazları` : 'Tip seçin'}
                       </h4>
                       {selectedProjectTypeId ? (
-                        <>
-                          <div className="flex gap-2 mb-3">
-                            <Input
-                              placeholder="Yeni faz adı..."
-                              value={newProjectTypePhaseName}
-                              onChange={(e) => setNewProjectTypePhaseName(e.target.value)}
-                              onKeyDown={(e) => e.key === 'Enter' && handleAddProjectTypePhase()}
-                              data-testid="input-new-project-type-phase"
-                            />
-                            <Button size="sm" onClick={handleAddProjectTypePhase} disabled={createProjectTypePhaseMutation.isPending} data-testid="button-add-project-type-phase">
-                              {createProjectTypePhaseMutation.isPending ? <Loader2 className="h-4 w-4 animate-spin" /> : <Plus className="h-4 w-4" />}
-                            </Button>
+                        <div className="space-y-4">
+                          {/* Cost Phases Section */}
+                          <div className="border rounded-lg p-3 bg-red-50/30">
+                            <h5 className="font-medium text-sm mb-2 text-red-700">Gider Fazları (Cost)</h5>
+                            <div className="flex gap-2 mb-2">
+                              <Input
+                                placeholder="Yeni gider fazı..."
+                                value={newCostPhaseName}
+                                onChange={(e) => setNewCostPhaseName(e.target.value)}
+                                onKeyDown={(e) => e.key === 'Enter' && handleAddProjectTypePhase('cost')}
+                                className="text-sm"
+                                data-testid="input-new-cost-phase"
+                              />
+                              <Button size="sm" onClick={() => handleAddProjectTypePhase('cost')} disabled={createProjectTypePhaseMutation.isPending} data-testid="button-add-cost-phase">
+                                {createProjectTypePhaseMutation.isPending ? <Loader2 className="h-4 w-4 animate-spin" /> : <Plus className="h-4 w-4" />}
+                              </Button>
+                            </div>
+                            {costPhasesLoading ? (
+                              <div className="flex justify-center p-2">
+                                <Loader2 className="h-5 w-5 animate-spin text-muted-foreground" />
+                              </div>
+                            ) : costPhases.length === 0 ? (
+                              <p className="text-xs text-muted-foreground text-center py-2">Henüz gider fazı yok.</p>
+                            ) : (
+                              <div className="space-y-1">
+                                {costPhases.map((phase, index) => (
+                                  <div key={phase.id} className="flex items-center justify-between p-2 border rounded bg-white hover:bg-muted/30 transition-colors" data-testid={`row-cost-phase-${phase.id}`}>
+                                    <div className="flex items-center gap-2">
+                                      <span className="text-muted-foreground text-xs font-mono w-5">{index + 1}.</span>
+                                      <span className="text-sm">{phase.name}</span>
+                                    </div>
+                                    <div className="flex gap-0.5">
+                                      <Button variant="ghost" size="icon" className="h-6 w-6" onClick={() => handleMoveProjectTypePhase(phase.id, 'up', 'cost')} disabled={index === 0} data-testid={`button-move-up-cost-phase-${phase.id}`}>
+                                        <ArrowUp className="h-3 w-3" />
+                                      </Button>
+                                      <Button variant="ghost" size="icon" className="h-6 w-6" onClick={() => handleMoveProjectTypePhase(phase.id, 'down', 'cost')} disabled={index === costPhases.length - 1} data-testid={`button-move-down-cost-phase-${phase.id}`}>
+                                        <ArrowDown className="h-3 w-3" />
+                                      </Button>
+                                      <Button variant="ghost" size="icon" className="h-6 w-6 text-destructive hover:text-destructive" onClick={() => handleDeleteProjectTypePhase(phase.id, phase.name)} data-testid={`button-delete-cost-phase-${phase.id}`}>
+                                        <Trash2 className="h-3 w-3" />
+                                      </Button>
+                                    </div>
+                                  </div>
+                                ))}
+                              </div>
+                            )}
                           </div>
-                          {projectTypePhasesLoading ? (
-                            <div className="flex justify-center p-4">
-                              <Loader2 className="h-6 w-6 animate-spin text-muted-foreground" />
+
+                          {/* Revenue Phases Section */}
+                          <div className="border rounded-lg p-3 bg-green-50/30">
+                            <h5 className="font-medium text-sm mb-2 text-green-700">Gelir Fazları (Revenue)</h5>
+                            <div className="flex gap-2 mb-2">
+                              <Input
+                                placeholder="Yeni gelir fazı..."
+                                value={newRevenuePhaseName}
+                                onChange={(e) => setNewRevenuePhaseName(e.target.value)}
+                                onKeyDown={(e) => e.key === 'Enter' && handleAddProjectTypePhase('revenue')}
+                                className="text-sm"
+                                data-testid="input-new-revenue-phase"
+                              />
+                              <Button size="sm" onClick={() => handleAddProjectTypePhase('revenue')} disabled={createProjectTypePhaseMutation.isPending} data-testid="button-add-revenue-phase">
+                                {createProjectTypePhaseMutation.isPending ? <Loader2 className="h-4 w-4 animate-spin" /> : <Plus className="h-4 w-4" />}
+                              </Button>
                             </div>
-                          ) : projectTypePhases.length === 0 ? (
-                            <p className="text-sm text-muted-foreground text-center p-4">Bu tipte henüz faz yok.</p>
-                          ) : (
-                            <div className="space-y-1">
-                              {projectTypePhases.map((phase, index) => (
-                                <div key={phase.id} className="flex items-center justify-between p-2 border rounded hover:bg-muted/30 transition-colors" data-testid={`row-type-phase-${phase.id}`}>
-                                  <div className="flex items-center gap-2">
-                                    <span className="text-muted-foreground text-xs font-mono w-5">{index + 1}.</span>
-                                    <span className="text-sm">{phase.name}</span>
+                            {revenuePhasesLoading ? (
+                              <div className="flex justify-center p-2">
+                                <Loader2 className="h-5 w-5 animate-spin text-muted-foreground" />
+                              </div>
+                            ) : revenuePhases.length === 0 ? (
+                              <p className="text-xs text-muted-foreground text-center py-2">Henüz gelir fazı yok.</p>
+                            ) : (
+                              <div className="space-y-1">
+                                {revenuePhases.map((phase, index) => (
+                                  <div key={phase.id} className="flex items-center justify-between p-2 border rounded bg-white hover:bg-muted/30 transition-colors" data-testid={`row-revenue-phase-${phase.id}`}>
+                                    <div className="flex items-center gap-2">
+                                      <span className="text-muted-foreground text-xs font-mono w-5">{index + 1}.</span>
+                                      <span className="text-sm">{phase.name}</span>
+                                    </div>
+                                    <div className="flex gap-0.5">
+                                      <Button variant="ghost" size="icon" className="h-6 w-6" onClick={() => handleMoveProjectTypePhase(phase.id, 'up', 'revenue')} disabled={index === 0} data-testid={`button-move-up-revenue-phase-${phase.id}`}>
+                                        <ArrowUp className="h-3 w-3" />
+                                      </Button>
+                                      <Button variant="ghost" size="icon" className="h-6 w-6" onClick={() => handleMoveProjectTypePhase(phase.id, 'down', 'revenue')} disabled={index === revenuePhases.length - 1} data-testid={`button-move-down-revenue-phase-${phase.id}`}>
+                                        <ArrowDown className="h-3 w-3" />
+                                      </Button>
+                                      <Button variant="ghost" size="icon" className="h-6 w-6 text-destructive hover:text-destructive" onClick={() => handleDeleteProjectTypePhase(phase.id, phase.name)} data-testid={`button-delete-revenue-phase-${phase.id}`}>
+                                        <Trash2 className="h-3 w-3" />
+                                      </Button>
+                                    </div>
                                   </div>
-                                  <div className="flex gap-0.5">
-                                    <Button variant="ghost" size="icon" className="h-7 w-7" onClick={() => handleMoveProjectTypePhase(phase.id, 'up')} disabled={index === 0} data-testid={`button-move-up-type-phase-${phase.id}`}>
-                                      <ArrowUp className="h-3 w-3" />
-                                    </Button>
-                                    <Button variant="ghost" size="icon" className="h-7 w-7" onClick={() => handleMoveProjectTypePhase(phase.id, 'down')} disabled={index === projectTypePhases.length - 1} data-testid={`button-move-down-type-phase-${phase.id}`}>
-                                      <ArrowDown className="h-3 w-3" />
-                                    </Button>
-                                    <Button variant="ghost" size="icon" className="h-7 w-7 text-destructive hover:text-destructive" onClick={() => handleDeleteProjectTypePhase(phase.id, phase.name)} data-testid={`button-delete-type-phase-${phase.id}`}>
-                                      <Trash2 className="h-3 w-3" />
-                                    </Button>
-                                  </div>
-                                </div>
-                              ))}
-                            </div>
-                          )}
-                        </>
+                                ))}
+                              </div>
+                            )}
+                          </div>
+                        </div>
                       ) : (
                         <p className="text-sm text-muted-foreground text-center p-4">Fazlarını görmek için bir tip seçin.</p>
                       )}
