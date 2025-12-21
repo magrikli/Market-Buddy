@@ -928,30 +928,27 @@ export default function DepartmentBudget() {
                         return (
                           <AccordionItem key={dept.id} value={dept.id} className="border-b border-border/50">
                             <AccordionTrigger className="hover:no-underline py-0 [&>svg]:hidden">
-                              <div className="w-full overflow-x-auto pl-4 ml-2">
-                                <table className="w-full text-xs" style={{ tableLayout: 'fixed' }}>
-                                  <colgroup>
-                                    <col style={{ width: '200px' }} />
-                                    {months.map((_, idx) => <col key={idx} style={{ width: '80px' }} />)}
-                                    <col style={{ width: '150px' }} />
-                                  </colgroup>
-                                  <tbody>
-                                    <tr className="bg-muted/50">
-                                      <td className="text-left p-2 font-semibold sticky left-0 bg-muted/50 z-10">
-                                        <div className="flex items-center gap-2">
-                                          <ChevronDown className="h-4 w-4 text-muted-foreground shrink-0 transition-transform duration-200 group-data-[state=open]:rotate-180" />
-                                          <Building2 className="h-4 w-4 text-muted-foreground" />
-                                          <span className="text-foreground truncate">{dept.name}</span>
-                                          <span className="px-2 py-0.5 rounded-full bg-background text-[10px] font-medium text-muted-foreground whitespace-nowrap">{dept.costGroups.length} Grup</span>
-                                        </div>
-                                      </td>
-                                      {months.map((m, idx) => (
-                                        <td key={m} className="text-right p-2">
-                                          <span className="font-mono font-semibold text-foreground">{formatMoney(deptMonthlyTotals[idx])}</span>
-                                        </td>
-                                      ))}
-                                      <td className="text-right p-2 bg-primary/10">
-                                        <div className="flex items-center justify-end gap-2 pr-6">
+                              <div className="w-full overflow-x-auto">
+                                <div className="pl-4 ml-2">
+                                  <div className="rounded-t-md border border-b-0 border-border overflow-hidden bg-muted/30">
+                                    <table className="w-full text-xs">
+                                      <tbody>
+                                        <tr>
+                                          <td className="w-[200px] text-left p-2 font-semibold sticky left-0 bg-muted/30 z-10">
+                                            <div className="flex items-center gap-2">
+                                              <ChevronDown className="h-4 w-4 text-muted-foreground shrink-0 transition-transform duration-200 group-data-[state=open]:rotate-180" />
+                                              <Building2 className="h-4 w-4 text-muted-foreground" />
+                                              <span className="text-foreground truncate">{dept.name}</span>
+                                              <span className="px-2 py-0.5 rounded-full bg-background text-[10px] font-medium text-muted-foreground whitespace-nowrap">{dept.costGroups.length} Grup</span>
+                                            </div>
+                                          </td>
+                                          {months.map((m, idx) => (
+                                            <td key={m} className="text-right min-w-[80px] p-2">
+                                              <span className="font-mono font-semibold text-foreground">{formatMoney(deptMonthlyTotals[idx])}</span>
+                                            </td>
+                                          ))}
+                                          <td className="text-right w-[150px] p-2 bg-primary/10">
+                                            <div className="flex items-center justify-end gap-2 pr-6">
                                           <span className="font-mono font-bold text-foreground">€ {formatMoney(deptTotal)}</span>
                                           {currentUser?.role === 'admin' && (
                                             <DropdownMenu>
@@ -993,7 +990,9 @@ export default function DepartmentBudget() {
                                       </td>
                                     </tr>
                                   </tbody>
-                                </table>
+                                    </table>
+                                  </div>
+                                </div>
                               </div>
                             </AccordionTrigger>
                             <AccordionContent className="pb-4 pt-2">
@@ -1105,30 +1104,27 @@ export default function DepartmentBudget() {
                       return (
                         <AccordionItem key={dept.id} value={dept.id} className="border-b border-border/50">
                           <AccordionTrigger className="hover:no-underline py-0 [&>svg]:hidden">
-                            <div className="w-full overflow-x-auto pl-4 ml-2">
-                              <table className="w-full text-xs" style={{ tableLayout: 'fixed' }}>
-                                <colgroup>
-                                  <col style={{ width: '200px' }} />
-                                  {months.map((_, idx) => <col key={idx} style={{ width: '80px' }} />)}
-                                  <col style={{ width: '150px' }} />
-                                </colgroup>
-                                <tbody>
-                                  <tr className="bg-muted/50">
-                                    <td className="text-left p-2 font-semibold sticky left-0 bg-muted/50 z-10">
-                                      <div className="flex items-center gap-2">
-                                        <ChevronDown className="h-4 w-4 text-muted-foreground shrink-0 transition-transform duration-200 group-data-[state=open]:rotate-180" />
-                                        <Building2 className="h-4 w-4 text-muted-foreground" />
-                                        <span className="text-foreground truncate">{dept.name}</span>
-                                        <span className="px-2 py-0.5 rounded-full bg-background text-[10px] font-medium text-muted-foreground whitespace-nowrap">{dept.costGroups.length} Grup</span>
-                                      </div>
-                                    </td>
-                                    {months.map((m, idx) => (
-                                      <td key={m} className="text-right p-2">
-                                        <span className="font-mono font-semibold text-foreground">{formatMoney(deptMonthlyTotals[idx])}</span>
-                                      </td>
-                                    ))}
-                                    <td className="text-right p-2 bg-primary/10">
-                                      <div className="flex items-center justify-end gap-2 pr-6">
+                            <div className="w-full overflow-x-auto">
+                              <div className="pl-4 ml-2">
+                                <div className="rounded-t-md border border-b-0 border-border overflow-hidden bg-muted/30">
+                                  <table className="w-full text-xs">
+                                    <tbody>
+                                      <tr>
+                                        <td className="w-[200px] text-left p-2 font-semibold sticky left-0 bg-muted/30 z-10">
+                                          <div className="flex items-center gap-2">
+                                            <ChevronDown className="h-4 w-4 text-muted-foreground shrink-0 transition-transform duration-200 group-data-[state=open]:rotate-180" />
+                                            <Building2 className="h-4 w-4 text-muted-foreground" />
+                                            <span className="text-foreground truncate">{dept.name}</span>
+                                            <span className="px-2 py-0.5 rounded-full bg-background text-[10px] font-medium text-muted-foreground whitespace-nowrap">{dept.costGroups.length} Grup</span>
+                                          </div>
+                                        </td>
+                                        {months.map((m, idx) => (
+                                          <td key={m} className="text-right min-w-[80px] p-2">
+                                            <span className="font-mono font-semibold text-foreground">{formatMoney(deptMonthlyTotals[idx])}</span>
+                                          </td>
+                                        ))}
+                                        <td className="text-right w-[150px] p-2 bg-primary/10">
+                                          <div className="flex items-center justify-end gap-2 pr-6">
                                         <span className="font-mono font-bold text-foreground">€ {formatMoney(deptTotal)}</span>
                                         {currentUser?.role === 'admin' && (
                                           <DropdownMenu>
@@ -1172,7 +1168,9 @@ export default function DepartmentBudget() {
                                     </td>
                                   </tr>
                                 </tbody>
-                              </table>
+                                  </table>
+                                </div>
+                              </div>
                             </div>
                           </AccordionTrigger>
                           <AccordionContent className="pb-4 pt-2">
