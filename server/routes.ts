@@ -1267,13 +1267,13 @@ export async function registerRoutes(server: Server, app: Express): Promise<Serv
       // Get all transactions for the year
       const allTransactions = await storage.getAllTransactions(10000);
       
-      // Filter by year and user permissions
+      // Filter by year and only include transactions linked to approved budget items
       const yearTransactions = allTransactions.filter(t => {
         const txDate = new Date(t.date);
         const yearMatch = txDate.getFullYear() === year;
-        // For non-admin users, filter by allowed budget items
-        if (allowedBudgetItemIds.size > 0) {
-          return yearMatch && t.budgetItemId && allowedBudgetItemIds.has(t.budgetItemId);
+        // Always filter by approved budget items - only show transactions linked to approved items
+        if (!t.budgetItemId || !allowedBudgetItemIds.has(t.budgetItemId)) {
+          return false;
         }
         return yearMatch;
       });
@@ -1310,10 +1310,10 @@ export async function registerRoutes(server: Server, app: Express): Promise<Serv
         pendingCount = allPendingProcesses.filter(p => companyProjectIds.has(p.projectId)).length;
       }
       
-      // Get recent transactions for activity feed (filtered by permissions)
-      const filteredTransactions = allowedBudgetItemIds.size > 0
-        ? allTransactions.filter(t => t.budgetItemId && allowedBudgetItemIds.has(t.budgetItemId))
-        : allTransactions;
+      // Get recent transactions for activity feed (only approved budget items)
+      const filteredTransactions = allTransactions.filter(t => 
+        t.budgetItemId && allowedBudgetItemIds.has(t.budgetItemId)
+      );
       const recentTransactions = filteredTransactions.slice(0, 5);
       
       return res.json({
