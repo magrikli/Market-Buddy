@@ -687,6 +687,16 @@ export function useDeleteProjectType() {
   });
 }
 
+export function useReorderProjectTypes() {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: ({ id1, id2 }: { id1: string; id2: string }) => api.reorderProjectTypes(id1, id2),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['projectTypes'] });
+    },
+  });
+}
+
 // === PROJECT TYPE PHASES ===
 
 export function useProjectTypePhases(projectTypeId: string | null) {

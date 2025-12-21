@@ -622,6 +622,13 @@ export async function deleteProjectType(id: string): Promise<void> {
   });
 }
 
+export async function reorderProjectTypes(id1: string, id2: string): Promise<{ success: boolean }> {
+  return fetchAPI('/project-types/reorder', {
+    method: 'POST',
+    body: JSON.stringify({ id1, id2 }),
+  });
+}
+
 // === PROJECT TYPE PHASES ===
 
 export async function getProjectTypePhases(projectTypeId: string): Promise<ProjectTypePhase[]> {

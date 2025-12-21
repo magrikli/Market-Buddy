@@ -1939,6 +1939,23 @@ export async function registerRoutes(server: Server, app: Express): Promise<Serv
     }
   });
 
+  app.post("/api/project-types/reorder", async (req: Request, res: Response) => {
+    try {
+      if (req.session.role !== 'admin') {
+        return res.status(403).json({ message: "Admin access required" });
+      }
+      const { id1, id2 } = req.body;
+      if (!id1 || !id2) {
+        return res.status(400).json({ message: "Both id1 and id2 are required" });
+      }
+      await storage.reorderProjectTypes(id1, id2);
+      return res.json({ success: true });
+    } catch (error) {
+      console.error('Reorder project types error:', error);
+      return res.status(500).json({ message: "Server error" });
+    }
+  });
+
   // ===== PROJECT TYPE PHASES =====
   
   app.get("/api/project-types/:typeId/phases", async (req: Request, res: Response) => {

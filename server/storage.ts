@@ -2,7 +2,7 @@ import { db } from './db';
 import { 
   users, departments, costGroups, projects, projectPhases, budgetItems, budgetRevisions, 
   transactions, userDepartmentAssignments, userProjectAssignments, departmentGroups,
-  companies, userCompanyAssignments, projectProcesses, processRevisions, defaultProjectPhases,
+  companies, userCompanyAssignments, projectProcesses, processRevisions,
   projectTypes, projectTypePhases,
   type User, type InsertUser, type Department, type InsertDepartment,
   type CostGroup, type InsertCostGroup, type Project, type InsertProject,
@@ -121,6 +121,7 @@ export interface IStorage {
   createProjectType(type: InsertProjectType): Promise<ProjectType>;
   updateProjectType(id: string, updates: Partial<ProjectType>): Promise<ProjectType | undefined>;
   deleteProjectType(id: string): Promise<void>;
+  reorderProjectTypes(id1: string, id2: string): Promise<void>;
   
   // Project Type Phases
   getPhasesByProjectType(projectTypeId: string): Promise<ProjectTypePhase[]>;
@@ -771,6 +772,23 @@ export class DatabaseStorage implements IStorage {
 
   async deleteProjectType(id: string): Promise<void> {
     await db.delete(projectTypes).where(eq(projectTypes.id, id));
+  }
+
+  async reorderProjectTypes(id1: string, id2: string): Promise<void> {
+    await db.transaction(async (tx) => {
+      const type1 = await tx.select().from(projectTypes).where(eq(projectTypes.id, id1)).limit(1);
+      const type2 = await tx.select().from(projectTypes).where(eq(projectTypes.id, id2)).limit(1);
+      
+      if (!type1[0] || !type2[0]) {
+        throw new Error('One or both types not found');
+      }
+      
+      const order1 = type1[0].sortOrder;
+      const order2 = type2[0].sortOrder;
+      
+      await tx.update(projectTypes).set({ sortOrder: order2 }).where(eq(projectTypes.id, id1));
+      await tx.update(projectTypes).set({ sortOrder: order1 }).where(eq(projectTypes.id, id2));
+    });
   }
 
   // === PROJECT TYPE PHASES ===

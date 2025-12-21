@@ -7,7 +7,7 @@ import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, D
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Checkbox } from "@/components/ui/checkbox";
 import { useStore } from "@/lib/store";
-import { useDepartments, useProjects, useUsers, useCreateUser, useUpdateUser, useDeleteUser, useUpdateUserAssignments, useCompanies, useCreateCompany, useUpdateCompany, useDeleteCompany, useUpdateUserCompanyAssignments, usePendingProcesses, useApproveProcess, useRejectProcess, useBulkApproveProcesses, usePendingBudgetItems, useApproveBudgetItem, useRejectBudgetItem, useBulkApproveBudgetItems, useProjectTypes, useCreateProjectType, useUpdateProjectType, useDeleteProjectType, useProjectTypePhases, useCreateProjectTypePhase, useDeleteProjectTypePhase, useReorderProjectTypePhases } from "@/lib/queries";
+import { useDepartments, useProjects, useUsers, useCreateUser, useUpdateUser, useDeleteUser, useUpdateUserAssignments, useCompanies, useCreateCompany, useUpdateCompany, useDeleteCompany, useUpdateUserCompanyAssignments, usePendingProcesses, useApproveProcess, useRejectProcess, useBulkApproveProcesses, usePendingBudgetItems, useApproveBudgetItem, useRejectBudgetItem, useBulkApproveBudgetItems, useProjectTypes, useCreateProjectType, useUpdateProjectType, useDeleteProjectType, useReorderProjectTypes, useProjectTypePhases, useCreateProjectTypePhase, useDeleteProjectTypePhase, useReorderProjectTypePhases } from "@/lib/queries";
 import { Search, UserPlus, CheckCheck, Pencil, Trash2, Loader2, Users, Building2, Plus, X, Settings, ArrowUp, ArrowDown } from "lucide-react";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { toast } from "sonner";
@@ -41,6 +41,7 @@ export default function Admin() {
   const createProjectTypeMutation = useCreateProjectType();
   const updateProjectTypeMutation = useUpdateProjectType();
   const deleteProjectTypeMutation = useDeleteProjectType();
+  const reorderProjectTypesMutation = useReorderProjectTypes();
   
   // Project type phases
   const [selectedProjectTypeId, setSelectedProjectTypeId] = useState<string | null>(null);
@@ -342,6 +343,23 @@ export default function Admin() {
       if (selectedProjectTypeId === id) {
         setSelectedProjectTypeId(null);
       }
+    } catch (error: any) {
+      toast.error("Hata", { description: error.message });
+    }
+  };
+
+  const handleMoveProjectType = async (id: string, direction: 'up' | 'down') => {
+    const currentIndex = projectTypes.findIndex(t => t.id === id);
+    if (currentIndex === -1) return;
+    
+    const newIndex = direction === 'up' ? currentIndex - 1 : currentIndex + 1;
+    if (newIndex < 0 || newIndex >= projectTypes.length) return;
+    
+    const currentType = projectTypes[currentIndex];
+    const targetType = projectTypes[newIndex];
+    
+    try {
+      await reorderProjectTypesMutation.mutateAsync({ id1: currentType.id, id2: targetType.id });
     } catch (error: any) {
       toast.error("Hata", { description: error.message });
     }
@@ -972,7 +990,7 @@ export default function Admin() {
                           {createProjectTypeMutation.isPending ? <Loader2 className="h-4 w-4 animate-spin" /> : <Plus className="h-4 w-4" />}
                         </Button>
                       </div>
-                      {projectTypes.map((type) => (
+                      {projectTypes.map((type, index) => (
                         <div 
                           key={type.id} 
                           className={`flex items-center justify-between p-3 border rounded-lg cursor-pointer transition-colors ${selectedProjectTypeId === type.id ? 'bg-primary/10 border-primary' : 'hover:bg-muted/30'}`}
@@ -980,19 +998,44 @@ export default function Admin() {
                           data-testid={`row-project-type-${type.id}`}
                         >
                           <div className="flex items-center gap-2">
+                            <span className="text-muted-foreground text-xs font-mono w-5">{index + 1}.</span>
                             <span className="font-medium">{type.name}</span>
                             {type.code && <span className="text-xs text-muted-foreground">({type.code})</span>}
                           </div>
-                          <Button 
-                            variant="ghost" 
-                            size="icon" 
-                            className="h-8 w-8 text-destructive hover:text-destructive" 
-                            onClick={(e) => { e.stopPropagation(); handleDeleteProjectType(type.id, type.name); }}
-                            title="Sil"
-                            data-testid={`button-delete-type-${type.id}`}
-                          >
-                            <Trash2 className="h-4 w-4" />
-                          </Button>
+                          <div className="flex gap-0.5">
+                            <Button 
+                              variant="ghost" 
+                              size="icon" 
+                              className="h-7 w-7" 
+                              onClick={(e) => { e.stopPropagation(); handleMoveProjectType(type.id, 'up'); }}
+                              disabled={index === 0}
+                              title="Yukarı taşı"
+                              data-testid={`button-move-up-type-${type.id}`}
+                            >
+                              <ArrowUp className="h-3 w-3" />
+                            </Button>
+                            <Button 
+                              variant="ghost" 
+                              size="icon" 
+                              className="h-7 w-7" 
+                              onClick={(e) => { e.stopPropagation(); handleMoveProjectType(type.id, 'down'); }}
+                              disabled={index === projectTypes.length - 1}
+                              title="Aşağı taşı"
+                              data-testid={`button-move-down-type-${type.id}`}
+                            >
+                              <ArrowDown className="h-3 w-3" />
+                            </Button>
+                            <Button 
+                              variant="ghost" 
+                              size="icon" 
+                              className="h-7 w-7 text-destructive hover:text-destructive" 
+                              onClick={(e) => { e.stopPropagation(); handleDeleteProjectType(type.id, type.name); }}
+                              title="Sil"
+                              data-testid={`button-delete-type-${type.id}`}
+                            >
+                              <Trash2 className="h-3 w-3" />
+                            </Button>
+                          </div>
                         </div>
                       ))}
                     </div>
