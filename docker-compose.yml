@@ -2,7 +2,11 @@ version: '3.8'
 
 services:
   finflow:
-    build: .
+    build:
+      context: .
+      args:
+        - GIT_COMMIT_HASH=${GIT_COMMIT_HASH:-dev}
+        - BUILD_TIME=${BUILD_TIME:-}
     container_name: finflow
     ports:
       - "7013:5000"

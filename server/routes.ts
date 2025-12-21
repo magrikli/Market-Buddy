@@ -10,13 +10,35 @@ import {
 import { z } from "zod";
 import bcrypt from "bcrypt";
 import { execSync } from "child_process";
-import { readFileSync } from "fs";
+import { readFileSync, existsSync } from "fs";
 
-function getGitCommitHash(): string {
+function getVersionInfo(): { commitHash: string; buildTime: string } {
+  // First try to read from version.json (Docker production builds)
+  if (existsSync("version.json")) {
+    try {
+      const versionFile = JSON.parse(readFileSync("version.json", "utf-8"));
+      if (versionFile.commitHash && versionFile.commitHash !== "dev") {
+        return {
+          commitHash: versionFile.commitHash,
+          buildTime: versionFile.buildTime || new Date().toISOString(),
+        };
+      }
+    } catch {
+      // Fall through to git method
+    }
+  }
+  
+  // Fall back to git command (development)
   try {
-    return execSync("git rev-parse --short HEAD").toString().trim();
+    return {
+      commitHash: execSync("git rev-parse --short HEAD").toString().trim(),
+      buildTime: new Date().toISOString(),
+    };
   } catch {
-    return "dev";
+    return {
+      commitHash: "dev",
+      buildTime: new Date().toISOString(),
+    };
   }
 }
 
@@ -29,10 +51,11 @@ function getPackageVersion(): string {
   }
 }
 
+const versionInfo = getVersionInfo();
 const BUILD_INFO = {
   version: getPackageVersion(),
-  commitHash: getGitCommitHash(),
-  buildTime: new Date().toISOString(),
+  commitHash: versionInfo.commitHash,
+  buildTime: versionInfo.buildTime,
 };
 
 export async function registerRoutes(server: Server, app: Express): Promise<Server> {
