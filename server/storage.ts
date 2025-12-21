@@ -309,7 +309,7 @@ export class DatabaseStorage implements IStorage {
 
   // === PROJECTS ===
   async getAllProjects(): Promise<Project[]> {
-    return await db.select().from(projects);
+    return await db.select().from(projects).orderBy(asc(projects.sortOrder));
   }
 
   async getProject(id: string): Promise<Project | undefined> {
@@ -318,7 +318,14 @@ export class DatabaseStorage implements IStorage {
   }
 
   async createProject(project: InsertProject): Promise<Project> {
-    const result = await db.insert(projects).values(project).returning();
+    // Get max sortOrder and add 1
+    const maxResult = await db.select({ maxOrder: max(projects.sortOrder) }).from(projects);
+    const nextSortOrder = (maxResult[0]?.maxOrder ?? -1) + 1;
+    
+    const result = await db.insert(projects).values({
+      ...project,
+      sortOrder: project.sortOrder ?? nextSortOrder
+    }).returning();
     return result[0];
   }
 
@@ -340,11 +347,22 @@ export class DatabaseStorage implements IStorage {
 
   // === PROJECT PHASES ===
   async getPhasesByProject(projectId: string): Promise<ProjectPhase[]> {
-    return await db.select().from(projectPhases).where(eq(projectPhases.projectId, projectId));
+    return await db.select().from(projectPhases)
+      .where(eq(projectPhases.projectId, projectId))
+      .orderBy(asc(projectPhases.sortOrder));
   }
 
   async createProjectPhase(phase: InsertProjectPhase): Promise<ProjectPhase> {
-    const result = await db.insert(projectPhases).values(phase).returning();
+    // Get max sortOrder for this project and add 1
+    const maxResult = await db.select({ maxOrder: max(projectPhases.sortOrder) })
+      .from(projectPhases)
+      .where(eq(projectPhases.projectId, phase.projectId));
+    const nextSortOrder = (maxResult[0]?.maxOrder ?? -1) + 1;
+    
+    const result = await db.insert(projectPhases).values({
+      ...phase,
+      sortOrder: phase.sortOrder ?? nextSortOrder
+    }).returning();
     return result[0];
   }
 

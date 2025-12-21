@@ -468,9 +468,19 @@ export default function ProjectBudget() {
 
   const years = getAvailableYears();
 
-  const visibleProjects = currentUser?.role === 'admin' 
+  const visibleProjects = (currentUser?.role === 'admin' 
     ? projects 
-    : projects.filter(p => currentUser?.assignedProjectIds.includes(p.id));
+    : projects.filter(p => currentUser?.assignedProjectIds.includes(p.id)))
+    .sort((a, b) => (a.sortOrder ?? 0) - (b.sortOrder ?? 0))
+    .map(p => ({
+      ...p,
+      phases: [...(p.phases || [])].sort((a, b) => (a.sortOrder ?? 0) - (b.sortOrder ?? 0))
+    }));
+  
+  // Helper to display project name with code
+  const getProjectDisplayName = (project: { code?: string | null; name: string }) => {
+    return project.code ? `${project.code}-${project.name}` : project.name;
+  };
 
   const totalCosts = visibleProjects.reduce((acc, proj) => {
     return acc + (proj.phases || []).reduce((pAcc: number, phase: any) => {
@@ -595,7 +605,7 @@ export default function ProjectBudget() {
                       <div className="flex items-center justify-between w-full pr-4">
                         <div className="flex items-center gap-3">
                           <FolderGit2 className="h-4 w-4 text-primary" />
-                          <span className="font-semibold text-foreground">{project.name}</span>
+                          <span className="font-semibold text-foreground">{getProjectDisplayName(project)}</span>
                           <span className="px-2 py-0.5 rounded-full bg-muted text-xs font-medium text-muted-foreground">
                             {(project.phases || []).length} Faz
                           </span>

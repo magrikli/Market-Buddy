@@ -558,7 +558,9 @@ export async function registerRoutes(server: Server, app: Express): Promise<Serv
 
           return {
             id: proj.id,
+            code: proj.code,
             name: proj.name,
+            sortOrder: proj.sortOrder,
             phases: fullPhases,
           };
         })
@@ -587,8 +589,12 @@ export async function registerRoutes(server: Server, app: Express): Promise<Serv
   app.put("/api/projects/:id", async (req: Request, res: Response) => {
     try {
       const { id } = req.params;
-      const { name } = req.body;
-      const updated = await storage.updateProject(id, { name });
+      const { name, code, sortOrder } = req.body;
+      const updates: { name?: string; code?: string; sortOrder?: number } = {};
+      if (name !== undefined) updates.name = name;
+      if (code !== undefined) updates.code = code;
+      if (sortOrder !== undefined) updates.sortOrder = sortOrder;
+      const updated = await storage.updateProject(id, updates);
       if (!updated) {
         return res.status(404).json({ message: "Project not found" });
       }
@@ -624,8 +630,11 @@ export async function registerRoutes(server: Server, app: Express): Promise<Serv
   app.put("/api/project-phases/:id", async (req: Request, res: Response) => {
     try {
       const { id } = req.params;
-      const { name } = req.body;
-      const updated = await storage.updateProjectPhase(id, { name });
+      const { name, sortOrder } = req.body;
+      const updates: { name?: string; sortOrder?: number } = {};
+      if (name !== undefined) updates.name = name;
+      if (sortOrder !== undefined) updates.sortOrder = sortOrder;
+      const updated = await storage.updateProjectPhase(id, updates);
       if (!updated) {
         return res.status(404).json({ message: "Phase not found" });
       }

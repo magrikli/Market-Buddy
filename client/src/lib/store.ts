@@ -74,12 +74,15 @@ export interface ProjectPhase {
   name: string;
   costItems: CostItem[];
   revenueItems: RevenueItem[];
+  sortOrder?: number;
 }
 
 export interface Project {
   id: string;
+  code?: string | null;
   name: string;
   phases: ProjectPhase[];
+  sortOrder?: number;
 }
 
 // --- MOCK DATA ---

@@ -72,8 +72,10 @@ export type CostGroup = typeof costGroups.$inferSelect;
 // ===== PROJECTS =====
 export const projects = pgTable("projects", {
   id: varchar("id", { length: 255 }).primaryKey().default(sql`gen_random_uuid()`),
+  code: varchar("code", { length: 50 }),
   name: text("name").notNull(),
   companyId: varchar("company_id", { length: 255 }).references(() => companies.id, { onDelete: 'cascade' }),
+  sortOrder: integer("sort_order").notNull().default(0),
   createdAt: timestamp("created_at").defaultNow().notNull(),
 });
 
@@ -86,6 +88,7 @@ export const projectPhases = pgTable("project_phases", {
   id: varchar("id", { length: 255 }).primaryKey().default(sql`gen_random_uuid()`),
   name: text("name").notNull(),
   projectId: varchar("project_id", { length: 255 }).notNull().references(() => projects.id, { onDelete: 'cascade' }),
+  sortOrder: integer("sort_order").notNull().default(0),
   createdAt: timestamp("created_at").defaultNow().notNull(),
 });
 
