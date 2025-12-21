@@ -29,6 +29,9 @@ RUN npm ci --omit=dev
 # Copy built files from builder stage
 COPY --from=builder /app/dist ./dist
 
+# Copy migrations folder for database migrations
+COPY --from=builder /app/migrations ./migrations
+
 # Set environment variables
 ENV NODE_ENV=production
 ENV PORT=5000
