@@ -917,28 +917,6 @@ export default function Admin() {
                 </CardDescription>
               </CardHeader>
               <CardContent className="space-y-6">
-                {/* Add new project type */}
-                <div className="flex gap-2">
-                  <Input
-                    placeholder="Tip adı..."
-                    value={newProjectTypeName}
-                    onChange={(e) => setNewProjectTypeName(e.target.value)}
-                    className="flex-1"
-                    data-testid="input-new-project-type-name"
-                  />
-                  <Input
-                    placeholder="Kod (opsiyonel)"
-                    value={newProjectTypeCode}
-                    onChange={(e) => setNewProjectTypeCode(e.target.value)}
-                    className="w-32"
-                    data-testid="input-new-project-type-code"
-                  />
-                  <Button onClick={handleAddProjectType} disabled={createProjectTypeMutation.isPending} data-testid="button-add-project-type">
-                    {createProjectTypeMutation.isPending ? <Loader2 className="h-4 w-4 animate-spin" /> : <Plus className="h-4 w-4" />}
-                    <span className="ml-1">Ekle</span>
-                  </Button>
-                </div>
-
                 {projectTypesLoading ? (
                   <div className="flex justify-center p-8">
                     <Loader2 className="h-8 w-8 animate-spin text-muted-foreground" />
@@ -947,13 +925,53 @@ export default function Admin() {
                   <div className="text-center p-8 bg-muted/10 rounded-lg border border-dashed">
                     <Settings className="mx-auto h-12 w-12 text-muted-foreground mb-3" />
                     <p className="text-muted-foreground">Henüz proje tipi tanımlı değil.</p>
-                    <p className="text-sm text-muted-foreground mt-1">Yukarıdan yeni tipler ekleyebilirsiniz.</p>
+                    <p className="text-sm text-muted-foreground mt-1">Aşağıdan yeni tipler ekleyebilirsiniz.</p>
+                    <div className="flex gap-2 mt-4 justify-center">
+                      <Input
+                        placeholder="Tip adı..."
+                        value={newProjectTypeName}
+                        onChange={(e) => setNewProjectTypeName(e.target.value)}
+                        className="max-w-xs"
+                        data-testid="input-new-project-type-name"
+                      />
+                      <Input
+                        placeholder="Kod"
+                        value={newProjectTypeCode}
+                        onChange={(e) => setNewProjectTypeCode(e.target.value)}
+                        className="w-24"
+                        data-testid="input-new-project-type-code"
+                      />
+                      <Button onClick={handleAddProjectType} disabled={createProjectTypeMutation.isPending} data-testid="button-add-project-type">
+                        {createProjectTypeMutation.isPending ? <Loader2 className="h-4 w-4 animate-spin" /> : <Plus className="h-4 w-4" />}
+                        <span className="ml-1">Ekle</span>
+                      </Button>
+                    </div>
                   </div>
                 ) : (
                   <div className="grid md:grid-cols-2 gap-4">
                     {/* Project types list */}
                     <div className="space-y-2">
                       <h4 className="font-medium text-sm text-muted-foreground mb-2">Proje Tipleri</h4>
+                      {/* Add new project type */}
+                      <div className="flex gap-2 mb-3">
+                        <Input
+                          placeholder="Tip adı..."
+                          value={newProjectTypeName}
+                          onChange={(e) => setNewProjectTypeName(e.target.value)}
+                          className="flex-1"
+                          data-testid="input-new-project-type-name"
+                        />
+                        <Input
+                          placeholder="Kod"
+                          value={newProjectTypeCode}
+                          onChange={(e) => setNewProjectTypeCode(e.target.value)}
+                          className="w-20"
+                          data-testid="input-new-project-type-code"
+                        />
+                        <Button size="sm" onClick={handleAddProjectType} disabled={createProjectTypeMutation.isPending} data-testid="button-add-project-type">
+                          {createProjectTypeMutation.isPending ? <Loader2 className="h-4 w-4 animate-spin" /> : <Plus className="h-4 w-4" />}
+                        </Button>
+                      </div>
                       {projectTypes.map((type) => (
                         <div 
                           key={type.id} 
