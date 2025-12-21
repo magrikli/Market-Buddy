@@ -8,7 +8,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Checkbox } from "@/components/ui/checkbox";
 import { useStore } from "@/lib/store";
 import { useDepartments, useProjects, useUsers, useCreateUser, useUpdateUser, useDeleteUser, useUpdateUserAssignments, useCompanies, useCreateCompany, useUpdateCompany, useDeleteCompany, useUpdateUserCompanyAssignments, usePendingProcesses, useApproveProcess, useRejectProcess, useBulkApproveProcesses, usePendingBudgetItems, useApproveBudgetItem, useRejectBudgetItem, useBulkApproveBudgetItems } from "@/lib/queries";
-import { Search, UserPlus, Settings, CheckCheck, Pencil, Trash2, Loader2, Users, Building2, Plus, X } from "lucide-react";
+import { Search, UserPlus, CheckCheck, Pencil, Trash2, Loader2, Users, Building2, Plus, X } from "lucide-react";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { toast } from "sonner";
 import { useState } from "react";
@@ -470,11 +470,10 @@ export default function Admin() {
       </Dialog>
 
       <Tabs defaultValue="approvals" className="w-full">
-        <TabsList className="grid w-full max-w-2xl grid-cols-4 mb-6">
+        <TabsList className="grid w-full max-w-xl grid-cols-3 mb-6">
           <TabsTrigger value="approvals" data-testid="tab-approvals">Onay Bekleyenler</TabsTrigger>
           <TabsTrigger value="users" data-testid="tab-users">Kullanıcılar</TabsTrigger>
           <TabsTrigger value="companies" data-testid="tab-companies">Şirketler</TabsTrigger>
-          <TabsTrigger value="settings" data-testid="tab-settings">Ayarlar</TabsTrigger>
         </TabsList>
 
         <TabsContent value="approvals">
@@ -801,22 +800,6 @@ export default function Admin() {
           </Card>
         </TabsContent>
 
-        <TabsContent value="settings">
-          <Card>
-            <CardHeader>
-              <CardTitle>Genel Ayarlar</CardTitle>
-              <CardDescription>Para birimi ayarları</CardDescription>
-            </CardHeader>
-            <CardContent className="space-y-4">
-              <div className="grid grid-cols-2 gap-4">
-                <div className="space-y-2">
-                  <Label>Para Birimi</Label>
-                  <Input value="EUR (€)" readOnly />
-                </div>
-              </div>
-            </CardContent>
-          </Card>
-        </TabsContent>
       </Tabs>
 
       <Dialog open={isNewCompanyOpen} onOpenChange={setIsNewCompanyOpen}>
