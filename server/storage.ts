@@ -124,7 +124,7 @@ export interface IStorage {
   reorderProjectTypes(id1: string, id2: string): Promise<void>;
   
   // Project Type Phases
-  getPhasesByProjectType(projectTypeId: string): Promise<ProjectTypePhase[]>;
+  getPhasesByProjectType(projectTypeId: string, phaseType?: string): Promise<ProjectTypePhase[]>;
   createProjectTypePhase(phase: InsertProjectTypePhase): Promise<ProjectTypePhase>;
   updateProjectTypePhase(id: string, updates: Partial<ProjectTypePhase>): Promise<ProjectTypePhase | undefined>;
   deleteProjectTypePhase(id: string): Promise<void>;
@@ -792,20 +792,33 @@ export class DatabaseStorage implements IStorage {
   }
 
   // === PROJECT TYPE PHASES ===
-  async getPhasesByProjectType(projectTypeId: string): Promise<ProjectTypePhase[]> {
+  async getPhasesByProjectType(projectTypeId: string, phaseType?: string): Promise<ProjectTypePhase[]> {
+    if (phaseType) {
+      return await db.select().from(projectTypePhases)
+        .where(and(
+          eq(projectTypePhases.projectTypeId, projectTypeId),
+          eq(projectTypePhases.type, phaseType)
+        ))
+        .orderBy(asc(projectTypePhases.sortOrder));
+    }
     return await db.select().from(projectTypePhases)
       .where(eq(projectTypePhases.projectTypeId, projectTypeId))
-      .orderBy(asc(projectTypePhases.sortOrder));
+      .orderBy(asc(projectTypePhases.type), asc(projectTypePhases.sortOrder));
   }
 
   async createProjectTypePhase(phase: InsertProjectTypePhase): Promise<ProjectTypePhase> {
+    const phaseType = phase.type || 'cost';
     const maxResult = await db.select({ maxOrder: max(projectTypePhases.sortOrder) })
       .from(projectTypePhases)
-      .where(eq(projectTypePhases.projectTypeId, phase.projectTypeId));
+      .where(and(
+        eq(projectTypePhases.projectTypeId, phase.projectTypeId),
+        eq(projectTypePhases.type, phaseType)
+      ));
     const nextSortOrder = (maxResult[0]?.maxOrder ?? -1) + 1;
     
     const result = await db.insert(projectTypePhases).values({
       ...phase,
+      type: phaseType,
       sortOrder: phase.sortOrder ?? nextSortOrder
     }).returning();
     return result[0];

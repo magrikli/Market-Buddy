@@ -1961,7 +1961,8 @@ export async function registerRoutes(server: Server, app: Express): Promise<Serv
   app.get("/api/project-types/:typeId/phases", async (req: Request, res: Response) => {
     try {
       const { typeId } = req.params;
-      const phases = await storage.getPhasesByProjectType(typeId);
+      const phaseType = req.query.type as string | undefined;
+      const phases = await storage.getPhasesByProjectType(typeId, phaseType);
       return res.json(phases);
     } catch (error) {
       console.error('Get project type phases error:', error);
@@ -1975,11 +1976,12 @@ export async function registerRoutes(server: Server, app: Express): Promise<Serv
         return res.status(403).json({ message: "Admin access required" });
       }
       const { typeId } = req.params;
-      const { name, sortOrder } = req.body;
+      const { name, sortOrder, type } = req.body;
       if (!name) {
         return res.status(400).json({ message: "Name is required" });
       }
-      const phase = await storage.createProjectTypePhase({ projectTypeId: typeId, name, sortOrder });
+      const phaseType = type === 'revenue' ? 'revenue' : 'cost';
+      const phase = await storage.createProjectTypePhase({ projectTypeId: typeId, name, sortOrder, type: phaseType });
       return res.status(201).json(phase);
     } catch (error) {
       console.error('Create project type phase error:', error);
