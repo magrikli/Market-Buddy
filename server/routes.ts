@@ -1235,7 +1235,9 @@ export async function registerRoutes(server: Server, app: Express): Promise<Serv
         const groups = await storage.getCostGroupsByDepartment(dept.id);
         for (const group of groups) {
           const items = await storage.getBudgetItemsByCostGroup(group.id, year);
-          items.forEach((item: BudgetItem) => allowedBudgetItemIds.add(item.id));
+          // Only include approved budget items
+          items.filter((item: BudgetItem) => item.status === 'approved')
+            .forEach((item: BudgetItem) => allowedBudgetItemIds.add(item.id));
         }
       }
       
@@ -1255,10 +1257,10 @@ export async function registerRoutes(server: Server, app: Express): Promise<Serv
       for (const proj of filteredProjects) {
         const phases = await storage.getPhasesByProject(proj.id);
         for (const phase of phases) {
-          const costItems = await storage.getBudgetItemsByProjectPhase(phase.id, year);
-          const revenueItems = await storage.getBudgetItemsByProjectPhase(phase.id, year);
-          costItems.forEach((item: BudgetItem) => allowedBudgetItemIds.add(item.id));
-          revenueItems.forEach((item: BudgetItem) => allowedBudgetItemIds.add(item.id));
+          const items = await storage.getBudgetItemsByProjectPhase(phase.id, year);
+          // Only include approved budget items
+          items.filter((item: BudgetItem) => item.status === 'approved')
+            .forEach((item: BudgetItem) => allowedBudgetItemIds.add(item.id));
         }
       }
       
