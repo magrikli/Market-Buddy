@@ -1856,19 +1856,14 @@ export async function registerRoutes(server: Server, app: Express): Promise<Serv
       const { id } = req.params;
       const { companyIds } = req.body;
       
-      console.log('company-assignments:', { userId: id, companyIds, body: req.body });
-      
       if (companyIds !== undefined) {
         await storage.setUserCompanies(id, companyIds);
       }
       
       const assignedCompanyIds = await storage.getUserCompanies(id);
       
-      console.log('company-assignments result:', { assignedCompanyIds });
-      
       return res.json({ assignedCompanyIds });
     } catch (error) {
-      console.error('company-assignments error:', error);
       return res.status(500).json({ message: "Server error" });
     }
   });

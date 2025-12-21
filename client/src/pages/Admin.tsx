@@ -57,7 +57,7 @@ export default function Admin() {
   const [isEditUserOpen, setIsEditUserOpen] = useState(false);
   const [isAssignOpen, setIsAssignOpen] = useState(false);
   const [editingUser, setEditingUser] = useState<{ id: string; name: string; username: string; role: string } | null>(null);
-  const [assigningUser, setAssigningUser] = useState<{ id: string; name: string; assignedDepartmentIds: string[]; assignedProjectIds: string[] } | null>(null);
+  const [assigningUser, setAssigningUser] = useState<{ id: string; name: string; role: string; assignedDepartmentIds: string[]; assignedProjectIds: string[] } | null>(null);
   
   const [newUsername, setNewUsername] = useState("");
   const [newPassword, setNewPassword] = useState("");
@@ -191,6 +191,14 @@ export default function Admin() {
 
   const handleSaveAssignments = async () => {
     if (!assigningUser) return;
+    
+    // Admin users have full access, no assignments needed
+    if (assigningUser.role === 'admin') {
+      setIsAssignOpen(false);
+      setAssigningUser(null);
+      return;
+    }
+    
     try {
       await updateAssignmentsMutation.mutateAsync({
         id: assigningUser.id,
@@ -522,28 +530,37 @@ export default function Admin() {
             </DialogDescription>
           </DialogHeader>
           <div className="space-y-6 py-4 max-h-[60vh] overflow-y-auto">
-            <div className="space-y-3">
-              <Label className="text-sm font-semibold">Şirketler</Label>
-              {companies.length === 0 ? (
-                <p className="text-sm text-muted-foreground">Henüz şirket bulunmuyor.</p>
-              ) : (
-                <div className="space-y-2 border rounded-lg p-3">
-                  {companies.map((company) => (
-                    <div key={company.id} className="flex items-center gap-2">
-                      <Checkbox
-                        id={`company-${company.id}`}
-                        checked={selectedCompanies.includes(company.id)}
-                        onCheckedChange={() => toggleCompany(company.id)}
-                        data-testid={`checkbox-company-${company.id}`}
-                      />
-                      <label htmlFor={`company-${company.id}`} className="text-sm cursor-pointer flex-1">
-                        {company.name} <span className="text-muted-foreground">({company.code})</span>
-                      </label>
-                    </div>
-                  ))}
-                </div>
-              )}
-            </div>
+            {assigningUser?.role === 'admin' && (
+              <p className="text-sm text-muted-foreground bg-muted p-3 rounded-lg">
+                Yönetici kullanıcılar tüm şirket, departman ve projelere otomatik olarak erişebilir.
+              </p>
+            )}
+            {assigningUser?.role !== 'admin' && (
+              <div className="space-y-3">
+                <Label className="text-sm font-semibold">Şirketler</Label>
+                {companies.length === 0 ? (
+                  <p className="text-sm text-muted-foreground">Henüz şirket bulunmuyor.</p>
+                ) : (
+                  <div className="space-y-2 border rounded-lg p-3">
+                    {companies.map((company) => (
+                      <div key={company.id} className="flex items-center gap-2">
+                        <Checkbox
+                          id={`company-${company.id}`}
+                          checked={selectedCompanies.includes(company.id)}
+                          onCheckedChange={() => toggleCompany(company.id)}
+                          data-testid={`checkbox-company-${company.id}`}
+                        />
+                        <label htmlFor={`company-${company.id}`} className="text-sm cursor-pointer flex-1">
+                          {company.name} <span className="text-muted-foreground">({company.code})</span>
+                        </label>
+                      </div>
+                    ))}
+                  </div>
+                )}
+              </div>
+            )}
+            {assigningUser?.role !== 'admin' && (
+            <>
             <div className="space-y-3">
               <Label className="text-sm font-semibold">Departmanlar</Label>
               {departments.length === 0 ? (
@@ -636,6 +653,8 @@ export default function Admin() {
                 </div>
               )}
             </div>
+            </>
+            )}
           </div>
           <DialogFooter>
             <Button variant="outline" onClick={() => setIsAssignOpen(false)}>İptal</Button>
