@@ -44,6 +44,7 @@ export default function ProjectBudget() {
   
   const [isNewProjectOpen, setIsNewProjectOpen] = useState(false);
   const [isNewPhaseOpen, setIsNewPhaseOpen] = useState(false);
+  const [newPhaseType, setNewPhaseType] = useState<'cost' | 'revenue'>('cost');
   const [isNewCostItemOpen, setIsNewCostItemOpen] = useState(false);
   const [isNewRevenueItemOpen, setIsNewRevenueItemOpen] = useState(false);
   const [activeProjectForPhase, setActiveProjectForPhase] = useState<string | null>(null);
@@ -150,10 +151,11 @@ export default function ProjectBudget() {
   const handleAddPhase = async (name: string) => {
     if (!activeProjectForPhase) return;
     try {
-      await createPhaseMutation.mutateAsync({ name, projectId: activeProjectForPhase });
-      toast.success("Faz eklendi", { description: name });
+      await createPhaseMutation.mutateAsync({ name, projectId: activeProjectForPhase, type: newPhaseType });
+      toast.success(newPhaseType === 'cost' ? "Gider fazı eklendi" : "Gelir fazı eklendi", { description: name });
       setIsNewPhaseOpen(false);
       setActiveProjectForPhase(null);
+      setNewPhaseType('cost');
     } catch (error: any) {
       toast.error("Hata", { description: error.message });
     }
@@ -647,9 +649,13 @@ export default function ProjectBudget() {
                                 </Button>
                               </DropdownMenuTrigger>
                               <DropdownMenuContent align="end">
-                                <DropdownMenuItem onClick={(e) => { e.stopPropagation(); setActiveProjectForPhase(project.id); setIsNewPhaseOpen(true); }}>
+                                <DropdownMenuItem onClick={(e) => { e.stopPropagation(); setActiveProjectForPhase(project.id); setNewPhaseType('cost'); setIsNewPhaseOpen(true); }}>
                                   <PlusCircle className="mr-2 h-4 w-4" />
-                                  Yeni Faz Ekle
+                                  Yeni Gider Fazı
+                                </DropdownMenuItem>
+                                <DropdownMenuItem onClick={(e) => { e.stopPropagation(); setActiveProjectForPhase(project.id); setNewPhaseType('revenue'); setIsNewPhaseOpen(true); }}>
+                                  <PlusCircle className="mr-2 h-4 w-4" />
+                                  Yeni Gelir Fazı
                                 </DropdownMenuItem>
                                 <DropdownMenuItem onClick={(e) => { e.stopPropagation(); openEditProjectDialog({ id: project.id, name: project.name, code: project.code }); }}>
                                   <Pencil className="mr-2 h-4 w-4" />
@@ -682,14 +688,24 @@ export default function ProjectBudget() {
                             </TabsList>
                             {currentUser?.role === 'admin' && (
                               <>
-                                {(activeTabByProject[project.id] === "costs" || activeTabByProject[project.id] === "revenue" || !activeTabByProject[project.id]) && (
+                                {(activeTabByProject[project.id] === "costs" || !activeTabByProject[project.id]) && (
                                   <Button 
                                     size="sm"
                                     variant="outline"
-                                    onClick={() => { setActiveProjectForPhase(project.id); setIsNewPhaseOpen(true); }}
+                                    onClick={() => { setActiveProjectForPhase(project.id); setNewPhaseType('cost'); setIsNewPhaseOpen(true); }}
                                   >
                                     <Plus className="mr-1 h-3 w-3" />
-                                    Faz Ekle
+                                    Gider Fazı Ekle
+                                  </Button>
+                                )}
+                                {activeTabByProject[project.id] === "revenue" && (
+                                  <Button 
+                                    size="sm"
+                                    variant="outline"
+                                    onClick={() => { setActiveProjectForPhase(project.id); setNewPhaseType('revenue'); setIsNewPhaseOpen(true); }}
+                                  >
+                                    <Plus className="mr-1 h-3 w-3" />
+                                    Gelir Fazı Ekle
                                   </Button>
                                 )}
                                 {activeTabByProject[project.id] === "processes" && (
@@ -940,10 +956,10 @@ export default function ProjectBudget() {
 
       <AddEntityDialog 
         isOpen={isNewPhaseOpen} 
-        onClose={() => { setIsNewPhaseOpen(false); setActiveProjectForPhase(null); }} 
+        onClose={() => { setIsNewPhaseOpen(false); setActiveProjectForPhase(null); setNewPhaseType('cost'); }} 
         onSave={handleAddPhase}
-        title="Yeni Faz Ekle"
-        description="Seçili proje altına yeni bir faz ekleyin."
+        title={newPhaseType === 'cost' ? "Yeni Gider Fazı Ekle" : "Yeni Gelir Fazı Ekle"}
+        description={newPhaseType === 'cost' ? "Seçili proje altına yeni bir gider fazı ekleyin." : "Seçili proje altına yeni bir gelir fazı ekleyin."}
         placeholder="Örn: Faz 1: Tasarım"
       />
 

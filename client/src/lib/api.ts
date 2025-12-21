@@ -204,7 +204,7 @@ export async function deleteProject(id: string): Promise<void> {
   });
 }
 
-export async function createProjectPhase(data: { name: string; projectId: string }): Promise<any> {
+export async function createProjectPhase(data: { name: string; projectId: string; type?: 'cost' | 'revenue' }): Promise<any> {
   return fetchAPI('/project-phases', {
     method: 'POST',
     body: JSON.stringify(data),

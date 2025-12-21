@@ -235,7 +235,7 @@ export function useDeleteProject() {
 export function useCreateProjectPhase() {
   const queryClient = useQueryClient();
   return useMutation({
-    mutationFn: (data: { name: string; projectId: string }) => api.createProjectPhase(data),
+    mutationFn: (data: { name: string; projectId: string; type?: 'cost' | 'revenue' }) => api.createProjectPhase(data),
     onSuccess: () => {
       queryClient.invalidateQueries({ predicate: (query) => query.queryKey[0] === 'projects' });
     },
