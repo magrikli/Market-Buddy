@@ -268,3 +268,13 @@ export const insertProjectTypePhaseSchema = createInsertSchema(projectTypePhases
 export type InsertProjectTypePhase = z.infer<typeof insertProjectTypePhaseSchema>;
 export type ProjectTypePhase = typeof projectTypePhases.$inferSelect;
 
+// ===== SETTINGS =====
+export const settings = pgTable("settings", {
+  key: varchar("key", { length: 255 }).primaryKey(),
+  value: text("value").notNull(),
+});
+
+export const insertSettingsSchema = createInsertSchema(settings);
+export type InsertSettings = z.infer<typeof insertSettingsSchema>;
+export type Settings = typeof settings.$inferSelect;
+
