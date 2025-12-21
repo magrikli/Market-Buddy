@@ -68,30 +68,43 @@ export default function Dashboard() {
   const chartData = monthNames.map((name, index) => {
     const monthKey = String(index);
     
-    let monthBudget = 0;
+    let budgetExpense = 0;
+    let budgetRevenue = 0;
+    
+    // Department budgets (always expense/cost)
     departments.forEach(dep => {
       (dep.costGroups || []).forEach(group => {
         (group.items || []).forEach((item: any) => {
           const values = item.values as Record<string, number> | undefined;
-          monthBudget += Number(values?.[monthKey]) || 0;
+          budgetExpense += Number(values?.[monthKey]) || 0;
         });
       });
     });
+    
+    // Project budgets (separate cost and revenue)
     projects.forEach(proj => {
       (proj.phases || []).forEach(phase => {
         (phase.costItems || []).forEach((item: any) => {
           const values = item.values as Record<string, number> | undefined;
-          monthBudget += Number(values?.[monthKey]) || 0;
+          budgetExpense += Number(values?.[monthKey]) || 0;
+        });
+        (phase.revenueItems || []).forEach((item: any) => {
+          const values = item.values as Record<string, number> | undefined;
+          budgetRevenue += Number(values?.[monthKey]) || 0;
         });
       });
     });
     
-    const actual = dashboardStats?.monthlyData?.[index]?.actual || 0;
+    const monthData = dashboardStats?.monthlyData?.[index] as { budget: number; actual: number; expense?: number; revenue?: number } | undefined;
+    const actualExpense = monthData?.expense || 0;
+    const actualRevenue = monthData?.revenue || 0;
     
     return {
       name,
-      Butce: Math.round(monthBudget),
-      Gerceklesen: Math.round(actual),
+      ButceGider: Math.round(budgetExpense),
+      ButceGelir: Math.round(budgetRevenue),
+      GercekGider: Math.round(actualExpense),
+      GercekGelir: Math.round(actualRevenue),
     };
   });
 
@@ -265,9 +278,13 @@ export default function Dashboard() {
                             <Tooltip 
                                 contentStyle={{ backgroundColor: 'white', borderRadius: '8px', border: '1px solid #e5e7eb', boxShadow: '0 4px 6px -1px rgb(0 0 0 / 0.1)' }}
                                 cursor={{fill: '#f3f4f6'}}
+                                formatter={(value: number) => `€${new Intl.NumberFormat('tr-TR').format(value)}`}
                             />
-                            <Bar dataKey="Butce" name="Bütçe" fill="hsl(var(--primary))" radius={[4, 4, 0, 0]} />
-                            <Bar dataKey="Gerceklesen" name="Gerçekleşen" fill="hsl(var(--secondary-foreground))" radius={[4, 4, 0, 0]} />
+                            <Legend wrapperStyle={{ fontSize: '12px' }} />
+                            <Bar dataKey="ButceGider" name="Bütçe Gider" fill="#ef4444" radius={[4, 4, 0, 0]} />
+                            <Bar dataKey="ButceGelir" name="Bütçe Gelir" fill="#22c55e" radius={[4, 4, 0, 0]} />
+                            <Bar dataKey="GercekGider" name="Gerçek Gider" fill="#f97316" radius={[4, 4, 0, 0]} />
+                            <Bar dataKey="GercekGelir" name="Gerçek Gelir" fill="#10b981" radius={[4, 4, 0, 0]} />
                         </BarChart>
                     </ResponsiveContainer>
                 </div>

@@ -1254,16 +1254,19 @@ export async function registerRoutes(server: Server, app: Express): Promise<Serv
         .filter(t => t.type === 'expense')
         .reduce((sum, t) => sum + (t.amount || 0), 0) / 100; // Convert from cents
       
-      // Monthly breakdown
-      const monthlyData: { [month: number]: { budget: number; actual: number } } = {};
+      // Monthly breakdown with separate expense and revenue
+      const monthlyData: { [month: number]: { budget: number; actual: number; expense: number; revenue: number } } = {};
       for (let i = 0; i < 12; i++) {
-        monthlyData[i] = { budget: 0, actual: 0 };
+        monthlyData[i] = { budget: 0, actual: 0, expense: 0, revenue: 0 };
       }
       
       yearTransactions.forEach(t => {
         const month = new Date(t.date).getMonth();
         if (t.type === 'expense') {
           monthlyData[month].actual += (t.amount || 0) / 100;
+          monthlyData[month].expense += (t.amount || 0) / 100;
+        } else if (t.type === 'revenue') {
+          monthlyData[month].revenue += (t.amount || 0) / 100;
         }
       });
       
