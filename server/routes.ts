@@ -590,14 +590,27 @@ export async function registerRoutes(server: Server, app: Express): Promise<Serv
       const data = insertProjectSchema.parse(req.body);
       const project = await storage.createProject(data);
       
-      // Auto-create default project phases
-      const defaultPhases = await storage.getAllDefaultProjectPhases();
-      for (const defaultPhase of defaultPhases) {
-        await storage.createProjectPhase({
-          name: defaultPhase.name,
-          projectId: project.id,
-          sortOrder: defaultPhase.sortOrder
-        });
+      // Auto-create phases based on project type
+      if (data.projectTypeId) {
+        // Get phases from the selected project type
+        const typePhases = await storage.getPhasesByProjectType(data.projectTypeId);
+        for (const typePhase of typePhases) {
+          await storage.createProjectPhase({
+            name: typePhase.name,
+            projectId: project.id,
+            sortOrder: typePhase.sortOrder
+          });
+        }
+      } else {
+        // Fallback: use default project phases if no type selected
+        const defaultPhases = await storage.getAllDefaultProjectPhases();
+        for (const defaultPhase of defaultPhases) {
+          await storage.createProjectPhase({
+            name: defaultPhase.name,
+            projectId: project.id,
+            sortOrder: defaultPhase.sortOrder
+          });
+        }
       }
       
       return res.status(201).json(project);
