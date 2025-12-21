@@ -9,11 +9,30 @@ import {
 } from "@shared/schema";
 import { z } from "zod";
 import bcrypt from "bcrypt";
+import { execSync } from "child_process";
+
+function getGitCommitHash(): string {
+  try {
+    return execSync("git rev-parse --short HEAD").toString().trim();
+  } catch {
+    return "dev";
+  }
+}
+
+const BUILD_INFO = {
+  commitHash: getGitCommitHash(),
+  buildTime: new Date().toISOString(),
+};
 
 export async function registerRoutes(server: Server, app: Express): Promise<Server> {
   // ===== HEALTH CHECK =====
   app.get("/api/health", (_req: Request, res: Response) => {
     res.json({ status: "ok", timestamp: new Date().toISOString() });
+  });
+
+  // ===== VERSION INFO =====
+  app.get("/api/version", (_req: Request, res: Response) => {
+    res.json(BUILD_INFO);
   });
 
   // ===== AUTHENTICATION =====

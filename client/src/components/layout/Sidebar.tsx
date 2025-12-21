@@ -13,9 +13,10 @@ import {
   ChevronLeft,
   ChevronRight,
   Key,
-  Loader2
+  Loader2,
+  GitCommit
 } from "lucide-react";
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { Button } from "@/components/ui/button";
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuSeparator, DropdownMenuTrigger } from "@/components/ui/dropdown-menu";
@@ -34,6 +35,14 @@ export function Sidebar() {
   const [newPassword, setNewPassword] = useState("");
   const [confirmPassword, setConfirmPassword] = useState("");
   const [isChangingPassword, setIsChangingPassword] = useState(false);
+  const [commitHash, setCommitHash] = useState<string>("");
+
+  useEffect(() => {
+    fetch("/api/version")
+      .then(res => res.json())
+      .then(data => setCommitHash(data.commitHash || ""))
+      .catch(() => setCommitHash(""));
+  }, []);
 
   if (!currentUser) return null;
 
@@ -85,9 +94,17 @@ export function Sidebar() {
       "h-screen bg-sidebar border-r border-sidebar-border flex flex-col transition-all duration-300",
       collapsed ? "w-16" : "w-64"
     )}>
-      <div className="h-16 flex items-center px-4 border-b border-sidebar-border">
-        {!collapsed && <span className="font-bold text-xl text-primary tracking-tight">FinFlow</span>}
-        {collapsed && <span className="font-bold text-xl text-primary mx-auto">FF</span>}
+      <div className="h-16 flex items-center justify-between px-4 border-b border-sidebar-border">
+        <div className="flex items-center gap-2">
+          {!collapsed && <span className="font-bold text-xl text-primary tracking-tight">FinFlow</span>}
+          {collapsed && <span className="font-bold text-xl text-primary mx-auto">FF</span>}
+        </div>
+        {!collapsed && commitHash && (
+          <span className="text-[10px] text-muted-foreground/60 font-mono flex items-center gap-1" title={`Commit: ${commitHash}`}>
+            <GitCommit className="h-3 w-3" />
+            {commitHash}
+          </span>
+        )}
       </div>
 
       <div className={cn("px-2 py-3 border-b border-sidebar-border", collapsed && "px-1")}>
