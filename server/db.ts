@@ -41,7 +41,21 @@ export async function initializeDatabase() {
       )
     `);
     
-    // Don't insert default values - use existing data from database
+    // Auto-increment BuildNo only when running in Replit (not Docker/production)
+    const isReplit = process.env.REPL_ID || process.env.REPLIT_DEV_DOMAIN;
+    const isProduction = process.env.NODE_ENV === 'production';
+    
+    if (isReplit && !isProduction) {
+      const result = await pool.query(`SELECT value FROM settings WHERE key = 'BuildNo'`);
+      const currentBuildNo = result.rows[0]?.value || '0';
+      const newBuildNo = String(parseInt(currentBuildNo, 10) + 1);
+      await pool.query(`
+        INSERT INTO settings (key, value) VALUES ('BuildNo', $1)
+        ON CONFLICT (key) DO UPDATE SET value = $1
+      `, [newBuildNo]);
+      console.log(`BuildNo incremented: ${currentBuildNo} -> ${newBuildNo}`);
+    }
+    
     console.log('Database settings table ready');
   } catch (error) {
     console.error('Failed to initialize database settings:', error);
