@@ -296,17 +296,6 @@ export function useUpdateBudgetItem() {
   });
 }
 
-export function useApproveBudgetItem() {
-  const queryClient = useQueryClient();
-  return useMutation({
-    mutationFn: (id: string) => api.approveBudgetItem(id),
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['departments'] });
-      queryClient.invalidateQueries({ queryKey: ['projects'] });
-    },
-  });
-}
-
 export function useReviseBudgetItem() {
   const queryClient = useQueryClient();
   return useMutation({
@@ -464,6 +453,51 @@ export function useUpdateUserCompanyAssignments() {
     mutationFn: ({ id, companyIds }: { id: string; companyIds: string[] }) => api.updateUserCompanyAssignments(id, companyIds),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: queryKeys.users });
+    },
+  });
+}
+
+// === PENDING BUDGET ITEMS ===
+
+export function usePendingBudgetItems(year: number) {
+  return useQuery({
+    queryKey: ['pendingBudgetItems', year],
+    queryFn: () => api.getPendingBudgetItems(year),
+  });
+}
+
+export function useApproveBudgetItem() {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: (id: string) => api.approveBudgetItem(id),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['pendingBudgetItems'] });
+      queryClient.invalidateQueries({ predicate: (query) => query.queryKey[0] === 'departments' });
+      queryClient.invalidateQueries({ predicate: (query) => query.queryKey[0] === 'projects' });
+    },
+  });
+}
+
+export function useRejectBudgetItem() {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: (id: string) => api.rejectBudgetItem(id),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['pendingBudgetItems'] });
+      queryClient.invalidateQueries({ predicate: (query) => query.queryKey[0] === 'departments' });
+      queryClient.invalidateQueries({ predicate: (query) => query.queryKey[0] === 'projects' });
+    },
+  });
+}
+
+export function useBulkApproveBudgetItems() {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: (ids: string[]) => api.bulkApproveBudgetItems(ids),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['pendingBudgetItems'] });
+      queryClient.invalidateQueries({ predicate: (query) => query.queryKey[0] === 'departments' });
+      queryClient.invalidateQueries({ predicate: (query) => query.queryKey[0] === 'projects' });
     },
   });
 }

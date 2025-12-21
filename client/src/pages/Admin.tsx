@@ -7,7 +7,7 @@ import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, D
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Checkbox } from "@/components/ui/checkbox";
 import { useStore } from "@/lib/store";
-import { useDepartments, useProjects, useUsers, useCreateUser, useUpdateUser, useDeleteUser, useUpdateUserAssignments, useCompanies, useCreateCompany, useUpdateCompany, useDeleteCompany, useUpdateUserCompanyAssignments, usePendingProcesses, useApproveProcess, useRejectProcess, useBulkApproveProcesses } from "@/lib/queries";
+import { useDepartments, useProjects, useUsers, useCreateUser, useUpdateUser, useDeleteUser, useUpdateUserAssignments, useCompanies, useCreateCompany, useUpdateCompany, useDeleteCompany, useUpdateUserCompanyAssignments, usePendingProcesses, useApproveProcess, useRejectProcess, useBulkApproveProcesses, usePendingBudgetItems, useApproveBudgetItem, useRejectBudgetItem, useBulkApproveBudgetItems } from "@/lib/queries";
 import { Search, UserPlus, Settings, CheckCheck, Pencil, Trash2, Loader2, Users, Building2, Plus, X } from "lucide-react";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { toast } from "sonner";
@@ -20,9 +20,13 @@ export default function Admin() {
   const { data: users = [], isLoading: usersLoading } = useUsers();
   const { data: companies = [], isLoading: companiesLoading } = useCompanies();
   const { data: pendingProcesses = [], isLoading: pendingProcessesLoading } = usePendingProcesses();
+  const { data: pendingBudgetItems = [], isLoading: pendingBudgetItemsLoading } = usePendingBudgetItems(currentYear);
   const approveProcessMutation = useApproveProcess();
   const rejectProcessMutation = useRejectProcess();
   const bulkApproveMutation = useBulkApproveProcesses();
+  const approveBudgetItemMutation = useApproveBudgetItem();
+  const rejectBudgetItemMutation = useRejectBudgetItem();
+  const bulkApproveBudgetItemsMutation = useBulkApproveBudgetItems();
   const createUserMutation = useCreateUser();
   const updateUserMutation = useUpdateUser();
   const deleteUserMutation = useDeleteUser();
@@ -253,11 +257,44 @@ export default function Admin() {
     }
   };
 
-  const pendingItems = [
-    { id: 1, dept: 'Bilgi Teknolojileri', group: 'Personel', item: 'Yeni Yazılımcı Maaşı', amount: 45000, date: '2025-01-10' },
-    { id: 2, dept: 'İnsan Kaynakları', group: 'Eğitim', item: 'Liderlik Eğitimi', amount: 5000, date: '2025-01-12' },
-    { id: 3, dept: 'Bilgi Teknolojileri', group: 'Altyapı', item: 'Yedekleme Sunucusu', amount: 2000, date: '2025-01-14' },
-  ];
+  const monthNames = ['Oca', 'Şub', 'Mar', 'Nis', 'May', 'Haz', 'Tem', 'Ağu', 'Eyl', 'Eki', 'Kas', 'Ara'];
+  
+  const handleApproveBudgetItem = async (id: string) => {
+    try {
+      await approveBudgetItemMutation.mutateAsync(id);
+      toast.success("Bütçe kalemi onaylandı");
+    } catch (error: any) {
+      toast.error("Hata", { description: error.message });
+    }
+  };
+
+  const handleRejectBudgetItem = async (id: string) => {
+    try {
+      await rejectBudgetItemMutation.mutateAsync(id);
+      toast.success("Bütçe kalemi reddedildi");
+    } catch (error: any) {
+      toast.error("Hata", { description: error.message });
+    }
+  };
+
+  const handleBulkApproveBudgetItems = async () => {
+    if (pendingBudgetItems.length === 0) return;
+    try {
+      const ids = pendingBudgetItems.map(item => item.id);
+      const result = await bulkApproveBudgetItemsMutation.mutateAsync(ids);
+      toast.success(`${result.approvedCount} bütçe kalemi onaylandı`);
+    } catch (error: any) {
+      toast.error("Hata", { description: error.message });
+    }
+  };
+
+  const formatCurrency = (value: number) => {
+    return new Intl.NumberFormat('tr-TR', { minimumFractionDigits: 0, maximumFractionDigits: 0 }).format(value);
+  };
+
+  const getTotalBudget = (monthlyValues: Record<string, number>) => {
+    return Object.values(monthlyValues || {}).reduce((sum, val) => sum + (val || 0), 0);
+  };
 
   return (
     <div className="space-y-6 animate-in fade-in slide-in-from-bottom-4 duration-500">
@@ -444,41 +481,116 @@ export default function Admin() {
           <Card className="shadow-md">
             <CardHeader className="flex flex-row items-center justify-between">
               <div>
-                <CardTitle>Toplu Onay</CardTitle>
-                <CardDescription>Departmanlardan gelen onay bekleyen bütçe kalemleri</CardDescription>
+                <CardTitle>Onay Bekleyen Bütçe Kalemleri</CardTitle>
+                <CardDescription>Departmanlardan ve projelerden gelen onay bekleyen bütçe kalemleri</CardDescription>
               </div>
-              <Button onClick={handleBulkApprove} className="bg-emerald-600 hover:bg-emerald-700" data-testid="button-bulk-approve">
-                <CheckCheck className="mr-2 h-4 w-4" />
-                Tümünü Onayla
-              </Button>
+              {pendingBudgetItems.length > 0 && (
+                <Button 
+                  onClick={handleBulkApproveBudgetItems} 
+                  className="bg-emerald-600 hover:bg-emerald-700" 
+                  disabled={bulkApproveBudgetItemsMutation.isPending}
+                  data-testid="button-bulk-approve"
+                >
+                  {bulkApproveBudgetItemsMutation.isPending && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
+                  <CheckCheck className="mr-2 h-4 w-4" />
+                  Tümünü Onayla ({pendingBudgetItems.length})
+                </Button>
+              )}
             </CardHeader>
             <CardContent>
-              <Table>
-                <TableHeader>
-                  <TableRow>
-                    <TableHead>Departman</TableHead>
-                    <TableHead>Grup</TableHead>
-                    <TableHead>Kalem</TableHead>
-                    <TableHead className="text-right">Tutar</TableHead>
-                    <TableHead>Tarih</TableHead>
-                    <TableHead className="text-center">İşlem</TableHead>
-                  </TableRow>
-                </TableHeader>
-                <TableBody>
-                  {pendingItems.map((item) => (
-                    <TableRow key={item.id}>
-                      <TableCell className="font-medium">{item.dept}</TableCell>
-                      <TableCell>{item.group}</TableCell>
-                      <TableCell>{item.item}</TableCell>
-                      <TableCell className="text-right tabular-nums">€ {item.amount}</TableCell>
-                      <TableCell className="text-xs text-muted-foreground">{item.date}</TableCell>
-                      <TableCell className="text-center">
-                        <Button size="sm" variant="ghost" className="text-emerald-600 hover:text-emerald-700 hover:bg-emerald-50">Onayla</Button>
-                      </TableCell>
-                    </TableRow>
+              {pendingBudgetItemsLoading ? (
+                <div className="flex items-center justify-center p-8">
+                  <Loader2 className="h-8 w-8 animate-spin text-primary" />
+                </div>
+              ) : pendingBudgetItems.length === 0 ? (
+                <div className="text-center p-8 bg-muted/10 rounded-lg border border-dashed">
+                  <p className="text-muted-foreground">Onay bekleyen bütçe kalemi bulunmuyor.</p>
+                </div>
+              ) : (
+                <div className="space-y-4">
+                  {pendingBudgetItems.map((item) => (
+                    <div key={item.id} className="border rounded-lg p-4 hover:bg-muted/30 transition-colors">
+                      <div className="flex items-start justify-between mb-3">
+                        <div>
+                          <p className="font-medium text-foreground">{item.name}</p>
+                          <p className="text-sm text-muted-foreground">
+                            {item.departmentName} • {item.costGroupName}
+                            {item.currentRevision > 0 && (
+                              <span className="ml-2 text-amber-600">Rev {item.currentRevision}</span>
+                            )}
+                          </p>
+                        </div>
+                        <div className="flex items-center gap-2">
+                          <span className="text-lg font-semibold tabular-nums">€ {formatCurrency(getTotalBudget(item.monthlyValues))}</span>
+                          <div className="flex gap-1">
+                            <Button 
+                              size="sm" 
+                              variant="ghost" 
+                              className="text-emerald-600 hover:text-emerald-700 hover:bg-emerald-50"
+                              onClick={() => handleApproveBudgetItem(item.id)}
+                              disabled={approveBudgetItemMutation.isPending}
+                            >
+                              Onayla
+                            </Button>
+                            <Button 
+                              size="sm" 
+                              variant="ghost" 
+                              className="text-red-600 hover:text-red-700 hover:bg-red-50"
+                              onClick={() => handleRejectBudgetItem(item.id)}
+                              disabled={rejectBudgetItemMutation.isPending}
+                            >
+                              Reddet
+                            </Button>
+                          </div>
+                        </div>
+                      </div>
+                      
+                      <div className="overflow-x-auto">
+                        <table className="w-full text-sm">
+                          <thead>
+                            <tr className="border-b">
+                              <th className="text-left py-1 pr-2 text-muted-foreground font-medium">Değer</th>
+                              {monthNames.map((month, idx) => (
+                                <th key={idx} className="text-right px-2 py-1 text-muted-foreground font-medium min-w-[60px]">{month}</th>
+                              ))}
+                            </tr>
+                          </thead>
+                          <tbody>
+                            <tr>
+                              <td className="py-1 pr-2 font-medium text-foreground">Yeni</td>
+                              {monthNames.map((_, idx) => (
+                                <td key={idx} className="text-right px-2 py-1 tabular-nums">
+                                  {formatCurrency(item.monthlyValues?.[idx.toString()] || 0)}
+                                </td>
+                              ))}
+                            </tr>
+                            {item.previousApprovedValues && (
+                              <tr className="text-muted-foreground bg-muted/30">
+                                <td className="py-1 pr-2 font-medium">Önceki</td>
+                                {monthNames.map((_, idx) => {
+                                  const prevVal = item.previousApprovedValues?.[idx.toString()] || 0;
+                                  const newVal = item.monthlyValues?.[idx.toString()] || 0;
+                                  const diff = newVal - prevVal;
+                                  return (
+                                    <td key={idx} className="text-right px-2 py-1 tabular-nums">
+                                      <div>{formatCurrency(prevVal)}</div>
+                                      {diff !== 0 && (
+                                        <div className={`text-xs ${diff > 0 ? 'text-red-500' : 'text-green-500'}`}>
+                                          {diff > 0 ? '+' : ''}{formatCurrency(diff)}
+                                        </div>
+                                      )}
+                                    </td>
+                                  );
+                                })}
+                              </tr>
+                            )}
+                          </tbody>
+                        </table>
+                      </div>
+                    </div>
                   ))}
-                </TableBody>
-              </Table>
+                </div>
+              )}
             </CardContent>
           </Card>
 

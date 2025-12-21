@@ -728,6 +728,50 @@ export async function registerRoutes(server: Server, app: Express): Promise<Serv
     }
   });
 
+  // ===== PENDING BUDGET ITEMS =====
+  
+  app.get("/api/pending-budget-items", async (req: Request, res: Response) => {
+    try {
+      const year = parseInt(req.query.year as string) || 2025;
+      const items = await storage.getPendingBudgetItems(year);
+      return res.json(items);
+    } catch (error) {
+      console.error('Get pending budget items error:', error);
+      return res.status(500).json({ message: "Server error" });
+    }
+  });
+
+  app.post("/api/budget-items/:id/reject", async (req: Request, res: Response) => {
+    try {
+      const { id } = req.params;
+      const rejected = await storage.rejectBudgetItem(id);
+      
+      if (!rejected) {
+        return res.status(404).json({ message: "Budget item not found" });
+      }
+
+      return res.json(rejected);
+    } catch (error) {
+      console.error('Reject budget item error:', error);
+      return res.status(500).json({ message: "Server error" });
+    }
+  });
+
+  app.post("/api/budget-items/bulk-approve", async (req: Request, res: Response) => {
+    try {
+      const { ids } = req.body;
+      if (!ids || !Array.isArray(ids)) {
+        return res.status(400).json({ message: "ids array is required" });
+      }
+      
+      const approvedCount = await storage.bulkApproveBudgetItems(ids);
+      return res.json({ approvedCount });
+    } catch (error) {
+      console.error('Bulk approve budget items error:', error);
+      return res.status(500).json({ message: "Server error" });
+    }
+  });
+
   // ===== PROJECT PROCESSES =====
   
   app.get("/api/pending-processes", async (req: Request, res: Response) => {

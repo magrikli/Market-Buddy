@@ -451,6 +451,42 @@ export async function getPendingProcesses(): Promise<ProjectProcess[]> {
   return fetchAPI('/pending-processes');
 }
 
+// === PENDING BUDGET ITEMS ===
+
+export interface PendingBudgetItem {
+  id: string;
+  name: string;
+  type: string;
+  costGroupId: string | null;
+  projectPhaseId: string | null;
+  monthlyValues: Record<string, number>;
+  previousApprovedValues: Record<string, number> | null;
+  status: string;
+  currentRevision: number;
+  year: number;
+  createdAt: string;
+  updatedAt: string;
+  departmentName: string;
+  costGroupName: string;
+}
+
+export async function getPendingBudgetItems(year: number): Promise<PendingBudgetItem[]> {
+  return fetchAPI(`/pending-budget-items?year=${year}`);
+}
+
+export async function rejectBudgetItem(id: string): Promise<any> {
+  return fetchAPI(`/budget-items/${id}/reject`, {
+    method: 'POST',
+  });
+}
+
+export async function bulkApproveBudgetItems(ids: string[]): Promise<{ approvedCount: number }> {
+  return fetchAPI('/budget-items/bulk-approve', {
+    method: 'POST',
+    body: JSON.stringify({ ids }),
+  });
+}
+
 export async function createProjectProcess(data: {
   name: string;
   projectId: string;

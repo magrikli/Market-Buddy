@@ -74,9 +74,12 @@ export interface IStorage {
   getBudgetItemsByCostGroup(costGroupId: string, year: number): Promise<BudgetItem[]>;
   getBudgetItemsByProjectPhase(projectPhaseId: string, year: number): Promise<BudgetItem[]>;
   getBudgetItem(id: string): Promise<BudgetItem | undefined>;
+  getPendingBudgetItems(year: number): Promise<any[]>;
   createBudgetItem(item: InsertBudgetItem): Promise<BudgetItem>;
   updateBudgetItem(id: string, updates: Partial<BudgetItem>): Promise<BudgetItem | undefined>;
   approveBudgetItem(id: string): Promise<BudgetItem | undefined>;
+  rejectBudgetItem(id: string): Promise<BudgetItem | undefined>;
+  bulkApproveBudgetItems(ids: string[]): Promise<number>;
   revertBudgetItem(id: string): Promise<BudgetItem | undefined>;
   deleteBudgetItem(id: string): Promise<void>;
   
@@ -382,6 +385,84 @@ export class DatabaseStorage implements IStorage {
       .where(eq(budgetItems.id, id))
       .returning();
     return result[0];
+  }
+
+  async rejectBudgetItem(id: string): Promise<BudgetItem | undefined> {
+    const item = await this.getBudgetItem(id);
+    if (!item) return undefined;
+    
+    // If has previous approved values, revert to them; otherwise just set to draft
+    if (item.previousApprovedValues) {
+      const result = await db.update(budgetItems)
+        .set({ 
+          monthlyValues: item.previousApprovedValues,
+          previousApprovedValues: null,
+          status: 'approved',
+          currentRevision: Math.max(0, item.currentRevision - 1),
+          updatedAt: new Date() 
+        })
+        .where(eq(budgetItems.id, id))
+        .returning();
+      return result[0];
+    } else {
+      const result = await db.update(budgetItems)
+        .set({ status: 'draft', updatedAt: new Date() })
+        .where(eq(budgetItems.id, id))
+        .returning();
+      return result[0];
+    }
+  }
+
+  async bulkApproveBudgetItems(ids: string[]): Promise<number> {
+    if (ids.length === 0) return 0;
+    const result = await db.update(budgetItems)
+      .set({ status: 'approved', previousApprovedValues: null, updatedAt: new Date() })
+      .where(and(
+        inArray(budgetItems.id, ids),
+        eq(budgetItems.status, 'pending')
+      ))
+      .returning();
+    return result.length;
+  }
+
+  async getPendingBudgetItems(year: number): Promise<any[]> {
+    // Get all pending budget items with their department/cost group info
+    const pendingItems = await db.select().from(budgetItems)
+      .where(and(eq(budgetItems.status, 'pending'), eq(budgetItems.year, year)));
+    
+    const results = [];
+    for (const item of pendingItems) {
+      let departmentName = '';
+      let costGroupName = '';
+      
+      if (item.costGroupId) {
+        const cg = await db.select().from(costGroups).where(eq(costGroups.id, item.costGroupId)).limit(1);
+        if (cg[0]) {
+          costGroupName = cg[0].name;
+          const dept = await db.select().from(departments).where(eq(departments.id, cg[0].departmentId)).limit(1);
+          if (dept[0]) {
+            departmentName = dept[0].name;
+          }
+        }
+      } else if (item.projectPhaseId) {
+        const phase = await db.select().from(projectPhases).where(eq(projectPhases.id, item.projectPhaseId)).limit(1);
+        if (phase[0]) {
+          const proj = await db.select().from(projects).where(eq(projects.id, phase[0].projectId)).limit(1);
+          if (proj[0]) {
+            departmentName = proj[0].name;
+            costGroupName = phase[0].name;
+          }
+        }
+      }
+      
+      results.push({
+        ...item,
+        departmentName,
+        costGroupName,
+      });
+    }
+    
+    return results;
   }
 
   async revertBudgetItem(id: string): Promise<BudgetItem | undefined> {
