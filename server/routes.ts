@@ -10,6 +10,7 @@ import {
 import { z } from "zod";
 import bcrypt from "bcrypt";
 import { execSync } from "child_process";
+import { readFileSync } from "fs";
 
 function getGitCommitHash(): string {
   try {
@@ -19,7 +20,17 @@ function getGitCommitHash(): string {
   }
 }
 
+function getPackageVersion(): string {
+  try {
+    const pkg = JSON.parse(readFileSync("package.json", "utf-8"));
+    return pkg.version || "1.0.0";
+  } catch {
+    return "1.0.0";
+  }
+}
+
 const BUILD_INFO = {
+  version: getPackageVersion(),
   commitHash: getGitCommitHash(),
   buildTime: new Date().toISOString(),
 };

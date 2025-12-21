@@ -35,13 +35,13 @@ export function Sidebar() {
   const [newPassword, setNewPassword] = useState("");
   const [confirmPassword, setConfirmPassword] = useState("");
   const [isChangingPassword, setIsChangingPassword] = useState(false);
-  const [commitHash, setCommitHash] = useState<string>("");
+  const [versionInfo, setVersionInfo] = useState<{ version: string; commitHash: string }>({ version: "", commitHash: "" });
 
   useEffect(() => {
     fetch("/api/version")
       .then(res => res.json())
-      .then(data => setCommitHash(data.commitHash || ""))
-      .catch(() => setCommitHash(""));
+      .then(data => setVersionInfo({ version: data.version || "", commitHash: data.commitHash || "" }))
+      .catch(() => setVersionInfo({ version: "", commitHash: "" }));
   }, []);
 
   if (!currentUser) return null;
@@ -99,10 +99,15 @@ export function Sidebar() {
           {!collapsed && <span className="font-bold text-xl text-primary tracking-tight">FinFlow</span>}
           {collapsed && <span className="font-bold text-xl text-primary mx-auto">FF</span>}
         </div>
-        {!collapsed && commitHash && (
-          <span className="text-[10px] text-muted-foreground/60 font-mono flex items-center gap-1" title={`Commit: ${commitHash}`}>
-            <GitCommit className="h-3 w-3" />
-            {commitHash}
+        {!collapsed && (versionInfo.version || versionInfo.commitHash) && (
+          <span className="text-[10px] text-muted-foreground/60 font-mono flex items-center gap-1" title={`v${versionInfo.version} (${versionInfo.commitHash})`}>
+            {versionInfo.version && <span>v{versionInfo.version}</span>}
+            {versionInfo.commitHash && (
+              <>
+                <GitCommit className="h-3 w-3" />
+                {versionInfo.commitHash}
+              </>
+            )}
           </span>
         )}
       </div>
