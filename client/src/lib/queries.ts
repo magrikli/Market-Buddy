@@ -695,3 +695,95 @@ export function useReorderDefaultProjectPhases() {
     },
   });
 }
+
+// === PROJECT TYPES ===
+
+export function useProjectTypes() {
+  return useQuery({
+    queryKey: ['projectTypes'] as const,
+    queryFn: () => api.getProjectTypes(),
+  });
+}
+
+export function useCreateProjectType() {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: (data: { name: string; code?: string; sortOrder?: number }) => api.createProjectType(data),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['projectTypes'] });
+    },
+  });
+}
+
+export function useUpdateProjectType() {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: ({ id, data }: { id: string; data: { name?: string; code?: string; sortOrder?: number } }) => api.updateProjectType(id, data),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['projectTypes'] });
+    },
+  });
+}
+
+export function useDeleteProjectType() {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: (id: string) => api.deleteProjectType(id),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['projectTypes'] });
+    },
+  });
+}
+
+// === PROJECT TYPE PHASES ===
+
+export function useProjectTypePhases(projectTypeId: string | null) {
+  return useQuery({
+    queryKey: ['projectTypePhases', projectTypeId] as const,
+    queryFn: () => projectTypeId ? api.getProjectTypePhases(projectTypeId) : Promise.resolve([]),
+    enabled: !!projectTypeId,
+  });
+}
+
+export function useCreateProjectTypePhase() {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: ({ projectTypeId, data }: { projectTypeId: string; data: { name: string; sortOrder?: number } }) => 
+      api.createProjectTypePhase(projectTypeId, data),
+    onSuccess: (_, variables) => {
+      queryClient.invalidateQueries({ queryKey: ['projectTypePhases', variables.projectTypeId] });
+    },
+  });
+}
+
+export function useUpdateProjectTypePhase() {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: ({ id, projectTypeId, data }: { id: string; projectTypeId: string; data: { name?: string; sortOrder?: number } }) => 
+      api.updateProjectTypePhase(id, data),
+    onSuccess: (_, variables) => {
+      queryClient.invalidateQueries({ queryKey: ['projectTypePhases', variables.projectTypeId] });
+    },
+  });
+}
+
+export function useDeleteProjectTypePhase() {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: ({ id, projectTypeId }: { id: string; projectTypeId: string }) => api.deleteProjectTypePhase(id),
+    onSuccess: (_, variables) => {
+      queryClient.invalidateQueries({ queryKey: ['projectTypePhases', variables.projectTypeId] });
+    },
+  });
+}
+
+export function useReorderProjectTypePhases() {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: ({ id1, id2, projectTypeId }: { id1: string; id2: string; projectTypeId: string }) => 
+      api.reorderProjectTypePhases(id1, id2),
+    onSuccess: (_, variables) => {
+      queryClient.invalidateQueries({ queryKey: ['projectTypePhases', variables.projectTypeId] });
+    },
+  });
+}

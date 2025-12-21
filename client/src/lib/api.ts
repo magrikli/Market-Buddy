@@ -615,3 +615,82 @@ export async function reorderDefaultProjectPhases(id1: string, id2: string): Pro
     body: JSON.stringify({ id1, id2 }),
   });
 }
+
+// === PROJECT TYPES ===
+
+export interface ProjectType {
+  id: string;
+  name: string;
+  code: string | null;
+  sortOrder: number;
+  createdAt: string;
+}
+
+export interface ProjectTypePhase {
+  id: string;
+  projectTypeId: string;
+  name: string;
+  sortOrder: number;
+  createdAt: string;
+}
+
+export async function getProjectTypes(): Promise<ProjectType[]> {
+  return fetchAPI('/project-types');
+}
+
+export async function getProjectType(id: string): Promise<ProjectType> {
+  return fetchAPI(`/project-types/${id}`);
+}
+
+export async function createProjectType(data: { name: string; code?: string; sortOrder?: number }): Promise<ProjectType> {
+  return fetchAPI('/project-types', {
+    method: 'POST',
+    body: JSON.stringify(data),
+  });
+}
+
+export async function updateProjectType(id: string, data: { name?: string; code?: string; sortOrder?: number }): Promise<ProjectType> {
+  return fetchAPI(`/project-types/${id}`, {
+    method: 'PUT',
+    body: JSON.stringify(data),
+  });
+}
+
+export async function deleteProjectType(id: string): Promise<void> {
+  return fetchAPI(`/project-types/${id}`, {
+    method: 'DELETE',
+  });
+}
+
+// === PROJECT TYPE PHASES ===
+
+export async function getProjectTypePhases(projectTypeId: string): Promise<ProjectTypePhase[]> {
+  return fetchAPI(`/project-types/${projectTypeId}/phases`);
+}
+
+export async function createProjectTypePhase(projectTypeId: string, data: { name: string; sortOrder?: number }): Promise<ProjectTypePhase> {
+  return fetchAPI(`/project-types/${projectTypeId}/phases`, {
+    method: 'POST',
+    body: JSON.stringify(data),
+  });
+}
+
+export async function updateProjectTypePhase(id: string, data: { name?: string; sortOrder?: number }): Promise<ProjectTypePhase> {
+  return fetchAPI(`/project-type-phases/${id}`, {
+    method: 'PUT',
+    body: JSON.stringify(data),
+  });
+}
+
+export async function deleteProjectTypePhase(id: string): Promise<void> {
+  return fetchAPI(`/project-type-phases/${id}`, {
+    method: 'DELETE',
+  });
+}
+
+export async function reorderProjectTypePhases(id1: string, id2: string): Promise<{ success: boolean }> {
+  return fetchAPI('/project-type-phases/reorder', {
+    method: 'POST',
+    body: JSON.stringify({ id1, id2 }),
+  });
+}

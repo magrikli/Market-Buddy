@@ -7,7 +7,7 @@ import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, D
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Checkbox } from "@/components/ui/checkbox";
 import { useStore } from "@/lib/store";
-import { useDepartments, useProjects, useUsers, useCreateUser, useUpdateUser, useDeleteUser, useUpdateUserAssignments, useCompanies, useCreateCompany, useUpdateCompany, useDeleteCompany, useUpdateUserCompanyAssignments, usePendingProcesses, useApproveProcess, useRejectProcess, useBulkApproveProcesses, usePendingBudgetItems, useApproveBudgetItem, useRejectBudgetItem, useBulkApproveBudgetItems, useDefaultProjectPhases, useCreateDefaultProjectPhase, useDeleteDefaultProjectPhase, useReorderDefaultProjectPhases } from "@/lib/queries";
+import { useDepartments, useProjects, useUsers, useCreateUser, useUpdateUser, useDeleteUser, useUpdateUserAssignments, useCompanies, useCreateCompany, useUpdateCompany, useDeleteCompany, useUpdateUserCompanyAssignments, usePendingProcesses, useApproveProcess, useRejectProcess, useBulkApproveProcesses, usePendingBudgetItems, useApproveBudgetItem, useRejectBudgetItem, useBulkApproveBudgetItems, useDefaultProjectPhases, useCreateDefaultProjectPhase, useDeleteDefaultProjectPhase, useReorderDefaultProjectPhases, useProjectTypes, useCreateProjectType, useUpdateProjectType, useDeleteProjectType, useProjectTypePhases, useCreateProjectTypePhase, useDeleteProjectTypePhase, useReorderProjectTypePhases } from "@/lib/queries";
 import { Search, UserPlus, CheckCheck, Pencil, Trash2, Loader2, Users, Building2, Plus, X, Settings, ArrowUp, ArrowDown } from "lucide-react";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { toast } from "sonner";
@@ -41,6 +41,19 @@ export default function Admin() {
   const createDefaultPhaseMutation = useCreateDefaultProjectPhase();
   const deleteDefaultPhaseMutation = useDeleteDefaultProjectPhase();
   const reorderDefaultPhasesMutation = useReorderDefaultProjectPhases();
+  
+  // Project types
+  const { data: projectTypes = [], isLoading: projectTypesLoading } = useProjectTypes();
+  const createProjectTypeMutation = useCreateProjectType();
+  const updateProjectTypeMutation = useUpdateProjectType();
+  const deleteProjectTypeMutation = useDeleteProjectType();
+  
+  // Project type phases
+  const [selectedProjectTypeId, setSelectedProjectTypeId] = useState<string | null>(null);
+  const { data: projectTypePhases = [], isLoading: projectTypePhasesLoading } = useProjectTypePhases(selectedProjectTypeId);
+  const createProjectTypePhaseMutation = useCreateProjectTypePhase();
+  const deleteProjectTypePhaseMutation = useDeleteProjectTypePhase();
+  const reorderProjectTypePhasesMutation = useReorderProjectTypePhases();
 
   const [isNewUserOpen, setIsNewUserOpen] = useState(false);
   const [isEditUserOpen, setIsEditUserOpen] = useState(false);
@@ -71,6 +84,11 @@ export default function Admin() {
 
   // Default phase state
   const [newPhaseName, setNewPhaseName] = useState("");
+  
+  // Project type state
+  const [newProjectTypeName, setNewProjectTypeName] = useState("");
+  const [newProjectTypeCode, setNewProjectTypeCode] = useState("");
+  const [newProjectTypePhaseName, setNewProjectTypePhaseName] = useState("");
 
   const handleApproveProcess = async (processId: string, projectId: string) => {
     try {
@@ -343,6 +361,90 @@ export default function Admin() {
     
     try {
       await reorderDefaultPhasesMutation.mutateAsync({ id1: currentPhase.id, id2: targetPhase.id });
+    } catch (error: any) {
+      toast.error("Hata", { description: error.message });
+    }
+  };
+
+  // Project type handlers
+  const handleAddProjectType = async () => {
+    if (!newProjectTypeName.trim()) {
+      toast.error("Tip adı gerekli");
+      return;
+    }
+    try {
+      const newType = await createProjectTypeMutation.mutateAsync({ 
+        name: newProjectTypeName.trim(), 
+        code: newProjectTypeCode.trim() || undefined 
+      });
+      toast.success("Proje tipi eklendi");
+      setNewProjectTypeName("");
+      setNewProjectTypeCode("");
+      setSelectedProjectTypeId(newType.id);
+    } catch (error: any) {
+      toast.error("Hata", { description: error.message });
+    }
+  };
+
+  const handleDeleteProjectType = async (id: string, name: string) => {
+    if (!confirm(`"${name}" proje tipini ve tüm fazlarını silmek istediğinize emin misiniz?`)) return;
+    try {
+      await deleteProjectTypeMutation.mutateAsync(id);
+      toast.success("Proje tipi silindi");
+      if (selectedProjectTypeId === id) {
+        setSelectedProjectTypeId(null);
+      }
+    } catch (error: any) {
+      toast.error("Hata", { description: error.message });
+    }
+  };
+
+  const handleAddProjectTypePhase = async () => {
+    if (!selectedProjectTypeId) return;
+    if (!newProjectTypePhaseName.trim()) {
+      toast.error("Faz adı gerekli");
+      return;
+    }
+    try {
+      await createProjectTypePhaseMutation.mutateAsync({ 
+        projectTypeId: selectedProjectTypeId, 
+        data: { name: newProjectTypePhaseName.trim() } 
+      });
+      toast.success("Faz eklendi");
+      setNewProjectTypePhaseName("");
+    } catch (error: any) {
+      toast.error("Hata", { description: error.message });
+    }
+  };
+
+  const handleDeleteProjectTypePhase = async (id: string, name: string) => {
+    if (!selectedProjectTypeId) return;
+    if (!confirm(`"${name}" fazını silmek istediğinize emin misiniz?`)) return;
+    try {
+      await deleteProjectTypePhaseMutation.mutateAsync({ id, projectTypeId: selectedProjectTypeId });
+      toast.success("Faz silindi");
+    } catch (error: any) {
+      toast.error("Hata", { description: error.message });
+    }
+  };
+
+  const handleMoveProjectTypePhase = async (id: string, direction: 'up' | 'down') => {
+    if (!selectedProjectTypeId) return;
+    const currentIndex = projectTypePhases.findIndex(p => p.id === id);
+    if (currentIndex === -1) return;
+    
+    const newIndex = direction === 'up' ? currentIndex - 1 : currentIndex + 1;
+    if (newIndex < 0 || newIndex >= projectTypePhases.length) return;
+    
+    const currentPhase = projectTypePhases[currentIndex];
+    const targetPhase = projectTypePhases[newIndex];
+    
+    try {
+      await reorderProjectTypePhasesMutation.mutateAsync({ 
+        id1: currentPhase.id, 
+        id2: targetPhase.id, 
+        projectTypeId: selectedProjectTypeId 
+      });
     } catch (error: any) {
       toast.error("Hata", { description: error.message });
     }
@@ -854,30 +956,164 @@ export default function Admin() {
         </TabsContent>
 
         <TabsContent value="settings">
-          <Card className="shadow-md">
-            <CardHeader>
-              <CardTitle className="flex items-center gap-2">
-                <Settings className="h-5 w-5" />
-                Varsayılan Proje Fazları
-              </CardTitle>
-              <CardDescription>
-                Yeni projeler oluşturulduğunda otomatik olarak eklenecek fazları yönetin.
-              </CardDescription>
-            </CardHeader>
-            <CardContent className="space-y-6">
-              <div className="flex gap-2">
-                <Input
-                  placeholder="Yeni faz adı..."
-                  value={newPhaseName}
-                  onChange={(e) => setNewPhaseName(e.target.value)}
-                  onKeyDown={(e) => e.key === 'Enter' && handleAddDefaultPhase()}
-                  data-testid="input-new-default-phase"
-                />
-                <Button onClick={handleAddDefaultPhase} disabled={createDefaultPhaseMutation.isPending} data-testid="button-add-default-phase">
-                  {createDefaultPhaseMutation.isPending ? <Loader2 className="h-4 w-4 animate-spin" /> : <Plus className="h-4 w-4" />}
-                  <span className="ml-1">Ekle</span>
-                </Button>
-              </div>
+          <div className="space-y-6">
+            {/* Project Types Section */}
+            <Card className="shadow-md">
+              <CardHeader>
+                <CardTitle className="flex items-center gap-2">
+                  <Settings className="h-5 w-5" />
+                  Proje Tipleri
+                </CardTitle>
+                <CardDescription>
+                  Proje tiplerini ve her tipin varsayılan fazlarını yönetin. Yeni proje oluşturulduğunda seçilen tipe ait fazlar otomatik eklenir.
+                </CardDescription>
+              </CardHeader>
+              <CardContent className="space-y-6">
+                {/* Add new project type */}
+                <div className="flex gap-2">
+                  <Input
+                    placeholder="Tip adı..."
+                    value={newProjectTypeName}
+                    onChange={(e) => setNewProjectTypeName(e.target.value)}
+                    className="flex-1"
+                    data-testid="input-new-project-type-name"
+                  />
+                  <Input
+                    placeholder="Kod (opsiyonel)"
+                    value={newProjectTypeCode}
+                    onChange={(e) => setNewProjectTypeCode(e.target.value)}
+                    className="w-32"
+                    data-testid="input-new-project-type-code"
+                  />
+                  <Button onClick={handleAddProjectType} disabled={createProjectTypeMutation.isPending} data-testid="button-add-project-type">
+                    {createProjectTypeMutation.isPending ? <Loader2 className="h-4 w-4 animate-spin" /> : <Plus className="h-4 w-4" />}
+                    <span className="ml-1">Ekle</span>
+                  </Button>
+                </div>
+
+                {projectTypesLoading ? (
+                  <div className="flex justify-center p-8">
+                    <Loader2 className="h-8 w-8 animate-spin text-muted-foreground" />
+                  </div>
+                ) : projectTypes.length === 0 ? (
+                  <div className="text-center p-8 bg-muted/10 rounded-lg border border-dashed">
+                    <Settings className="mx-auto h-12 w-12 text-muted-foreground mb-3" />
+                    <p className="text-muted-foreground">Henüz proje tipi tanımlı değil.</p>
+                    <p className="text-sm text-muted-foreground mt-1">Yukarıdan yeni tipler ekleyebilirsiniz.</p>
+                  </div>
+                ) : (
+                  <div className="grid md:grid-cols-2 gap-4">
+                    {/* Project types list */}
+                    <div className="space-y-2">
+                      <h4 className="font-medium text-sm text-muted-foreground mb-2">Proje Tipleri</h4>
+                      {projectTypes.map((type) => (
+                        <div 
+                          key={type.id} 
+                          className={`flex items-center justify-between p-3 border rounded-lg cursor-pointer transition-colors ${selectedProjectTypeId === type.id ? 'bg-primary/10 border-primary' : 'hover:bg-muted/30'}`}
+                          onClick={() => setSelectedProjectTypeId(type.id)}
+                          data-testid={`row-project-type-${type.id}`}
+                        >
+                          <div className="flex items-center gap-2">
+                            <span className="font-medium">{type.name}</span>
+                            {type.code && <span className="text-xs text-muted-foreground">({type.code})</span>}
+                          </div>
+                          <Button 
+                            variant="ghost" 
+                            size="icon" 
+                            className="h-8 w-8 text-destructive hover:text-destructive" 
+                            onClick={(e) => { e.stopPropagation(); handleDeleteProjectType(type.id, type.name); }}
+                            title="Sil"
+                            data-testid={`button-delete-type-${type.id}`}
+                          >
+                            <Trash2 className="h-4 w-4" />
+                          </Button>
+                        </div>
+                      ))}
+                    </div>
+
+                    {/* Phases for selected project type */}
+                    <div className="space-y-2">
+                      <h4 className="font-medium text-sm text-muted-foreground mb-2">
+                        {selectedProjectTypeId ? `${projectTypes.find(t => t.id === selectedProjectTypeId)?.name} Fazları` : 'Tip seçin'}
+                      </h4>
+                      {selectedProjectTypeId ? (
+                        <>
+                          <div className="flex gap-2 mb-3">
+                            <Input
+                              placeholder="Yeni faz adı..."
+                              value={newProjectTypePhaseName}
+                              onChange={(e) => setNewProjectTypePhaseName(e.target.value)}
+                              onKeyDown={(e) => e.key === 'Enter' && handleAddProjectTypePhase()}
+                              data-testid="input-new-project-type-phase"
+                            />
+                            <Button size="sm" onClick={handleAddProjectTypePhase} disabled={createProjectTypePhaseMutation.isPending} data-testid="button-add-project-type-phase">
+                              {createProjectTypePhaseMutation.isPending ? <Loader2 className="h-4 w-4 animate-spin" /> : <Plus className="h-4 w-4" />}
+                            </Button>
+                          </div>
+                          {projectTypePhasesLoading ? (
+                            <div className="flex justify-center p-4">
+                              <Loader2 className="h-6 w-6 animate-spin text-muted-foreground" />
+                            </div>
+                          ) : projectTypePhases.length === 0 ? (
+                            <p className="text-sm text-muted-foreground text-center p-4">Bu tipte henüz faz yok.</p>
+                          ) : (
+                            <div className="space-y-1">
+                              {projectTypePhases.map((phase, index) => (
+                                <div key={phase.id} className="flex items-center justify-between p-2 border rounded hover:bg-muted/30 transition-colors" data-testid={`row-type-phase-${phase.id}`}>
+                                  <div className="flex items-center gap-2">
+                                    <span className="text-muted-foreground text-xs font-mono w-5">{index + 1}.</span>
+                                    <span className="text-sm">{phase.name}</span>
+                                  </div>
+                                  <div className="flex gap-0.5">
+                                    <Button variant="ghost" size="icon" className="h-7 w-7" onClick={() => handleMoveProjectTypePhase(phase.id, 'up')} disabled={index === 0} data-testid={`button-move-up-type-phase-${phase.id}`}>
+                                      <ArrowUp className="h-3 w-3" />
+                                    </Button>
+                                    <Button variant="ghost" size="icon" className="h-7 w-7" onClick={() => handleMoveProjectTypePhase(phase.id, 'down')} disabled={index === projectTypePhases.length - 1} data-testid={`button-move-down-type-phase-${phase.id}`}>
+                                      <ArrowDown className="h-3 w-3" />
+                                    </Button>
+                                    <Button variant="ghost" size="icon" className="h-7 w-7 text-destructive hover:text-destructive" onClick={() => handleDeleteProjectTypePhase(phase.id, phase.name)} data-testid={`button-delete-type-phase-${phase.id}`}>
+                                      <Trash2 className="h-3 w-3" />
+                                    </Button>
+                                  </div>
+                                </div>
+                              ))}
+                            </div>
+                          )}
+                        </>
+                      ) : (
+                        <p className="text-sm text-muted-foreground text-center p-4">Fazlarını görmek için bir tip seçin.</p>
+                      )}
+                    </div>
+                  </div>
+                )}
+              </CardContent>
+            </Card>
+
+            {/* Default Project Phases Section (Legacy) */}
+            <Card className="shadow-md">
+              <CardHeader>
+                <CardTitle className="flex items-center gap-2">
+                  <Settings className="h-5 w-5" />
+                  Varsayılan Proje Fazları (Genel)
+                </CardTitle>
+                <CardDescription>
+                  Proje tipi seçilmeden oluşturulan projeler için varsayılan fazlar.
+                </CardDescription>
+              </CardHeader>
+              <CardContent className="space-y-6">
+                <div className="flex gap-2">
+                  <Input
+                    placeholder="Yeni faz adı..."
+                    value={newPhaseName}
+                    onChange={(e) => setNewPhaseName(e.target.value)}
+                    onKeyDown={(e) => e.key === 'Enter' && handleAddDefaultPhase()}
+                    data-testid="input-new-default-phase"
+                  />
+                  <Button onClick={handleAddDefaultPhase} disabled={createDefaultPhaseMutation.isPending} data-testid="button-add-default-phase">
+                    {createDefaultPhaseMutation.isPending ? <Loader2 className="h-4 w-4 animate-spin" /> : <Plus className="h-4 w-4" />}
+                    <span className="ml-1">Ekle</span>
+                  </Button>
+                </div>
 
               {defaultPhasesLoading ? (
                 <div className="flex justify-center p-8">
@@ -944,6 +1180,7 @@ export default function Admin() {
               </div>
             </CardContent>
           </Card>
+          </div>
         </TabsContent>
 
       </Tabs>
