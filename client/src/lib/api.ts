@@ -184,10 +184,10 @@ export async function getProjects(year: number = 2025, companyId?: string | null
   return fetchAPI(`/projects?${params.toString()}`);
 }
 
-export async function createProject(name: string, companyId: string): Promise<Project> {
+export async function createProject(name: string, companyId: string, projectTypeId?: string): Promise<Project> {
   return fetchAPI('/projects', {
     method: 'POST',
-    body: JSON.stringify({ name, companyId }),
+    body: JSON.stringify({ name, companyId, projectTypeId }),
   });
 }
 

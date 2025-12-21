@@ -130,3 +130,80 @@ export function AddBudgetItemDialog({ isOpen, onClose, onSave, title, descriptio
         </Dialog>
     );
 }
+
+interface AddProjectDialogProps {
+    isOpen: boolean;
+    onClose: () => void;
+    onSave: (name: string, projectTypeId?: string) => void;
+    projectTypes: { id: string; name: string; code?: string | null }[];
+    isLoading?: boolean;
+}
+
+export function AddProjectDialog({ isOpen, onClose, onSave, projectTypes, isLoading }: AddProjectDialogProps) {
+    const [name, setName] = useState("");
+    const [projectTypeId, setProjectTypeId] = useState<string>("");
+
+    const handleSave = () => {
+        if (name.trim()) {
+            onSave(name, projectTypeId || undefined);
+            setName("");
+            setProjectTypeId("");
+            onClose();
+        }
+    };
+
+    const handleClose = () => {
+        setName("");
+        setProjectTypeId("");
+        onClose();
+    };
+
+    return (
+        <Dialog open={isOpen} onOpenChange={handleClose}>
+            <DialogContent>
+                <DialogHeader>
+                    <DialogTitle>Yeni Proje Ekle</DialogTitle>
+                    <DialogDescription>Bütçe sistemine yeni bir proje tanımlayın.</DialogDescription>
+                </DialogHeader>
+                <div className="space-y-4 py-4">
+                    <div className="space-y-2">
+                        <Label htmlFor="project-name">Proje Adı</Label>
+                        <Input 
+                            id="project-name" 
+                            placeholder="Örn: E-Ticaret Platformu" 
+                            value={name} 
+                            onChange={(e) => setName(e.target.value)}
+                            onKeyDown={(e) => e.key === 'Enter' && handleSave()}
+                            data-testid="input-project-name"
+                        />
+                    </div>
+                    {projectTypes.length > 0 && (
+                        <div className="space-y-2">
+                            <Label>Proje Tipi (opsiyonel)</Label>
+                            <Select value={projectTypeId} onValueChange={setProjectTypeId}>
+                                <SelectTrigger data-testid="select-project-type">
+                                    <SelectValue placeholder="Tip seçin..." />
+                                </SelectTrigger>
+                                <SelectContent>
+                                    <SelectItem value="">Tip seçilmedi (genel fazlar)</SelectItem>
+                                    {projectTypes.map((type) => (
+                                        <SelectItem key={type.id} value={type.id}>
+                                            {type.name}{type.code ? ` (${type.code})` : ''}
+                                        </SelectItem>
+                                    ))}
+                                </SelectContent>
+                            </Select>
+                            <p className="text-xs text-muted-foreground">
+                                Seçilen tipe göre varsayılan fazlar otomatik oluşturulur.
+                            </p>
+                        </div>
+                    )}
+                </div>
+                <DialogFooter>
+                    <Button variant="outline" onClick={handleClose}>İptal</Button>
+                    <Button onClick={handleSave} disabled={!name.trim()} data-testid="button-create-project">Oluştur</Button>
+                </DialogFooter>
+            </DialogContent>
+        </Dialog>
+    );
+}

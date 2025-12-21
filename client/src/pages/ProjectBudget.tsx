@@ -3,7 +3,8 @@ import {
   useProjects, useCreateProject, useUpdateProject, useDeleteProject,
   useCreateProjectPhase, useUpdateProjectPhase, useDeleteProjectPhase,
   useCreateBudgetItem, useUpdateBudgetItem, useReviseBudgetItem, 
-  useApproveBudgetItem, useRevertBudgetItem, useDeleteBudgetItem 
+  useApproveBudgetItem, useRevertBudgetItem, useDeleteBudgetItem,
+  useProjectTypes
 } from "@/lib/queries";
 import { BudgetTable } from "@/components/budget/BudgetTable";
 import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from "@/components/ui/accordion";
@@ -16,7 +17,7 @@ import { PlusCircle, Download, Filter, Loader2, Plus, MoreHorizontal, Pencil, Tr
 import { useState, useRef } from "react";
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
-import { AddEntityDialog, AddBudgetItemDialog } from "@/components/budget/AddEntityDialogs";
+import { AddEntityDialog, AddBudgetItemDialog, AddProjectDialog } from "@/components/budget/AddEntityDialogs";
 import { toast } from "sonner";
 import type { BudgetMonthValues } from "@/lib/store";
 import ProjectProcessesTab from "@/components/ProjectProcessesTab";
@@ -24,6 +25,7 @@ import ProjectProcessesTab from "@/components/ProjectProcessesTab";
 export default function ProjectBudget() {
   const { currentYear, setYear, currentUser, selectedCompanyId } = useStore();
   const { data: projects = [], isLoading } = useProjects(currentYear, selectedCompanyId);
+  const { data: projectTypes = [], isLoading: projectTypesLoading } = useProjectTypes();
   
   const createProjectMutation = useCreateProject();
   const updateProjectMutation = useUpdateProject();
@@ -86,13 +88,17 @@ export default function ProjectBudget() {
     return totals;
   };
 
-  const handleAddProject = async (name: string) => {
+  const handleAddProject = async (name: string, projectTypeId?: string) => {
     if (!selectedCompanyId) {
       toast.error("Lütfen önce bir şirket seçin");
       return;
     }
     try {
-      const newProject = await createProjectMutation.mutateAsync({ name, companyId: selectedCompanyId });
+      const newProject = await createProjectMutation.mutateAsync({ 
+        name, 
+        companyId: selectedCompanyId,
+        projectTypeId 
+      });
       setExpandedProjects(prev => prev === null ? [newProject.id] : [...prev, newProject.id]);
       toast.success("Proje eklendi", { description: name });
       setIsNewProjectOpen(false);
@@ -904,13 +910,12 @@ export default function ProjectBudget() {
         </CardContent>
       </Card>
 
-      <AddEntityDialog 
+      <AddProjectDialog 
         isOpen={isNewProjectOpen} 
         onClose={() => setIsNewProjectOpen(false)} 
         onSave={handleAddProject}
-        title="Yeni Proje Ekle"
-        description="Bütçe sistemine yeni bir proje tanımlayın."
-        placeholder="Örn: E-Ticaret Platformu"
+        projectTypes={projectTypes}
+        isLoading={projectTypesLoading}
       />
 
       <AddEntityDialog 
