@@ -87,7 +87,7 @@ export default function DepartmentBudget() {
   
   const handleAddDepartment = async (name: string) => {
     try {
-      await createDepartmentMutation.mutateAsync(name);
+      await createDepartmentMutation.mutateAsync({ name, companyId: selectedCompanyId });
       toast.success("Departman eklendi", { description: name });
       setIsNewDeptOpen(false);
     } catch (error: any) {

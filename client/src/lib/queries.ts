@@ -133,9 +133,9 @@ export function useDepartments(year: number = 2025, companyId?: string | null) {
 export function useCreateDepartment() {
   const queryClient = useQueryClient();
   return useMutation({
-    mutationFn: (name: string) => api.createDepartment(name),
-    onSuccess: (_, variables) => {
-      queryClient.invalidateQueries({ queryKey: queryKeys.departments(2025) });
+    mutationFn: ({ name, companyId }: { name: string; companyId?: string | null }) => api.createDepartment(name, companyId),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ predicate: (query) => query.queryKey[0] === 'departments' });
     },
   });
 }

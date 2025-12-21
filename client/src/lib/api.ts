@@ -131,10 +131,10 @@ export async function getDepartments(year: number = 2025, companyId?: string | n
   return fetchAPI(`/departments?${params.toString()}`);
 }
 
-export async function createDepartment(name: string): Promise<Department> {
+export async function createDepartment(name: string, companyId?: string | null): Promise<Department> {
   return fetchAPI('/departments', {
     method: 'POST',
-    body: JSON.stringify({ name }),
+    body: JSON.stringify({ name, companyId }),
   });
 }
 
