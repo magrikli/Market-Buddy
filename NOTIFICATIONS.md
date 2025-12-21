@@ -206,7 +206,7 @@ You can add more notification integrations by adding new steps to the workflow:
 ✅ Docker Image Published
 
 Repository: magrikli/Market-Buddy
-Image: `username/finflow:latest`
+Image: `your-dockerhub-username/finflow:latest`
 Commit: `abc123def456`
 Author: magrikli
 
@@ -221,7 +221,7 @@ Author: magrikli
 The Docker image has been successfully built and pushed to Docker Hub.
 
 Repository: magrikli/Market-Buddy
-Image: `username/finflow:latest`
+Image: `your-dockerhub-username/finflow:latest`
 Commit: `abc123def456`
 Author: magrikli
 Workflow: [View Run](link)
