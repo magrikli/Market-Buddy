@@ -256,6 +256,26 @@ const loadSelectedCompanyFromStorage = (): string | null => {
   }
 };
 
+// Helper to load budget year from localStorage
+const loadYearFromStorage = (): number => {
+  try {
+    const stored = localStorage.getItem('finflow_budget_year');
+    return stored ? parseInt(stored) : new Date().getFullYear();
+  } catch {
+    return new Date().getFullYear();
+  }
+};
+
+// Generate year list: -3 to +3 years from current year
+export const getAvailableYears = (): number[] => {
+  const currentYear = new Date().getFullYear();
+  const years: number[] = [];
+  for (let i = -3; i <= 3; i++) {
+    years.push(currentYear + i);
+  }
+  return years;
+};
+
 interface AppState {
   currentUser: User | null;
   currentYear: number;
@@ -270,7 +290,7 @@ interface AppState {
 
 export const useStore = create<AppState>((set) => ({
   currentUser: loadUserFromStorage(),
-  currentYear: 2025,
+  currentYear: loadYearFromStorage(),
   selectedCompanyId: loadSelectedCompanyFromStorage(),
 
   setUser: (user) => {
@@ -288,7 +308,10 @@ export const useStore = create<AppState>((set) => ({
     set({ currentUser: null, selectedCompanyId: null });
   },
   
-  setYear: (year) => set({ currentYear: year }),
+  setYear: (year) => {
+    localStorage.setItem('finflow_budget_year', year.toString());
+    set({ currentYear: year });
+  },
   
   setSelectedCompanyId: (companyId) => {
     if (companyId) {

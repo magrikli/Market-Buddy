@@ -1,4 +1,4 @@
-import { useStore } from "@/lib/store";
+import { useStore, getAvailableYears } from "@/lib/store";
 import { 
   useProjects, useCreateProject, useUpdateProject, useDeleteProject,
   useCreateProjectPhase, useUpdateProjectPhase, useDeleteProjectPhase,
@@ -466,7 +466,7 @@ export default function ProjectBudget() {
     }
   };
 
-  const years = [2024, 2025, 2026];
+  const years = getAvailableYears();
 
   const visibleProjects = currentUser?.role === 'admin' 
     ? projects 

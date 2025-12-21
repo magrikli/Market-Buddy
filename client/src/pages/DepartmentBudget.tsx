@@ -1,4 +1,4 @@
-import { useStore } from "@/lib/store";
+import { useStore, getAvailableYears } from "@/lib/store";
 import { useDepartments, useCreateDepartment, useCreateCostGroup, useCreateBudgetItem, useUpdateBudgetItem, useReviseBudgetItem, useApproveBudgetItem, useRevertBudgetItem, useUpdateDepartment, useDeleteDepartment, useUpdateCostGroup, useDeleteCostGroup, useDeleteBudgetItem, useDepartmentGroups, useCreateDepartmentGroup, useUpdateDepartmentGroup, useDeleteDepartmentGroup } from "@/lib/queries";
 import type { DepartmentGroup } from "@/lib/store";
 import { BudgetTable } from "@/components/budget/BudgetTable";
@@ -590,7 +590,7 @@ export default function DepartmentBudget() {
     }
   };
 
-  const years = [2024, 2025, 2026];
+  const years = getAvailableYears();
 
   // Filtering based on user role
   const visibleDepartments = currentUser?.role === 'admin' 

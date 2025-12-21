@@ -805,24 +805,14 @@ export default function Admin() {
           <Card>
             <CardHeader>
               <CardTitle>Genel Ayarlar</CardTitle>
-              <CardDescription>Bütçe yılı ve para birimi ayarları</CardDescription>
+              <CardDescription>Para birimi ayarları</CardDescription>
             </CardHeader>
             <CardContent className="space-y-4">
               <div className="grid grid-cols-2 gap-4">
                 <div className="space-y-2">
-                  <Label>Aktif Bütçe Yılı</Label>
-                  <Input value="2025" readOnly />
-                </div>
-                <div className="space-y-2">
                   <Label>Para Birimi</Label>
                   <Input value="EUR (€)" readOnly />
                 </div>
-              </div>
-              <div className="pt-4">
-                <Button variant="outline">
-                  <Settings className="mr-2 h-4 w-4" />
-                  Sistem Parametrelerini Düzenle
-                </Button>
               </div>
             </CardContent>
           </Card>
