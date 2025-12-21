@@ -3,8 +3,13 @@ import { drizzle } from 'drizzle-orm/node-postgres';
 import pg from 'pg';
 const { Pool } = pg;
 
+// Use DATABASE_URL from environment
+if (!process.env.DATABASE_URL) {
+  throw new Error('DATABASE_URL environment variable is required');
+}
+
 const pool = new Pool({
-  connectionString: 'postgresql://admin:346523@support.parkolay.com:7081/Budget',
+  connectionString: process.env.DATABASE_URL,
   ssl: false,
 });
 
