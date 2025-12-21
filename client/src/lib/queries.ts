@@ -124,10 +124,10 @@ export function useDeleteDepartmentGroup() {
 
 // === DEPARTMENTS ===
 
-export function useDepartments(year: number = 2025, companyId?: string | null) {
+export function useDepartments(year: number = 2025, companyId?: string | null, approvedOnly?: boolean) {
   return useQuery({
-    queryKey: queryKeys.departments(year, companyId),
-    queryFn: () => api.getDepartments(year, companyId),
+    queryKey: [...queryKeys.departments(year, companyId), approvedOnly ? 'approved' : 'all'],
+    queryFn: () => api.getDepartments(year, companyId, approvedOnly),
   });
 }
 
@@ -194,10 +194,10 @@ export function useDeleteCostGroup() {
 
 // === PROJECTS ===
 
-export function useProjects(year: number = 2025, companyId?: string | null) {
+export function useProjects(year: number = 2025, companyId?: string | null, approvedOnly?: boolean) {
   return useQuery({
-    queryKey: queryKeys.projects(year, companyId),
-    queryFn: () => api.getProjects(year, companyId),
+    queryKey: [...queryKeys.projects(year, companyId), approvedOnly ? 'approved' : 'all'],
+    queryFn: () => api.getProjects(year, companyId, approvedOnly),
   });
 }
 

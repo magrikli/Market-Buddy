@@ -342,9 +342,13 @@ export async function registerRoutes(server: Server, app: Express): Promise<Serv
         departments.map(async (dept) => {
           const groups = await storage.getCostGroupsByDepartment(dept.id);
           
+          const approvedOnly = req.query.approvedOnly === 'true';
+          
           const costGroups = await Promise.all(
             groups.map(async (group) => {
-              const items = await storage.getBudgetItemsByCostGroup(group.id, year);
+              const allItems = await storage.getBudgetItemsByCostGroup(group.id, year);
+              // Filter to only include approved budget items when approvedOnly=true (for dashboard)
+              const items = approvedOnly ? allItems.filter(item => item.status === 'approved') : allItems;
               const revisions = await Promise.all(
                 items.map(item => storage.getRevisionsByBudgetItem(item.id))
               );
@@ -525,11 +529,15 @@ export async function registerRoutes(server: Server, app: Express): Promise<Serv
         projects.map(async (proj) => {
           const phases = await storage.getPhasesByProject(proj.id);
           
+          const approvedOnly = req.query.approvedOnly === 'true';
+          
           const fullPhases = await Promise.all(
             phases.map(async (phase) => {
               const allItems = await storage.getBudgetItemsByProjectPhase(phase.id, year);
-              const costItems = allItems.filter(item => item.type === 'cost');
-              const revenueItems = allItems.filter(item => item.type === 'revenue');
+              // Filter to only include approved budget items when approvedOnly=true (for dashboard)
+              const filteredItems = approvedOnly ? allItems.filter(item => item.status === 'approved') : allItems;
+              const costItems = filteredItems.filter(item => item.type === 'cost');
+              const revenueItems = filteredItems.filter(item => item.type === 'revenue');
               
               const costRevisions = await Promise.all(
                 costItems.map(item => storage.getRevisionsByBudgetItem(item.id))

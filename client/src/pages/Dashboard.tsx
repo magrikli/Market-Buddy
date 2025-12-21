@@ -21,8 +21,8 @@ export default function Dashboard() {
   const [selectedDepartmentId, setSelectedDepartmentId] = useState<string>('all');
   const [selectedProjectId, setSelectedProjectId] = useState<string>('all');
 
-  const { data: departments = [], isLoading: deptLoading } = useDepartments(currentYear, selectedCompanyId);
-  const { data: projects = [], isLoading: projLoading } = useProjects(currentYear, selectedCompanyId);
+  const { data: departments = [], isLoading: deptLoading } = useDepartments(currentYear, selectedCompanyId, true);
+  const { data: projects = [], isLoading: projLoading } = useProjects(currentYear, selectedCompanyId, true);
   const { data: dashboardStats, isLoading: statsLoading } = useDashboardStats(currentYear, selectedCompanyId);
   const { data: expenseRatioData } = useExpenseRatio(currentYear, selectedCompanyId);
   const { data: deptGroupsData } = useDepartmentGroupsBreakdown(

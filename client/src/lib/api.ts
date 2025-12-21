@@ -130,9 +130,10 @@ export async function deleteDepartmentGroup(id: string): Promise<void> {
 
 // === DEPARTMENTS ===
 
-export async function getDepartments(year: number = 2025, companyId?: string | null): Promise<Department[]> {
+export async function getDepartments(year: number = 2025, companyId?: string | null, approvedOnly?: boolean): Promise<Department[]> {
   const params = new URLSearchParams({ year: String(year) });
   if (companyId) params.append('companyId', companyId);
+  if (approvedOnly) params.append('approvedOnly', 'true');
   return fetchAPI(`/departments?${params.toString()}`);
 }
 
@@ -178,9 +179,10 @@ export async function deleteCostGroup(id: string): Promise<void> {
 
 // === PROJECTS ===
 
-export async function getProjects(year: number = 2025, companyId?: string | null): Promise<Project[]> {
+export async function getProjects(year: number = 2025, companyId?: string | null, approvedOnly?: boolean): Promise<Project[]> {
   const params = new URLSearchParams({ year: String(year) });
   if (companyId) params.append('companyId', companyId);
+  if (approvedOnly) params.append('approvedOnly', 'true');
   return fetchAPI(`/projects?${params.toString()}`);
 }
 
