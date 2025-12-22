@@ -718,7 +718,7 @@ export default function Admin() {
                           </p>
                         </div>
                         <div className="flex items-center gap-2">
-                          <span className="text-lg font-semibold tabular-nums">€ {formatCurrency(getTotalBudget(item.monthlyValues))}</span>
+                          <span className="text-lg font-semibold tabular-nums">₺ {formatCurrency(getTotalBudget(item.monthlyValues))}</span>
                           <div className="flex gap-1">
                             <Button 
                               size="sm" 

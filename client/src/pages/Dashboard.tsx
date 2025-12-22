@@ -146,7 +146,7 @@ export default function Dashboard() {
             <span className="text-xs font-bold px-2 py-1 rounded bg-primary/10 text-primary">Yıllık</span>
           </CardHeader>
           <CardContent>
-            <div className="text-2xl font-bold" data-testid="text-total-budget">€ {new Intl.NumberFormat('tr-TR').format(totalBudget)}</div>
+            <div className="text-2xl font-bold" data-testid="text-total-budget">₺ {new Intl.NumberFormat('tr-TR').format(totalBudget)}</div>
             <p className="text-xs text-muted-foreground mt-1">Onaylanan departman ve proje bütçeleri</p>
           </CardContent>
         </Card>
@@ -157,7 +157,7 @@ export default function Dashboard() {
             <ArrowUpRight className="h-4 w-4 text-emerald-500" />
           </CardHeader>
           <CardContent>
-            <div className="text-2xl font-bold" data-testid="text-used-budget">€ {new Intl.NumberFormat('tr-TR').format(totalActuals)}</div>
+            <div className="text-2xl font-bold" data-testid="text-used-budget">₺ {new Intl.NumberFormat('tr-TR').format(totalActuals)}</div>
             <p className="text-xs text-muted-foreground mt-1">%{usagePercent} kullanım oranı</p>
           </CardContent>
         </Card>
@@ -215,7 +215,7 @@ export default function Dashboard() {
                           ))}
                         </Pie>
                         <Tooltip 
-                          formatter={(value: number) => `€${new Intl.NumberFormat('tr-TR').format(value)}`}
+                          formatter={(value: number) => `₺${new Intl.NumberFormat('tr-TR').format(value)}`}
                           contentStyle={{ backgroundColor: 'white', borderRadius: '8px', border: '1px solid #e5e7eb' }}
                         />
                         <Legend wrapperStyle={{ fontSize: '11px' }} />
@@ -249,7 +249,7 @@ export default function Dashboard() {
                           ))}
                         </Pie>
                         <Tooltip 
-                          formatter={(value: number) => `€${new Intl.NumberFormat('tr-TR').format(value)}`}
+                          formatter={(value: number) => `₺${new Intl.NumberFormat('tr-TR').format(value)}`}
                           contentStyle={{ backgroundColor: 'white', borderRadius: '8px', border: '1px solid #e5e7eb' }}
                         />
                         <Legend wrapperStyle={{ fontSize: '11px' }} />
@@ -277,11 +277,11 @@ export default function Dashboard() {
                         <BarChart data={chartData}>
                             <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#e5e7eb" />
                             <XAxis dataKey="name" stroke="#888888" fontSize={12} tickLine={false} axisLine={false} />
-                            <YAxis stroke="#888888" fontSize={12} tickLine={false} axisLine={false} tickFormatter={(value) => `€${value}`} />
+                            <YAxis stroke="#888888" fontSize={12} tickLine={false} axisLine={false} tickFormatter={(value) => `₺${value}`} />
                             <Tooltip 
                                 contentStyle={{ backgroundColor: 'white', borderRadius: '8px', border: '1px solid #e5e7eb', boxShadow: '0 4px 6px -1px rgb(0 0 0 / 0.1)' }}
                                 cursor={{fill: '#f3f4f6'}}
-                                formatter={(value: number) => `€${new Intl.NumberFormat('tr-TR').format(value)}`}
+                                formatter={(value: number) => `₺${new Intl.NumberFormat('tr-TR').format(value)}`}
                             />
                             <Legend wrapperStyle={{ fontSize: '12px' }} />
                             <Bar dataKey="ButceGider" name="Bütçe Gider" fill="#ef4444" radius={[4, 4, 0, 0]} />
@@ -336,7 +336,7 @@ export default function Dashboard() {
                           ))}
                         </Pie>
                         <Tooltip 
-                          formatter={(value: number) => `€${new Intl.NumberFormat('tr-TR').format(value)}`}
+                          formatter={(value: number) => `₺${new Intl.NumberFormat('tr-TR').format(value)}`}
                           contentStyle={{ backgroundColor: 'white', borderRadius: '8px', border: '1px solid #e5e7eb' }}
                         />
                         <Legend wrapperStyle={{ fontSize: '11px' }} />
@@ -370,7 +370,7 @@ export default function Dashboard() {
                           ))}
                         </Pie>
                         <Tooltip 
-                          formatter={(value: number) => `€${new Intl.NumberFormat('tr-TR').format(value)}`}
+                          formatter={(value: number) => `₺${new Intl.NumberFormat('tr-TR').format(value)}`}
                           contentStyle={{ backgroundColor: 'white', borderRadius: '8px', border: '1px solid #e5e7eb' }}
                         />
                         <Legend wrapperStyle={{ fontSize: '11px' }} />
@@ -426,7 +426,7 @@ export default function Dashboard() {
                           ))}
                         </Pie>
                         <Tooltip 
-                          formatter={(value: number) => `€${new Intl.NumberFormat('tr-TR').format(value)}`}
+                          formatter={(value: number) => `₺${new Intl.NumberFormat('tr-TR').format(value)}`}
                           contentStyle={{ backgroundColor: 'white', borderRadius: '8px', border: '1px solid #e5e7eb' }}
                         />
                         <Legend wrapperStyle={{ fontSize: '11px' }} />
@@ -460,7 +460,7 @@ export default function Dashboard() {
                           ))}
                         </Pie>
                         <Tooltip 
-                          formatter={(value: number) => `€${new Intl.NumberFormat('tr-TR').format(value)}`}
+                          formatter={(value: number) => `₺${new Intl.NumberFormat('tr-TR').format(value)}`}
                           contentStyle={{ backgroundColor: 'white', borderRadius: '8px', border: '1px solid #e5e7eb' }}
                         />
                         <Legend wrapperStyle={{ fontSize: '11px' }} />
@@ -495,7 +495,7 @@ export default function Dashboard() {
                     <div className="flex justify-between items-start">
                       <span className="text-sm font-medium">{tx.description || 'İşlem'}</span>
                       <span className={`text-sm font-semibold ${tx.type === 'expense' ? 'text-red-600' : 'text-emerald-600'}`}>
-                        {tx.type === 'expense' ? '-' : '+'}€{new Intl.NumberFormat('tr-TR').format((tx.amount || 0) / 100)}
+                        {tx.type === 'expense' ? '-' : '+'}₺{new Intl.NumberFormat('tr-TR').format((tx.amount || 0) / 100)}
                       </span>
                     </div>
                     <span className="text-[10px] text-muted-foreground/70">

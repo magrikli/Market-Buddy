@@ -65,10 +65,10 @@ export default function Reports() {
                         {comparisonData.map((row, i) => (
                             <TableRow key={i}>
                                 <TableCell className="font-medium">{row.name}</TableCell>
-                                <TableCell className="text-right tabular-nums">€ {new Intl.NumberFormat('tr-TR').format(row.budget)}</TableCell>
-                                <TableCell className="text-right tabular-nums">€ {new Intl.NumberFormat('tr-TR').format(row.actual)}</TableCell>
+                                <TableCell className="text-right tabular-nums">₺ {new Intl.NumberFormat('tr-TR').format(row.budget)}</TableCell>
+                                <TableCell className="text-right tabular-nums">₺ {new Intl.NumberFormat('tr-TR').format(row.actual)}</TableCell>
                                 <TableCell className={`text-right tabular-nums font-bold ${row.diff < 0 ? 'text-destructive' : 'text-emerald-600'}`}>
-                                    {row.diff > 0 ? '+' : ''}€ {new Intl.NumberFormat('tr-TR').format(row.diff)}
+                                    {row.diff > 0 ? '+' : ''}₺ {new Intl.NumberFormat('tr-TR').format(row.diff)}
                                 </TableCell>
                                 <TableCell className="text-right tabular-nums">
                                     {row.percent.toFixed(1)}%
@@ -141,10 +141,10 @@ export default function Reports() {
                          {revComparisonData.map((row, i) => (
                             <TableRow key={i} className={cn(row.diff !== 0 && "bg-muted/10")}>
                                 <TableCell className="font-medium">{row.name}</TableCell>
-                                <TableCell className="text-right tabular-nums text-muted-foreground">€ {new Intl.NumberFormat('tr-TR').format(row.rev1)}</TableCell>
-                                <TableCell className="text-right tabular-nums font-medium">€ {new Intl.NumberFormat('tr-TR').format(row.rev2)}</TableCell>
+                                <TableCell className="text-right tabular-nums text-muted-foreground">₺ {new Intl.NumberFormat('tr-TR').format(row.rev1)}</TableCell>
+                                <TableCell className="text-right tabular-nums font-medium">₺ {new Intl.NumberFormat('tr-TR').format(row.rev2)}</TableCell>
                                 <TableCell className={cn("text-right tabular-nums font-bold", row.diff > 0 ? "text-emerald-600" : row.diff < 0 ? "text-destructive" : "text-muted-foreground")}>
-                                    {row.diff > 0 ? '+' : ''}{row.diff !== 0 ? `€ ${new Intl.NumberFormat('tr-TR').format(row.diff)}` : '-'}
+                                    {row.diff > 0 ? '+' : ''}{row.diff !== 0 ? `₺ ${new Intl.NumberFormat('tr-TR').format(row.diff)}` : '-'}
                                 </TableCell>
                             </TableRow>
                          ))}

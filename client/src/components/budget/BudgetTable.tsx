@@ -161,7 +161,7 @@ export function BudgetTable({ items, onSave, onRevise, onApprove, onDelete, onSu
                       })}
                       <TableCell className="w-[150px] text-right font-bold tabular-nums bg-muted/10 p-2">
                         <div className="flex items-center justify-end gap-2">
-                          <span>€ {formatMoney(total)}</span>
+                          <span>₺ {formatMoney(total)}</span>
                           {isEditing ? (
                             <>
                               <Button size="icon" variant="ghost" className="h-6 w-6 text-emerald-600 hover:text-emerald-700 hover:bg-emerald-50" onClick={() => saveEditing(item.id)}>
@@ -265,7 +265,7 @@ export function BudgetTable({ items, onSave, onRevise, onApprove, onDelete, onSu
                           </TableCell>
                         ))}
                         <TableCell className="w-[150px] text-right tabular-nums bg-amber-100/30 p-2 text-amber-700/70">
-                          <span className="text-[10px]">€ {formatMoney(previousTotal)}</span>
+                          <span className="text-[10px]">₺ {formatMoney(previousTotal)}</span>
                         </TableCell>
                       </TableRow>
                     )}

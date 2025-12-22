@@ -853,7 +853,7 @@ export default function DepartmentBudget() {
                 <CardTitle className="text-sm font-medium text-primary">Toplam Yıllık Bütçe</CardTitle>
             </CardHeader>
             <CardContent>
-                <div className="text-2xl font-bold text-primary">€ {formatMoney(totalBudget)}</div>
+                <div className="text-2xl font-bold text-primary">₺ {formatMoney(totalBudget)}</div>
                 <p className="text-xs text-muted-foreground mt-1">{currentYear} yılı için onaylanmış ve taslak toplam</p>
             </CardContent>
         </Card>
@@ -889,7 +889,7 @@ export default function DepartmentBudget() {
                         <span className="px-2 py-0.5 rounded-full bg-primary/10 text-xs font-medium text-primary">{groupDepts.length} Departman</span>
                       </div>
                       <div className="flex items-center gap-3">
-                        <span className="font-mono font-medium text-primary">€ {formatMoney(groupTotal)}</span>
+                        <span className="font-mono font-medium text-primary">₺ {formatMoney(groupTotal)}</span>
                         {currentUser?.role === 'admin' && (
                           <DropdownMenu>
                             <DropdownMenuTrigger asChild>
@@ -948,7 +948,7 @@ export default function DepartmentBudget() {
                                           ))}
                                           <td className="text-right w-[150px] p-2 bg-primary/10">
                                             <div className="flex items-center justify-end gap-2 pr-6">
-                                          <span className="font-mono font-bold text-foreground">€ {formatMoney(deptTotal)}</span>
+                                          <span className="font-mono font-bold text-foreground">₺ {formatMoney(deptTotal)}</span>
                                           {currentUser?.role === 'admin' && (
                                             <DropdownMenu>
                                               <DropdownMenuTrigger asChild onClick={(e) => e.stopPropagation()}>
@@ -1021,7 +1021,7 @@ export default function DepartmentBudget() {
                                                   <div className="flex items-center justify-end gap-2">
                                                     <div className="flex flex-col items-end">
                                                       <span className="text-[10px] text-muted-foreground font-medium">Toplam</span>
-                                                      <span className="font-mono font-bold text-foreground">€ {formatMoney(costGroupTotal)}</span>
+                                                      <span className="font-mono font-bold text-foreground">₺ {formatMoney(costGroupTotal)}</span>
                                                     </div>
                                                     {currentUser?.role === 'admin' && (
                                                       <DropdownMenu>
@@ -1123,7 +1123,7 @@ export default function DepartmentBudget() {
                                         ))}
                                         <td className="text-right w-[150px] p-2 bg-primary/10">
                                           <div className="flex items-center justify-end gap-2 pr-6">
-                                        <span className="font-mono font-bold text-foreground">€ {formatMoney(deptTotal)}</span>
+                                        <span className="font-mono font-bold text-foreground">₺ {formatMoney(deptTotal)}</span>
                                         {currentUser?.role === 'admin' && (
                                           <DropdownMenu>
                                             <DropdownMenuTrigger asChild onClick={(e) => e.stopPropagation()}>
@@ -1198,7 +1198,7 @@ export default function DepartmentBudget() {
                                                 <div className="flex items-center justify-end gap-2">
                                                   <div className="flex flex-col items-end">
                                                     <span className="text-[10px] text-muted-foreground font-medium">Toplam</span>
-                                                    <span className="font-mono font-bold text-foreground">€ {formatMoney(costGroupTotal)}</span>
+                                                    <span className="font-mono font-bold text-foreground">₺ {formatMoney(costGroupTotal)}</span>
                                                   </div>
                                                   {currentUser?.role === 'admin' && (
                                                     <DropdownMenu>

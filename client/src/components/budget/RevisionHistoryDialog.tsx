@@ -73,7 +73,7 @@ export function RevisionHistoryDialog({
                     </TableCell>
                     <TableCell>{rev.editor}</TableCell>
                     <TableCell className="text-right font-mono">
-                      € {new Intl.NumberFormat('tr-TR').format(Object.values(rev.values).reduce((a, b) => a + b, 0))}
+                      ₺ {new Intl.NumberFormat('tr-TR').format(Object.values(rev.values).reduce((a, b) => a + b, 0))}
                     </TableCell>
                     <TableCell className="text-right text-xs text-muted-foreground">
                         {/* Summary of monthly distribution could go here */}

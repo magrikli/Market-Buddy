@@ -442,7 +442,7 @@ export default function Transactions() {
         budgetItemId: values.itemId,
       });
       toast.success("Kayıt başarıyla eklendi", {
-        description: `${values.description || "-"} - ${values.amount} €`
+        description: `${values.description || "-"} - ${values.amount} ₺`
       });
       form.reset();
     } catch (error: any) {
@@ -651,7 +651,7 @@ export default function Transactions() {
                   name="amount"
                   render={({ field }) => (
                     <FormItem>
-                      <FormLabel>Tutar (€)</FormLabel>
+                      <FormLabel>Tutar (₺)</FormLabel>
                       <FormControl>
                         <Input type="number" placeholder="0.00" {...field} />
                       </FormControl>
@@ -712,7 +712,7 @@ export default function Transactions() {
                                 </TableCell>
                                 <TableCell>{item.desc}</TableCell>
                                 <TableCell className="text-right font-mono font-medium">
-                                    - € {new Intl.NumberFormat('tr-TR').format(item.amount)}
+                                    - ₺ {new Intl.NumberFormat('tr-TR').format(item.amount)}
                                 </TableCell>
                             </TableRow>
                         ))}
@@ -763,7 +763,7 @@ export default function Transactions() {
                         </span>
                       </div>
                     </TableCell>
-                    <TableCell className="font-mono">€ {row.amount}</TableCell>
+                    <TableCell className="font-mono">₺ {row.amount}</TableCell>
                     <TableCell>
                       {row.status === 'matched' && !row.transactionId && <span className="text-green-600 text-xs">✓ Yeni kayıt</span>}
                       {row.status === 'matched' && row.transactionId && <span className="text-blue-600 text-xs">↻ Güncelleme</span>}

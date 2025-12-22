@@ -580,13 +580,13 @@ export default function ProjectBudget() {
         <Card className="bg-destructive/5 border-destructive/20 shadow-sm">
           <CardHeader className="pb-2 text-right">
             <CardDescription className="text-xs uppercase tracking-wider">Toplam Giderler</CardDescription>
-            <CardTitle className="text-2xl font-bold text-destructive">€{formatMoney(totalCosts)}</CardTitle>
+            <CardTitle className="text-2xl font-bold text-destructive">₺{formatMoney(totalCosts)}</CardTitle>
           </CardHeader>
         </Card>
         <Card className="bg-emerald-500/5 border-emerald-500/20 shadow-sm">
           <CardHeader className="pb-2 text-right">
             <CardDescription className="text-xs uppercase tracking-wider">Toplam Gelirler</CardDescription>
-            <CardTitle className="text-2xl font-bold text-emerald-600">€{formatMoney(totalRevenue)}</CardTitle>
+            <CardTitle className="text-2xl font-bold text-emerald-600">₺{formatMoney(totalRevenue)}</CardTitle>
           </CardHeader>
         </Card>
       </div>
@@ -638,8 +638,8 @@ export default function ProjectBudget() {
                         </div>
                         <div className="flex items-center gap-3">
                           <div className="flex items-center gap-4 text-sm">
-                            <span className="text-destructive font-mono">€{formatMoney(projectCostTotal)}</span>
-                            <span className="text-emerald-600 font-mono">€{formatMoney(projectRevenueTotal)}</span>
+                            <span className="text-destructive font-mono">₺{formatMoney(projectCostTotal)}</span>
+                            <span className="text-emerald-600 font-mono">₺{formatMoney(projectRevenueTotal)}</span>
                           </div>
                           {currentUser?.role === 'admin' && (
                             <DropdownMenu>
@@ -790,7 +790,7 @@ export default function ProjectBudget() {
                                                 <div className="flex items-center justify-end gap-2">
                                                   <div className="flex flex-col items-end">
                                                     <span className="text-[10px] text-muted-foreground font-medium">Toplam</span>
-                                                    <span className="font-mono font-bold text-foreground">€ {formatMoney(phaseTotal)}</span>
+                                                    <span className="font-mono font-bold text-foreground">₺ {formatMoney(phaseTotal)}</span>
                                                   </div>
                                                   {currentUser?.role === 'admin' && (
                                                     <DropdownMenu>
@@ -878,7 +878,7 @@ export default function ProjectBudget() {
                                                 <div className="flex items-center justify-end gap-2">
                                                   <div className="flex flex-col items-end">
                                                     <span className="text-[10px] text-muted-foreground font-medium">Toplam</span>
-                                                    <span className="font-mono font-bold text-foreground">€ {formatMoney(phaseTotal)}</span>
+                                                    <span className="font-mono font-bold text-foreground">₺ {formatMoney(phaseTotal)}</span>
                                                   </div>
                                                   {currentUser?.role === 'admin' && (
                                                     <DropdownMenu>
@@ -1079,7 +1079,7 @@ export default function ProjectBudget() {
                       {row.itemType === 'cost' ? 'Gider' : 'Gelir'}
                     </TableCell>
                     <TableCell className="text-right font-mono text-sm">
-                      €{formatMoney(row.monthlyValues.reduce((a, b) => a + b, 0))}
+                      ₺{formatMoney(row.monthlyValues.reduce((a, b) => a + b, 0))}
                     </TableCell>
                   </TableRow>
                 ))}
