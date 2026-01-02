@@ -72,6 +72,18 @@ export default function DepartmentBudget() {
     return new Intl.NumberFormat('tr-TR', { minimumFractionDigits: 0 }).format(amount);
   };
 
+  // Filter departments by user role first (moved before canManageDepartment)
+  const visibleDepartments = currentUser?.role === 'admin' 
+    ? departments 
+    : departments.filter(d => currentUser?.assignedDepartmentIds?.includes(d.id) ?? false);
+
+  // Check if user can manage a specific department (admin or assigned AND department is in visible list)
+  const canManageDepartment = (deptId: string) => {
+    if (currentUser?.role === 'admin') return true;
+    // Must be: assigned to this department AND it's in the already company-filtered visibleDepartments
+    return visibleDepartments.some(d => d.id === deptId);
+  };
+
   const months = [
     "Ocak", "Şubat", "Mart", "Nisan", "Mayıs", "Haziran", 
     "Temmuz", "Ağustos", "Eylül", "Ekim", "Kasım", "Aralık"
@@ -601,11 +613,6 @@ export default function DepartmentBudget() {
 
   const years = getAvailableYears();
 
-  // Filtering based on user role
-  const visibleDepartments = currentUser?.role === 'admin' 
-    ? departments 
-    : departments.filter(d => currentUser?.assignedDepartmentIds.includes(d.id));
-
   // Group departments by their groupId - sorted by sortOrder
   const sortedDepartmentGroups = [...departmentGroups].sort((a, b) => (a.sortOrder ?? 0) - (b.sortOrder ?? 0));
   const groupedDepartments = sortedDepartmentGroups.map(group => ({
@@ -701,6 +708,25 @@ export default function DepartmentBudget() {
                 </DropdownMenuItem>
               </DropdownMenuContent>
             </DropdownMenu>
+          )}
+          {/* Users can add cost groups/items to their assigned departments */}
+          {currentUser?.role !== 'admin' && visibleDepartments.some(d => canManageDepartment(d.id)) && (
+            <Button 
+              className="bg-primary hover:bg-primary/90"
+              onClick={() => {
+                // Find first department user can manage
+                const managedDept = visibleDepartments.find(d => canManageDepartment(d.id));
+                if (managedDept?.costGroups?.[0]) {
+                  setActiveGroupForItem(managedDept.costGroups[0].id);
+                  setIsNewItemOpen(true);
+                } else {
+                  toast.info("Önce maliyet grubu eklemeniz gerekiyor");
+                }
+              }}
+            >
+              <PlusCircle className="mr-2 h-4 w-4" />
+              Kalem Ekle
+            </Button>
           )}
         </div>
       </div>
@@ -949,7 +975,7 @@ export default function DepartmentBudget() {
                                           <td className="text-right w-[150px] p-2 bg-primary/10">
                                             <div className="flex items-center justify-end gap-2 pr-6">
                                           <span className="font-mono font-bold text-foreground">₺ {formatMoney(deptTotal)}</span>
-                                          {currentUser?.role === 'admin' && (
+                                          {canManageDepartment(dept.id) && (
                                             <DropdownMenu>
                                               <DropdownMenuTrigger asChild onClick={(e) => e.stopPropagation()}>
                                                 <Button variant="ghost" size="icon" className="h-7 w-7">
@@ -957,31 +983,39 @@ export default function DepartmentBudget() {
                                                 </Button>
                                               </DropdownMenuTrigger>
                                               <DropdownMenuContent align="end">
-                                                <DropdownMenuItem onClick={(e) => { e.stopPropagation(); handleReorderDepartment(dept.id, 'up', dept.groupId); }}>
-                                                  <ArrowUp className="mr-2 h-4 w-4" />
-                                                  Yukarı Taşı
-                                                </DropdownMenuItem>
-                                                <DropdownMenuItem onClick={(e) => { e.stopPropagation(); handleReorderDepartment(dept.id, 'down', dept.groupId); }}>
-                                                  <ArrowDown className="mr-2 h-4 w-4" />
-                                                  Aşağı Taşı
-                                                </DropdownMenuItem>
-                                                <DropdownMenuSeparator />
+                                                {currentUser?.role === 'admin' && (
+                                                  <>
+                                                    <DropdownMenuItem onClick={(e) => { e.stopPropagation(); handleReorderDepartment(dept.id, 'up', dept.groupId); }}>
+                                                      <ArrowUp className="mr-2 h-4 w-4" />
+                                                      Yukarı Taşı
+                                                    </DropdownMenuItem>
+                                                    <DropdownMenuItem onClick={(e) => { e.stopPropagation(); handleReorderDepartment(dept.id, 'down', dept.groupId); }}>
+                                                      <ArrowDown className="mr-2 h-4 w-4" />
+                                                      Aşağı Taşı
+                                                    </DropdownMenuItem>
+                                                    <DropdownMenuSeparator />
+                                                  </>
+                                                )}
                                                 <DropdownMenuItem onClick={(e) => { e.stopPropagation(); setActiveDeptForGroup(dept.id); setIsNewGroupOpen(true); }}>
                                                   <PlusCircle className="mr-2 h-4 w-4" />
                                                   Yeni Grup Ekle
                                                 </DropdownMenuItem>
-                                                <DropdownMenuItem onClick={(e) => { e.stopPropagation(); setEditingDept({ id: dept.id, name: dept.name }); setEditDeptOpen(true); }}>
-                                                  <Pencil className="mr-2 h-4 w-4" />
-                                                  Düzenle
-                                                </DropdownMenuItem>
-                                                <DropdownMenuItem onClick={(e) => { e.stopPropagation(); handleAssignDeptToGroup(dept.id, null); }}>
-                                                  <FolderOpen className="mr-2 h-4 w-4" />
-                                                  Gruptan Çıkar
-                                                </DropdownMenuItem>
-                                                <DropdownMenuItem onClick={(e) => { e.stopPropagation(); handleDeleteDepartment(dept.id, dept.name); }} className="text-destructive">
-                                                  <Trash2 className="mr-2 h-4 w-4" />
-                                                  Sil
-                                                </DropdownMenuItem>
+                                                {currentUser?.role === 'admin' && (
+                                                  <>
+                                                    <DropdownMenuItem onClick={(e) => { e.stopPropagation(); setEditingDept({ id: dept.id, name: dept.name }); setEditDeptOpen(true); }}>
+                                                      <Pencil className="mr-2 h-4 w-4" />
+                                                      Düzenle
+                                                    </DropdownMenuItem>
+                                                    <DropdownMenuItem onClick={(e) => { e.stopPropagation(); handleAssignDeptToGroup(dept.id, null); }}>
+                                                      <FolderOpen className="mr-2 h-4 w-4" />
+                                                      Gruptan Çıkar
+                                                    </DropdownMenuItem>
+                                                    <DropdownMenuItem onClick={(e) => { e.stopPropagation(); handleDeleteDepartment(dept.id, dept.name); }} className="text-destructive">
+                                                      <Trash2 className="mr-2 h-4 w-4" />
+                                                      Sil
+                                                    </DropdownMenuItem>
+                                                  </>
+                                                )}
                                               </DropdownMenuContent>
                                             </DropdownMenu>
                                           )}
@@ -1023,7 +1057,7 @@ export default function DepartmentBudget() {
                                                       <span className="text-[10px] text-muted-foreground font-medium">Toplam</span>
                                                       <span className="font-mono font-bold text-foreground">₺ {formatMoney(costGroupTotal)}</span>
                                                     </div>
-                                                    {currentUser?.role === 'admin' && (
+                                                    {canManageDepartment(dept.id) && (
                                                       <DropdownMenu>
                                                         <DropdownMenuTrigger asChild>
                                                           <Button variant="ghost" size="icon" className="h-6 w-6">
@@ -1031,27 +1065,35 @@ export default function DepartmentBudget() {
                                                           </Button>
                                                         </DropdownMenuTrigger>
                                                         <DropdownMenuContent align="end">
-                                                          <DropdownMenuItem onClick={() => handleReorderCostGroup(costGroup.id, 'up', dept.id)}>
-                                                            <ArrowUp className="mr-2 h-4 w-4" />
-                                                            Yukarı Taşı
-                                                          </DropdownMenuItem>
-                                                          <DropdownMenuItem onClick={() => handleReorderCostGroup(costGroup.id, 'down', dept.id)}>
-                                                            <ArrowDown className="mr-2 h-4 w-4" />
-                                                            Aşağı Taşı
-                                                          </DropdownMenuItem>
-                                                          <DropdownMenuSeparator />
+                                                          {currentUser?.role === 'admin' && (
+                                                            <>
+                                                              <DropdownMenuItem onClick={() => handleReorderCostGroup(costGroup.id, 'up', dept.id)}>
+                                                                <ArrowUp className="mr-2 h-4 w-4" />
+                                                                Yukarı Taşı
+                                                              </DropdownMenuItem>
+                                                              <DropdownMenuItem onClick={() => handleReorderCostGroup(costGroup.id, 'down', dept.id)}>
+                                                                <ArrowDown className="mr-2 h-4 w-4" />
+                                                                Aşağı Taşı
+                                                              </DropdownMenuItem>
+                                                              <DropdownMenuSeparator />
+                                                            </>
+                                                          )}
                                                           <DropdownMenuItem onClick={() => { setActiveGroupForItem(costGroup.id); setIsNewItemOpen(true); }}>
                                                             <Plus className="mr-2 h-4 w-4" />
                                                             Yeni Kalem Ekle
                                                           </DropdownMenuItem>
-                                                          <DropdownMenuItem onClick={() => { setEditingGroup({ id: costGroup.id, name: costGroup.name }); setEditGroupOpen(true); }}>
-                                                            <Pencil className="mr-2 h-4 w-4" />
-                                                            Düzenle
-                                                          </DropdownMenuItem>
-                                                          <DropdownMenuItem onClick={() => handleDeleteGroup(costGroup.id, costGroup.name)} className="text-destructive">
-                                                            <Trash2 className="mr-2 h-4 w-4" />
-                                                            Sil
-                                                          </DropdownMenuItem>
+                                                          {currentUser?.role === 'admin' && (
+                                                            <>
+                                                              <DropdownMenuItem onClick={() => { setEditingGroup({ id: costGroup.id, name: costGroup.name }); setEditGroupOpen(true); }}>
+                                                                <Pencil className="mr-2 h-4 w-4" />
+                                                                Düzenle
+                                                              </DropdownMenuItem>
+                                                              <DropdownMenuItem onClick={() => handleDeleteGroup(costGroup.id, costGroup.name)} className="text-destructive">
+                                                                <Trash2 className="mr-2 h-4 w-4" />
+                                                                Sil
+                                                              </DropdownMenuItem>
+                                                            </>
+                                                          )}
                                                         </DropdownMenuContent>
                                                       </DropdownMenu>
                                                     )}
@@ -1065,6 +1107,7 @@ export default function DepartmentBudget() {
                                       <BudgetTable 
                                         items={costGroup.items}
                                         isAdmin={currentUser?.role === 'admin'}
+                                        canEdit={canManageDepartment(dept.id)}
                                         selectedYear={currentYear}
                                         onSave={handleUpdateItem}
                                         onRevise={handleReviseItem}
@@ -1124,7 +1167,7 @@ export default function DepartmentBudget() {
                                         <td className="text-right w-[150px] p-2 bg-primary/10">
                                           <div className="flex items-center justify-end gap-2 pr-6">
                                         <span className="font-mono font-bold text-foreground">₺ {formatMoney(deptTotal)}</span>
-                                        {currentUser?.role === 'admin' && (
+                                        {canManageDepartment(dept.id) && (
                                           <DropdownMenu>
                                             <DropdownMenuTrigger asChild onClick={(e) => e.stopPropagation()}>
                                               <Button variant="ghost" size="icon" className="h-7 w-7">
@@ -1132,33 +1175,41 @@ export default function DepartmentBudget() {
                                               </Button>
                                             </DropdownMenuTrigger>
                                             <DropdownMenuContent align="end">
-                                              <DropdownMenuItem onClick={(e) => { e.stopPropagation(); handleReorderDepartment(dept.id, 'up', null); }}>
-                                                <ArrowUp className="mr-2 h-4 w-4" />
-                                                Yukarı Taşı
-                                              </DropdownMenuItem>
-                                              <DropdownMenuItem onClick={(e) => { e.stopPropagation(); handleReorderDepartment(dept.id, 'down', null); }}>
-                                                <ArrowDown className="mr-2 h-4 w-4" />
-                                                Aşağı Taşı
-                                              </DropdownMenuItem>
-                                              <DropdownMenuSeparator />
+                                              {currentUser?.role === 'admin' && (
+                                                <>
+                                                  <DropdownMenuItem onClick={(e) => { e.stopPropagation(); handleReorderDepartment(dept.id, 'up', null); }}>
+                                                    <ArrowUp className="mr-2 h-4 w-4" />
+                                                    Yukarı Taşı
+                                                  </DropdownMenuItem>
+                                                  <DropdownMenuItem onClick={(e) => { e.stopPropagation(); handleReorderDepartment(dept.id, 'down', null); }}>
+                                                    <ArrowDown className="mr-2 h-4 w-4" />
+                                                    Aşağı Taşı
+                                                  </DropdownMenuItem>
+                                                  <DropdownMenuSeparator />
+                                                </>
+                                              )}
                                               <DropdownMenuItem onClick={(e) => { e.stopPropagation(); setActiveDeptForGroup(dept.id); setIsNewGroupOpen(true); }}>
                                                 <PlusCircle className="mr-2 h-4 w-4" />
                                                 Yeni Grup Ekle
                                               </DropdownMenuItem>
-                                              {departmentGroups.length > 0 && departmentGroups.map(g => (
-                                                <DropdownMenuItem key={g.id} onClick={(e) => { e.stopPropagation(); handleAssignDeptToGroup(dept.id, g.id); }}>
-                                                  <FolderOpen className="mr-2 h-4 w-4" />
-                                                  {g.name}'a Taşı
-                                                </DropdownMenuItem>
-                                              ))}
-                                              <DropdownMenuItem onClick={(e) => { e.stopPropagation(); setEditingDept({ id: dept.id, name: dept.name }); setEditDeptOpen(true); }}>
-                                                <Pencil className="mr-2 h-4 w-4" />
-                                                Düzenle
-                                              </DropdownMenuItem>
-                                              <DropdownMenuItem onClick={(e) => { e.stopPropagation(); handleDeleteDepartment(dept.id, dept.name); }} className="text-destructive">
-                                                <Trash2 className="mr-2 h-4 w-4" />
-                                                Sil
-                                              </DropdownMenuItem>
+                                              {currentUser?.role === 'admin' && (
+                                                <>
+                                                  {departmentGroups.length > 0 && departmentGroups.map(g => (
+                                                    <DropdownMenuItem key={g.id} onClick={(e) => { e.stopPropagation(); handleAssignDeptToGroup(dept.id, g.id); }}>
+                                                      <FolderOpen className="mr-2 h-4 w-4" />
+                                                      {g.name}'a Taşı
+                                                    </DropdownMenuItem>
+                                                  ))}
+                                                  <DropdownMenuItem onClick={(e) => { e.stopPropagation(); setEditingDept({ id: dept.id, name: dept.name }); setEditDeptOpen(true); }}>
+                                                    <Pencil className="mr-2 h-4 w-4" />
+                                                    Düzenle
+                                                  </DropdownMenuItem>
+                                                  <DropdownMenuItem onClick={(e) => { e.stopPropagation(); handleDeleteDepartment(dept.id, dept.name); }} className="text-destructive">
+                                                    <Trash2 className="mr-2 h-4 w-4" />
+                                                    Sil
+                                                  </DropdownMenuItem>
+                                                </>
+                                              )}
                                             </DropdownMenuContent>
                                           </DropdownMenu>
                                         )}
@@ -1200,7 +1251,7 @@ export default function DepartmentBudget() {
                                                     <span className="text-[10px] text-muted-foreground font-medium">Toplam</span>
                                                     <span className="font-mono font-bold text-foreground">₺ {formatMoney(costGroupTotal)}</span>
                                                   </div>
-                                                  {currentUser?.role === 'admin' && (
+                                                  {canManageDepartment(dept.id) && (
                                                     <DropdownMenu>
                                                       <DropdownMenuTrigger asChild>
                                                         <Button variant="ghost" size="icon" className="h-6 w-6">
@@ -1208,27 +1259,35 @@ export default function DepartmentBudget() {
                                                         </Button>
                                                       </DropdownMenuTrigger>
                                                       <DropdownMenuContent align="end">
-                                                        <DropdownMenuItem onClick={() => handleReorderCostGroup(costGroup.id, 'up', dept.id)}>
-                                                          <ArrowUp className="mr-2 h-4 w-4" />
-                                                          Yukarı Taşı
-                                                        </DropdownMenuItem>
-                                                        <DropdownMenuItem onClick={() => handleReorderCostGroup(costGroup.id, 'down', dept.id)}>
-                                                          <ArrowDown className="mr-2 h-4 w-4" />
-                                                          Aşağı Taşı
-                                                        </DropdownMenuItem>
-                                                        <DropdownMenuSeparator />
+                                                        {currentUser?.role === 'admin' && (
+                                                          <>
+                                                            <DropdownMenuItem onClick={() => handleReorderCostGroup(costGroup.id, 'up', dept.id)}>
+                                                              <ArrowUp className="mr-2 h-4 w-4" />
+                                                              Yukarı Taşı
+                                                            </DropdownMenuItem>
+                                                            <DropdownMenuItem onClick={() => handleReorderCostGroup(costGroup.id, 'down', dept.id)}>
+                                                              <ArrowDown className="mr-2 h-4 w-4" />
+                                                              Aşağı Taşı
+                                                            </DropdownMenuItem>
+                                                            <DropdownMenuSeparator />
+                                                          </>
+                                                        )}
                                                         <DropdownMenuItem onClick={() => { setActiveGroupForItem(costGroup.id); setIsNewItemOpen(true); }}>
                                                           <Plus className="mr-2 h-4 w-4" />
                                                           Yeni Kalem Ekle
                                                         </DropdownMenuItem>
-                                                        <DropdownMenuItem onClick={() => { setEditingGroup({ id: costGroup.id, name: costGroup.name }); setEditGroupOpen(true); }}>
-                                                          <Pencil className="mr-2 h-4 w-4" />
-                                                          Düzenle
-                                                        </DropdownMenuItem>
-                                                        <DropdownMenuItem onClick={() => handleDeleteGroup(costGroup.id, costGroup.name)} className="text-destructive">
-                                                          <Trash2 className="mr-2 h-4 w-4" />
-                                                          Sil
-                                                        </DropdownMenuItem>
+                                                        {currentUser?.role === 'admin' && (
+                                                          <>
+                                                            <DropdownMenuItem onClick={() => { setEditingGroup({ id: costGroup.id, name: costGroup.name }); setEditGroupOpen(true); }}>
+                                                              <Pencil className="mr-2 h-4 w-4" />
+                                                              Düzenle
+                                                            </DropdownMenuItem>
+                                                            <DropdownMenuItem onClick={() => handleDeleteGroup(costGroup.id, costGroup.name)} className="text-destructive">
+                                                              <Trash2 className="mr-2 h-4 w-4" />
+                                                              Sil
+                                                            </DropdownMenuItem>
+                                                          </>
+                                                        )}
                                                       </DropdownMenuContent>
                                                     </DropdownMenu>
                                                   )}
@@ -1242,6 +1301,7 @@ export default function DepartmentBudget() {
                                     <BudgetTable 
                                       items={costGroup.items}
                                       isAdmin={currentUser?.role === 'admin'}
+                                      canEdit={canManageDepartment(dept.id)}
                                       selectedYear={currentYear}
                                       onSave={handleUpdateItem}
                                       onRevise={handleReviseItem}

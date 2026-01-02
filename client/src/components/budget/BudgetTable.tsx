@@ -22,6 +22,7 @@ interface BudgetTableProps {
   onRevert?: (itemId: string) => void;
   onReorder?: (itemId: string, direction: 'up' | 'down') => void;
   isAdmin?: boolean;
+  canEdit?: boolean; // Allow non-admin users to edit if they're assigned
   type?: 'cost' | 'revenue';
   selectedYear?: number;
 }
@@ -38,7 +39,9 @@ const formatMoney = (amount: number) => {
 const currentYear = new Date().getFullYear();
 const currentMonth = new Date().getMonth(); // 0-indexed (0 = January, 11 = December)
 
-export function BudgetTable({ items, onSave, onRevise, onApprove, onDelete, onSubmitForApproval, onWithdraw, onRevert, onReorder, isAdmin = false, type = 'cost', selectedYear }: BudgetTableProps) {
+export function BudgetTable({ items, onSave, onRevise, onApprove, onDelete, onSubmitForApproval, onWithdraw, onRevert, onReorder, isAdmin = false, canEdit, type = 'cost', selectedYear }: BudgetTableProps) {
+  // canEdit defaults to isAdmin if not specified
+  const hasEditPermission = canEdit ?? isAdmin;
   // If selected year is in the future, all months are editable
   const isFutureYear = selectedYear ? selectedYear > currentYear : false;
   const [editingId, setEditingId] = useState<string | null>(null);
@@ -54,6 +57,7 @@ export function BudgetTable({ items, onSave, onRevise, onApprove, onDelete, onSu
   const [revisionReason, setRevisionReason] = useState("");
 
   const startEditing = (item: CostItem | RevenueItem) => {
+    if (!hasEditPermission) return; // Guard against unauthorized editing
     setEditingId(item.id);
     setEditValues({ ...item.values });
   };
@@ -79,6 +83,7 @@ export function BudgetTable({ items, onSave, onRevise, onApprove, onDelete, onSu
   };
 
   const openRevisionDialog = (itemId: string) => {
+    if (!hasEditPermission) return; // Guard against unauthorized revision
     setRevisionItemId(itemId);
     setRevisionReason("");
     setRevisionDialogOpen(true);
@@ -192,37 +197,41 @@ export function BudgetTable({ items, onSave, onRevise, onApprove, onDelete, onSu
                                     <DropdownMenuSeparator />
                                   </>
                                 )}
-                                {item.status === 'approved' ? (
-                                  <DropdownMenuItem onClick={() => openRevisionDialog(item.id)}>
-                                    <Lock className="mr-2 h-4 w-4 text-amber-600" />
-                                    Revize Et
-                                  </DropdownMenuItem>
-                                ) : (
-                                  <DropdownMenuItem onClick={() => startEditing(item)}>
-                                    <Edit2 className="mr-2 h-4 w-4" />
-                                    Düzenle
-                                  </DropdownMenuItem>
-                                )}
-                                
-                                {item.status === 'draft' && onSubmitForApproval && (
-                                  <DropdownMenuItem onClick={() => onSubmitForApproval(item.id)}>
-                                    <Send className="mr-2 h-4 w-4 text-blue-600" />
-                                    Onaya Gönder
-                                  </DropdownMenuItem>
-                                )}
+                                {hasEditPermission && (
+                                  <>
+                                    {item.status === 'approved' ? (
+                                      <DropdownMenuItem onClick={() => openRevisionDialog(item.id)}>
+                                        <Lock className="mr-2 h-4 w-4 text-amber-600" />
+                                        Revize Et
+                                      </DropdownMenuItem>
+                                    ) : (
+                                      <DropdownMenuItem onClick={() => startEditing(item)}>
+                                        <Edit2 className="mr-2 h-4 w-4" />
+                                        Düzenle
+                                      </DropdownMenuItem>
+                                    )}
+                                    
+                                    {item.status === 'draft' && onSubmitForApproval && (
+                                      <DropdownMenuItem onClick={() => onSubmitForApproval(item.id)}>
+                                        <Send className="mr-2 h-4 w-4 text-blue-600" />
+                                        Onaya Gönder
+                                      </DropdownMenuItem>
+                                    )}
 
-                                {item.status === 'pending' && onWithdraw && (
-                                  <DropdownMenuItem onClick={() => onWithdraw(item.id)}>
-                                    <Undo2 className="mr-2 h-4 w-4 text-orange-600" />
-                                    Geri Çek
-                                  </DropdownMenuItem>
-                                )}
+                                    {item.status === 'pending' && onWithdraw && (
+                                      <DropdownMenuItem onClick={() => onWithdraw(item.id)}>
+                                        <Undo2 className="mr-2 h-4 w-4 text-orange-600" />
+                                        Geri Çek
+                                      </DropdownMenuItem>
+                                    )}
 
-                                {hasPreviousApproved && item.status !== 'approved' && onRevert && (
-                                  <DropdownMenuItem onClick={() => onRevert(item.id)}>
-                                    <RotateCcw className="mr-2 h-4 w-4 text-amber-600" />
-                                    Önceki Onaylıya Geri Al
-                                  </DropdownMenuItem>
+                                    {hasPreviousApproved && item.status !== 'approved' && onRevert && (
+                                      <DropdownMenuItem onClick={() => onRevert(item.id)}>
+                                        <RotateCcw className="mr-2 h-4 w-4 text-amber-600" />
+                                        Önceki Onaylıya Geri Al
+                                      </DropdownMenuItem>
+                                    )}
+                                  </>
                                 )}
                                 
                                 {isAdmin && item.status === 'pending' && onApprove && (
