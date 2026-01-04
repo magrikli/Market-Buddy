@@ -1083,23 +1083,21 @@ export default function DepartmentBudget() {
                                                             Yeni Kalem Ekle
                                                           </DropdownMenuItem>
                                                           {currentUser?.role === 'admin' && (
-                                                            <>
-                                                              <DropdownMenuItem onClick={() => { setEditingGroup({ id: costGroup.id, name: costGroup.name }); setEditGroupOpen(true); }}>
-                                                                <Pencil className="mr-2 h-4 w-4" />
-                                                                Düzenle
-                                                              </DropdownMenuItem>
-                                                              {costGroup.items.length === 0 ? (
-                                                                <DropdownMenuItem onClick={() => handleDeleteGroup(costGroup.id, costGroup.name)} className="text-destructive">
-                                                                  <Trash2 className="mr-2 h-4 w-4" />
-                                                                  Sil
-                                                                </DropdownMenuItem>
-                                                              ) : (
-                                                                <DropdownMenuItem disabled className="text-muted-foreground cursor-not-allowed">
-                                                                  <Trash2 className="mr-2 h-4 w-4" />
-                                                                  Sil (grup içinde kalem var)
-                                                                </DropdownMenuItem>
-                                                              )}
-                                                            </>
+                                                            <DropdownMenuItem onClick={() => { setEditingGroup({ id: costGroup.id, name: costGroup.name }); setEditGroupOpen(true); }}>
+                                                              <Pencil className="mr-2 h-4 w-4" />
+                                                              Düzenle
+                                                            </DropdownMenuItem>
+                                                          )}
+                                                          {costGroup.items.length === 0 ? (
+                                                            <DropdownMenuItem onClick={() => handleDeleteGroup(costGroup.id, costGroup.name)} className="text-destructive">
+                                                              <Trash2 className="mr-2 h-4 w-4" />
+                                                              Grubu Sil
+                                                            </DropdownMenuItem>
+                                                          ) : (
+                                                            <DropdownMenuItem disabled className="text-muted-foreground cursor-not-allowed">
+                                                              <Trash2 className="mr-2 h-4 w-4" />
+                                                              Grubu Sil (içinde kalem var)
+                                                            </DropdownMenuItem>
                                                           )}
                                                         </DropdownMenuContent>
                                                       </DropdownMenu>
@@ -1284,23 +1282,21 @@ export default function DepartmentBudget() {
                                                           Yeni Kalem Ekle
                                                         </DropdownMenuItem>
                                                         {currentUser?.role === 'admin' && (
-                                                          <>
-                                                            <DropdownMenuItem onClick={() => { setEditingGroup({ id: costGroup.id, name: costGroup.name }); setEditGroupOpen(true); }}>
-                                                              <Pencil className="mr-2 h-4 w-4" />
-                                                              Düzenle
-                                                            </DropdownMenuItem>
-                                                            {costGroup.items.length === 0 ? (
-                                                              <DropdownMenuItem onClick={() => handleDeleteGroup(costGroup.id, costGroup.name)} className="text-destructive">
-                                                                <Trash2 className="mr-2 h-4 w-4" />
-                                                                Sil
-                                                              </DropdownMenuItem>
-                                                            ) : (
-                                                              <DropdownMenuItem disabled className="text-muted-foreground cursor-not-allowed">
-                                                                <Trash2 className="mr-2 h-4 w-4" />
-                                                                Sil (grup içinde kalem var)
-                                                              </DropdownMenuItem>
-                                                            )}
-                                                          </>
+                                                          <DropdownMenuItem onClick={() => { setEditingGroup({ id: costGroup.id, name: costGroup.name }); setEditGroupOpen(true); }}>
+                                                            <Pencil className="mr-2 h-4 w-4" />
+                                                            Düzenle
+                                                          </DropdownMenuItem>
+                                                        )}
+                                                        {costGroup.items.length === 0 ? (
+                                                          <DropdownMenuItem onClick={() => handleDeleteGroup(costGroup.id, costGroup.name)} className="text-destructive">
+                                                            <Trash2 className="mr-2 h-4 w-4" />
+                                                            Grubu Sil
+                                                          </DropdownMenuItem>
+                                                        ) : (
+                                                          <DropdownMenuItem disabled className="text-muted-foreground cursor-not-allowed">
+                                                            <Trash2 className="mr-2 h-4 w-4" />
+                                                            Grubu Sil (içinde kalem var)
+                                                          </DropdownMenuItem>
                                                         )}
                                                       </DropdownMenuContent>
                                                     </DropdownMenu>
