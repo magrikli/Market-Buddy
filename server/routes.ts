@@ -537,6 +537,15 @@ export async function registerRoutes(server: Server, app: Express): Promise<Serv
   app.delete("/api/cost-groups/:id", async (req: Request, res: Response) => {
     try {
       const { id } = req.params;
+      
+      // Check if cost group has any budget items
+      const itemCount = await storage.getCostGroupItemCount(id);
+      if (itemCount > 0) {
+        return res.status(400).json({ 
+          message: "Bu grupta bütçe kalemleri var. Önce kalemleri silin veya taşıyın." 
+        });
+      }
+      
       await storage.deleteCostGroup(id);
       return res.json({ success: true });
     } catch (error) {
@@ -854,6 +863,18 @@ export async function registerRoutes(server: Server, app: Express): Promise<Serv
   app.delete("/api/budget-items/:id", async (req: Request, res: Response) => {
     try {
       const { id } = req.params;
+      
+      // Check if budget item is in draft status
+      const item = await storage.getBudgetItem(id);
+      if (!item) {
+        return res.status(404).json({ message: "Bütçe kalemi bulunamadı" });
+      }
+      if (item.status !== 'draft') {
+        return res.status(400).json({ 
+          message: "Sadece taslak durumundaki kalemler silinebilir" 
+        });
+      }
+      
       await storage.deleteBudgetItem(id);
       return res.json({ success: true });
     } catch (error) {

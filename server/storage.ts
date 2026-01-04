@@ -57,6 +57,7 @@ export interface IStorage {
   
   // Cost Groups
   getCostGroupsByDepartment(departmentId: string): Promise<CostGroup[]>;
+  getCostGroupItemCount(costGroupId: string): Promise<number>;
   createCostGroup(group: InsertCostGroup): Promise<CostGroup>;
   updateCostGroup(id: string, updates: Partial<CostGroup>): Promise<CostGroup | undefined>;
   deleteCostGroup(id: string): Promise<void>;
@@ -304,6 +305,13 @@ export class DatabaseStorage implements IStorage {
     return await db.select().from(costGroups)
       .where(eq(costGroups.departmentId, departmentId))
       .orderBy(asc(costGroups.sortOrder));
+  }
+
+  async getCostGroupItemCount(costGroupId: string): Promise<number> {
+    const result = await db.select({ count: sql<number>`count(*)` })
+      .from(budgetItems)
+      .where(eq(budgetItems.costGroupId, costGroupId));
+    return Number(result[0]?.count ?? 0);
   }
 
   async createCostGroup(group: InsertCostGroup): Promise<CostGroup> {

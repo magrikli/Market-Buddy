@@ -246,11 +246,18 @@ export function BudgetTable({ items, onSave, onRevise, onApprove, onDelete, onSu
                                   Geçmiş
                                 </DropdownMenuItem>
                                 
-                                {isAdmin && onDelete && (
-                                  <DropdownMenuItem onClick={() => onDelete(item.id, item.name)} className="text-destructive">
-                                    <Trash2 className="mr-2 h-4 w-4" />
-                                    Sil
-                                  </DropdownMenuItem>
+                                {hasEditPermission && onDelete && (
+                                  item.status === 'draft' ? (
+                                    <DropdownMenuItem onClick={() => onDelete(item.id, item.name)} className="text-destructive">
+                                      <Trash2 className="mr-2 h-4 w-4" />
+                                      Sil
+                                    </DropdownMenuItem>
+                                  ) : (
+                                    <DropdownMenuItem disabled className="text-muted-foreground cursor-not-allowed">
+                                      <Trash2 className="mr-2 h-4 w-4" />
+                                      Sil (sadece taslak silinebilir)
+                                    </DropdownMenuItem>
+                                  )
                                 )}
                               </DropdownMenuContent>
                             </DropdownMenu>

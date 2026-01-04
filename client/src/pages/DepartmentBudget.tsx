@@ -1088,10 +1088,17 @@ export default function DepartmentBudget() {
                                                                 <Pencil className="mr-2 h-4 w-4" />
                                                                 Düzenle
                                                               </DropdownMenuItem>
-                                                              <DropdownMenuItem onClick={() => handleDeleteGroup(costGroup.id, costGroup.name)} className="text-destructive">
-                                                                <Trash2 className="mr-2 h-4 w-4" />
-                                                                Sil
-                                                              </DropdownMenuItem>
+                                                              {costGroup.items.length === 0 ? (
+                                                                <DropdownMenuItem onClick={() => handleDeleteGroup(costGroup.id, costGroup.name)} className="text-destructive">
+                                                                  <Trash2 className="mr-2 h-4 w-4" />
+                                                                  Sil
+                                                                </DropdownMenuItem>
+                                                              ) : (
+                                                                <DropdownMenuItem disabled className="text-muted-foreground cursor-not-allowed">
+                                                                  <Trash2 className="mr-2 h-4 w-4" />
+                                                                  Sil (grup içinde kalem var)
+                                                                </DropdownMenuItem>
+                                                              )}
                                                             </>
                                                           )}
                                                         </DropdownMenuContent>
@@ -1282,10 +1289,17 @@ export default function DepartmentBudget() {
                                                               <Pencil className="mr-2 h-4 w-4" />
                                                               Düzenle
                                                             </DropdownMenuItem>
-                                                            <DropdownMenuItem onClick={() => handleDeleteGroup(costGroup.id, costGroup.name)} className="text-destructive">
-                                                              <Trash2 className="mr-2 h-4 w-4" />
-                                                              Sil
-                                                            </DropdownMenuItem>
+                                                            {costGroup.items.length === 0 ? (
+                                                              <DropdownMenuItem onClick={() => handleDeleteGroup(costGroup.id, costGroup.name)} className="text-destructive">
+                                                                <Trash2 className="mr-2 h-4 w-4" />
+                                                                Sil
+                                                              </DropdownMenuItem>
+                                                            ) : (
+                                                              <DropdownMenuItem disabled className="text-muted-foreground cursor-not-allowed">
+                                                                <Trash2 className="mr-2 h-4 w-4" />
+                                                                Sil (grup içinde kalem var)
+                                                              </DropdownMenuItem>
+                                                            )}
                                                           </>
                                                         )}
                                                       </DropdownMenuContent>
