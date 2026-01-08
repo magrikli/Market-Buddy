@@ -117,6 +117,15 @@ Ensure your DATABASE_URL is correct and the database server is accessible from y
 
 Make sure SESSION_SECRET is set to a secure value. If sessions are not persisting, check that the database connection is working (sessions are stored in PostgreSQL in production).
 
+## Docker Hub Push Notifications
+
+The GitHub Actions workflow automatically sends notifications when Docker images are pushed to Docker Hub. See [NOTIFICATIONS.md](NOTIFICATIONS.md) for detailed setup instructions for:
+
+- GitHub Actions Summary (built-in, always enabled)
+- Slack notifications (optional)
+- Discord notifications (optional)
+- Email notifications (via GitHub settings)
+
 ## Security Notes
 
 - Always use HTTPS in production (set up a reverse proxy like nginx with SSL)
