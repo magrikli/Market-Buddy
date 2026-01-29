@@ -2066,6 +2066,7 @@ export async function registerRoutes(server: Server, app: Express): Promise<Serv
 
   app.post("/api/project-types", async (req: Request, res: Response) => {
     try {
+      console.log('POST /api/project-types - session:', { userId: req.session.userId, role: req.session.role });
       if (req.session.role !== 'admin') {
         return res.status(403).json({ message: "Admin access required" });
       }
