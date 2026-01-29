@@ -36,8 +36,9 @@ app.use(
   session({
     store: sessionStore,
     secret: process.env.SESSION_SECRET || 'finflow-secret-key-2025',
-    resave: false,
+    resave: true,
     saveUninitialized: false,
+    rolling: true, // Refresh cookie on each request
     cookie: {
       secure: isProduction, // Secure cookies in production (requires HTTPS)
       httpOnly: true,
