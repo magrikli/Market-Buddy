@@ -21,8 +21,8 @@ export default function Dashboard() {
   const [selectedDepartmentId, setSelectedDepartmentId] = useState<string>('all');
   const [selectedProjectId, setSelectedProjectId] = useState<string>('all');
 
-  const { data: departments = [], isLoading: deptLoading } = useDepartments(currentYear, selectedCompanyId, false);
-  const { data: projects = [], isLoading: projLoading } = useProjects(currentYear, selectedCompanyId, false);
+  const { data: departments = [], isLoading: deptLoading } = useDepartments(currentYear, selectedCompanyId, true);
+  const { data: projects = [], isLoading: projLoading } = useProjects(currentYear, selectedCompanyId, true);
   const { data: dashboardStats, isLoading: statsLoading } = useDashboardStats(currentYear, selectedCompanyId);
   const { data: expenseRatioData } = useExpenseRatio(currentYear, selectedCompanyId);
   const { data: deptGroupsData } = useDepartmentGroupsBreakdown(
@@ -147,7 +147,7 @@ export default function Dashboard() {
           </CardHeader>
           <CardContent>
             <div className="text-2xl font-bold" data-testid="text-total-budget">₺ {new Intl.NumberFormat('tr-TR').format(totalBudget)}</div>
-            <p className="text-xs text-muted-foreground mt-1">Tüm departman ve proje bütçeleri</p>
+            <p className="text-xs text-muted-foreground mt-1">Onaylanan departman ve proje bütçeleri</p>
           </CardContent>
         </Card>
         
