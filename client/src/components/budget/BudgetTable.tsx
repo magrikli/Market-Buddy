@@ -59,6 +59,10 @@ export function BudgetTable({ items, onSave, onRevise, onApprove, onDelete, onSu
   const [revisionDialogOpen, setRevisionDialogOpen] = useState(false);
   const [revisionItemId, setRevisionItemId] = useState<string | null>(null);
   const [revisionReason, setRevisionReason] = useState("");
+  
+  // Distribute to all months dialog state
+  const [distributeDialogOpen, setDistributeDialogOpen] = useState(false);
+  const [pendingDistributeValue, setPendingDistributeValue] = useState<number>(0);
 
   const startEditing = (item: CostItem | RevenueItem) => {
     if (!hasEditPermission) return; // Guard against unauthorized editing
@@ -83,6 +87,30 @@ export function BudgetTable({ items, onSave, onRevise, onApprove, onDelete, onSu
   const handleValueChange = (monthIndex: number, value: string) => {
     const numValue = parseInt(value.replace(/\./g, ''), 10) || 0;
     setEditValues(prev => ({ ...prev, [monthIndex]: numValue }));
+    
+    // If January value is changed and it's a non-zero value, ask to distribute
+    if (monthIndex === 0 && numValue > 0) {
+      setPendingDistributeValue(numValue);
+      setDistributeDialogOpen(true);
+    }
+  };
+  
+  const confirmDistribute = () => {
+    // Distribute January value to all months
+    const distributed: BudgetMonthValues = {};
+    for (let i = 0; i < 12; i++) {
+      distributed[i] = pendingDistributeValue;
+    }
+    setEditValues(distributed);
+    setDistributeDialogOpen(false);
+    toast({
+      title: "Dağıtıldı",
+      description: `${formatMoney(pendingDistributeValue)} ₺ tüm aylara dağıtıldı.`,
+    });
+  };
+  
+  const cancelDistribute = () => {
+    setDistributeDialogOpen(false);
   };
 
   const openHistory = (item: CostItem | RevenueItem) => {
@@ -358,6 +386,25 @@ export function BudgetTable({ items, onSave, onRevise, onApprove, onDelete, onSu
             </Button>
             <Button onClick={confirmRevision} data-testid="button-confirm-revision">
               Revize Et
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      <Dialog open={distributeDialogOpen} onOpenChange={setDistributeDialogOpen}>
+        <DialogContent className="sm:max-w-[400px]">
+          <DialogHeader>
+            <DialogTitle>Tüm Aylara Dağıt</DialogTitle>
+            <DialogDescription>
+              Ocak ayına girdiğiniz <span className="font-semibold text-foreground">₺ {formatMoney(pendingDistributeValue)}</span> değerini tüm aylara dağıtmak ister misiniz?
+            </DialogDescription>
+          </DialogHeader>
+          <DialogFooter className="gap-2 sm:gap-0">
+            <Button variant="outline" onClick={cancelDistribute} data-testid="button-cancel-distribute">
+              Hayır, Sadece Ocak
+            </Button>
+            <Button onClick={confirmDistribute} data-testid="button-confirm-distribute">
+              Evet, Tüm Aylara Dağıt
             </Button>
           </DialogFooter>
         </DialogContent>
