@@ -664,6 +664,11 @@ export async function registerRoutes(server: Server, app: Express): Promise<Serv
 
   app.post("/api/projects", async (req: Request, res: Response) => {
     try {
+      const userId = req.session?.userId;
+      if (!userId) {
+        return res.status(401).json({ message: "Unauthorized" });
+      }
+      
       const data = insertProjectSchema.parse(req.body);
       const project = await storage.createProject(data);
       
@@ -681,11 +686,18 @@ export async function registerRoutes(server: Server, app: Express): Promise<Serv
         }
       }
       
+      // Auto-assign the creator to the project (non-admin users need this to access their created project)
+      const user = await storage.getUser(userId);
+      if (user && user.role !== 'admin') {
+        await storage.assignUserToProject(userId, project.id);
+      }
+      
       return res.status(201).json(project);
     } catch (error) {
       if (error instanceof z.ZodError) {
         return res.status(400).json({ message: "Validation error", errors: error.errors });
       }
+      console.error('Create project error:', error);
       return res.status(500).json({ message: "Server error" });
     }
   });
