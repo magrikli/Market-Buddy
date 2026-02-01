@@ -1,6 +1,6 @@
 services:
   finflow:
-    image: ${DOCKER_IMAGE:-your-dockerhub-username/finflow:latest}
+    image: parkolay/finflow:latest
     container_name: finflow
     ports:
       - "7013:5000"
