@@ -63,57 +63,94 @@ export function BudgetTable({ items, onSave, onRevise, onApprove, onDelete, onSu
   const [revisionItemId, setRevisionItemId] = useState<string | null>(null);
   const [revisionReason, setRevisionReason] = useState("");
   
-  // Distribute to all months dialog state
+  // Distribute to subsequent months dialog state
   const [distributeDialogOpen, setDistributeDialogOpen] = useState(false);
   const [pendingDistributeValue, setPendingDistributeValue] = useState<number>(0);
+  const [pendingDistributeMonth, setPendingDistributeMonth] = useState<number>(0);
+  const [pendingSaveItemId, setPendingSaveItemId] = useState<string | null>(null);
+  const [pendingSaveOriginalName, setPendingSaveOriginalName] = useState<string>("");
+  const [lastChangedMonth, setLastChangedMonth] = useState<number | null>(null);
+  const [originalValues, setOriginalValues] = useState<BudgetMonthValues>({});
 
   const startEditing = (item: CostItem | RevenueItem) => {
     if (!hasEditPermission) return; // Guard against unauthorized editing
     setEditingId(item.id);
     setEditValues({ ...item.values });
+    setOriginalValues({ ...item.values });
     setEditName(item.name);
+    setLastChangedMonth(null);
   };
 
   const cancelEditing = () => {
     setEditingId(null);
     setEditValues({});
+    setOriginalValues({});
     setEditName("");
+    setLastChangedMonth(null);
   };
 
   const saveEditing = (itemId: string, originalName: string) => {
+    // Check if any month value was changed and if there are subsequent months to update
+    if (lastChangedMonth !== null && lastChangedMonth < 11) {
+      const changedValue = editValues[lastChangedMonth] || 0;
+      const originalValue = originalValues[lastChangedMonth] || 0;
+      
+      // Only show dialog if the value actually changed
+      if (changedValue !== originalValue && changedValue > 0) {
+        setPendingDistributeValue(changedValue);
+        setPendingDistributeMonth(lastChangedMonth);
+        setPendingSaveItemId(itemId);
+        setPendingSaveOriginalName(originalName);
+        setDistributeDialogOpen(true);
+        return;
+      }
+    }
+    
+    // No distribution needed, save directly
     const nameChanged = editName !== originalName;
     onSave(itemId, editValues, nameChanged ? editName : undefined);
     setEditingId(null);
     setEditName("");
+    setLastChangedMonth(null);
   };
 
   const handleValueChange = (monthIndex: number, value: string) => {
     const numValue = parseInt(value.replace(/\./g, ''), 10) || 0;
     setEditValues(prev => ({ ...prev, [monthIndex]: numValue }));
-    
-    // If January value is changed and it's a non-zero value, ask to distribute
-    if (monthIndex === 0 && numValue > 0) {
-      setPendingDistributeValue(numValue);
-      setDistributeDialogOpen(true);
-    }
+    setLastChangedMonth(monthIndex);
   };
   
   const confirmDistribute = () => {
-    // Distribute January value to all months
-    const distributed: BudgetMonthValues = {};
-    for (let i = 0; i < 12; i++) {
+    // Distribute the changed value to all subsequent months
+    const distributed: BudgetMonthValues = { ...editValues };
+    for (let i = pendingDistributeMonth + 1; i < 12; i++) {
       distributed[i] = pendingDistributeValue;
     }
-    setEditValues(distributed);
+    
+    const nameChanged = editName !== pendingSaveOriginalName;
+    onSave(pendingSaveItemId!, distributed, nameChanged ? editName : undefined);
+    
     setDistributeDialogOpen(false);
+    setEditingId(null);
+    setEditName("");
+    setLastChangedMonth(null);
+    
+    const monthName = months[pendingDistributeMonth];
     toast({
       title: "Dağıtıldı",
-      description: `${formatMoney(pendingDistributeValue)} ₺ tüm aylara dağıtıldı.`,
+      description: `${monthName} değeri (${formatMoney(pendingDistributeValue)} ₺) sonraki aylara dağıtıldı.`,
     });
   };
   
   const cancelDistribute = () => {
+    // Save without distributing
+    const nameChanged = editName !== pendingSaveOriginalName;
+    onSave(pendingSaveItemId!, editValues, nameChanged ? editName : undefined);
+    
     setDistributeDialogOpen(false);
+    setEditingId(null);
+    setEditName("");
+    setLastChangedMonth(null);
   };
 
   const openHistory = (item: CostItem | RevenueItem) => {
