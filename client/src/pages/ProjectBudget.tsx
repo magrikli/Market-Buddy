@@ -556,17 +556,15 @@ export default function ProjectBudget() {
             accept=".csv"
             className="hidden"
           />
-          {currentUser?.role === 'admin' && (
-            <Button 
-              className="bg-primary hover:bg-primary/90" 
-              onClick={() => setIsNewProjectOpen(true)}
-              disabled={!selectedCompanyId}
-              title={!selectedCompanyId ? "Lütfen önce bir şirket seçin" : undefined}
-            >
-              <PlusCircle className="mr-2 h-4 w-4" />
-              Yeni Proje
-            </Button>
-          )}
+          <Button 
+            className="bg-primary hover:bg-primary/90" 
+            onClick={() => setIsNewProjectOpen(true)}
+            disabled={!selectedCompanyId}
+            title={!selectedCompanyId ? "Lütfen önce bir şirket seçin" : undefined}
+          >
+            <PlusCircle className="mr-2 h-4 w-4" />
+            Yeni Proje
+          </Button>
         </div>
       </div>
 
@@ -610,9 +608,7 @@ export default function ProjectBudget() {
               <FolderGit2 className="h-12 w-12 mx-auto text-muted-foreground opacity-50 mb-4" />
               <h3 className="text-lg font-medium text-foreground">Proje Bulunamadı</h3>
               <p className="text-muted-foreground">
-                {currentUser?.role === 'admin' 
-                  ? 'Henüz proje eklenmemiş. Yeni proje eklemek için yukarıdaki butonu kullanın.'
-                  : 'Atanmış bir projeniz bulunmuyor.'}
+                Henüz proje eklenmemiş. Yeni proje eklemek için yukarıdaki butonu kullanın.
               </p>
             </div>
           ) : (
