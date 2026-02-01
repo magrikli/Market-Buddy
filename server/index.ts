@@ -32,6 +32,10 @@ if (isProduction && process.env.DATABASE_URL) {
   });
 }
 
+// Check if running behind a proxy with HTTPS
+// Set SECURE_COOKIES=false if running behind HTTP proxy or for testing
+const useSecureCookies = process.env.SECURE_COOKIES !== 'false' && isProduction;
+
 app.use(
   session({
     store: sessionStore,
@@ -40,10 +44,10 @@ app.use(
     saveUninitialized: false,
     rolling: true, // Refresh cookie on each request
     cookie: {
-      secure: isProduction, // Secure cookies in production (requires HTTPS)
+      secure: useSecureCookies, // Set SECURE_COOKIES=false if not using HTTPS
       httpOnly: true,
       maxAge: 30 * 24 * 60 * 60 * 1000, // 30 days
-      sameSite: 'lax',
+      sameSite: useSecureCookies ? 'lax' : 'lax',
     },
   })
 );
