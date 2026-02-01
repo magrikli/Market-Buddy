@@ -3,6 +3,9 @@ FROM node:20-alpine AS builder
 
 WORKDIR /app
 
+# Install build dependencies for native modules (bcrypt)
+RUN apk add --no-cache python3 make g++
+
 # Copy package files first for better caching
 COPY package.json package-lock.json ./
 
@@ -20,11 +23,14 @@ FROM node:20-alpine AS production
 
 WORKDIR /app
 
+# Install runtime dependencies for native modules
+RUN apk add --no-cache python3 make g++
+
 # Copy package files
 COPY package.json package-lock.json ./
 
-# Install only production dependencies
-RUN npm ci --omit=dev
+# Install only production dependencies (rebuilds native modules for this stage)
+RUN npm ci --omit=dev && apk del python3 make g++
 
 # Copy built files from builder stage
 COPY --from=builder /app/dist ./dist
