@@ -67,9 +67,6 @@ export function BudgetTable({ items, onSave, onRevise, onApprove, onDelete, onSu
   const [distributeDialogOpen, setDistributeDialogOpen] = useState(false);
   const [pendingDistributeValue, setPendingDistributeValue] = useState<number>(0);
   const [pendingDistributeMonth, setPendingDistributeMonth] = useState<number>(0);
-  const [pendingSaveItemId, setPendingSaveItemId] = useState<string | null>(null);
-  const [pendingSaveOriginalName, setPendingSaveOriginalName] = useState<string>("");
-  const [lastChangedMonth, setLastChangedMonth] = useState<number | null>(null);
   const [originalValues, setOriginalValues] = useState<BudgetMonthValues>({});
 
   const startEditing = (item: CostItem | RevenueItem) => {
@@ -78,7 +75,6 @@ export function BudgetTable({ items, onSave, onRevise, onApprove, onDelete, onSu
     setEditValues({ ...item.values });
     setOriginalValues({ ...item.values });
     setEditName(item.name);
-    setLastChangedMonth(null);
   };
 
   const cancelEditing = () => {
@@ -86,38 +82,33 @@ export function BudgetTable({ items, onSave, onRevise, onApprove, onDelete, onSu
     setEditValues({});
     setOriginalValues({});
     setEditName("");
-    setLastChangedMonth(null);
   };
 
   const saveEditing = (itemId: string, originalName: string) => {
-    // Check if any month value was changed and if there are subsequent months to update
-    if (lastChangedMonth !== null && lastChangedMonth < 11) {
-      const changedValue = editValues[lastChangedMonth] || 0;
-      const originalValue = originalValues[lastChangedMonth] || 0;
-      
-      // Only show dialog if the value actually changed
-      if (changedValue !== originalValue && changedValue > 0) {
-        setPendingDistributeValue(changedValue);
-        setPendingDistributeMonth(lastChangedMonth);
-        setPendingSaveItemId(itemId);
-        setPendingSaveOriginalName(originalName);
-        setDistributeDialogOpen(true);
-        return;
-      }
-    }
-    
-    // No distribution needed, save directly
     const nameChanged = editName !== originalName;
     onSave(itemId, editValues, nameChanged ? editName : undefined);
     setEditingId(null);
     setEditName("");
-    setLastChangedMonth(null);
   };
 
   const handleValueChange = (monthIndex: number, value: string) => {
     const numValue = parseInt(value.replace(/\./g, ''), 10) || 0;
     setEditValues(prev => ({ ...prev, [monthIndex]: numValue }));
-    setLastChangedMonth(monthIndex);
+  };
+  
+  const handleValueBlur = (monthIndex: number) => {
+    // Check if value was changed and there are subsequent months to update
+    if (monthIndex < 11) {
+      const changedValue = editValues[monthIndex] || 0;
+      const originalValue = originalValues[monthIndex] || 0;
+      
+      // Only show dialog if the value actually changed
+      if (changedValue !== originalValue && changedValue > 0) {
+        setPendingDistributeValue(changedValue);
+        setPendingDistributeMonth(monthIndex);
+        setDistributeDialogOpen(true);
+      }
+    }
   };
   
   const confirmDistribute = () => {
@@ -126,14 +117,10 @@ export function BudgetTable({ items, onSave, onRevise, onApprove, onDelete, onSu
     for (let i = pendingDistributeMonth + 1; i < 12; i++) {
       distributed[i] = pendingDistributeValue;
     }
-    
-    const nameChanged = editName !== pendingSaveOriginalName;
-    onSave(pendingSaveItemId!, distributed, nameChanged ? editName : undefined);
+    setEditValues(distributed);
+    setOriginalValues(prev => ({ ...prev, [pendingDistributeMonth]: pendingDistributeValue }));
     
     setDistributeDialogOpen(false);
-    setEditingId(null);
-    setEditName("");
-    setLastChangedMonth(null);
     
     const monthName = months[pendingDistributeMonth];
     toast({
@@ -143,14 +130,9 @@ export function BudgetTable({ items, onSave, onRevise, onApprove, onDelete, onSu
   };
   
   const cancelDistribute = () => {
-    // Save without distributing
-    const nameChanged = editName !== pendingSaveOriginalName;
-    onSave(pendingSaveItemId!, editValues, nameChanged ? editName : undefined);
-    
+    // Don't distribute, just close dialog and update original value to prevent re-asking
+    setOriginalValues(prev => ({ ...prev, [pendingDistributeMonth]: editValues[pendingDistributeMonth] || 0 }));
     setDistributeDialogOpen(false);
-    setEditingId(null);
-    setEditName("");
-    setLastChangedMonth(null);
   };
 
   const openHistory = (item: CostItem | RevenueItem) => {
@@ -235,6 +217,7 @@ export function BudgetTable({ items, onSave, onRevise, onApprove, onDelete, onSu
                                   className="h-7 w-[65px] ml-auto text-right text-xs px-1 border-primary/30 focus-visible:ring-1" 
                                   value={editValues[index] || 0}
                                   onChange={(e) => handleValueChange(index, e.target.value)}
+                                  onBlur={() => handleValueBlur(index)}
                                 />
                               )
                             ) : (
