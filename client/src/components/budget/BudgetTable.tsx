@@ -14,7 +14,7 @@ import { useToast } from "@/hooks/use-toast";
 
 interface BudgetTableProps {
   items: (CostItem | RevenueItem)[];
-  onSave: (itemId: string, values: BudgetMonthValues) => void;
+  onSave: (itemId: string, values: BudgetMonthValues, name?: string) => void;
   onRevise: (itemId: string, revisionReason?: string) => void;
   onApprove?: (itemId: string) => void;
   onDelete?: (itemId: string, name: string) => void;
@@ -47,6 +47,7 @@ export function BudgetTable({ items, onSave, onRevise, onApprove, onDelete, onSu
   const isFutureYear = selectedYear ? selectedYear > currentYear : false;
   const [editingId, setEditingId] = useState<string | null>(null);
   const [editValues, setEditValues] = useState<BudgetMonthValues>({});
+  const [editName, setEditName] = useState<string>("");
   const setCopiedBudgetItem = useStore((state) => state.setCopiedBudgetItem);
   const { toast } = useToast();
   
@@ -63,16 +64,20 @@ export function BudgetTable({ items, onSave, onRevise, onApprove, onDelete, onSu
     if (!hasEditPermission) return; // Guard against unauthorized editing
     setEditingId(item.id);
     setEditValues({ ...item.values });
+    setEditName(item.name);
   };
 
   const cancelEditing = () => {
     setEditingId(null);
     setEditValues({});
+    setEditName("");
   };
 
-  const saveEditing = (itemId: string) => {
-    onSave(itemId, editValues);
+  const saveEditing = (itemId: string, originalName: string) => {
+    const nameChanged = editName !== originalName;
+    onSave(itemId, editValues, nameChanged ? editName : undefined);
     setEditingId(null);
+    setEditName("");
   };
 
   const handleValueChange = (monthIndex: number, value: string) => {
@@ -134,7 +139,16 @@ export function BudgetTable({ items, onSave, onRevise, onApprove, onDelete, onSu
                         <div className="flex items-center gap-2">
                           {getStatusIcon(item.status)}
                           <div className="flex flex-col">
-                            <span>{item.name}</span>
+                            {isEditing ? (
+                              <Input
+                                className="h-7 w-full text-xs px-1 border-primary/30 focus-visible:ring-1"
+                                value={editName}
+                                onChange={(e) => setEditName(e.target.value)}
+                                placeholder="Kalem adı"
+                              />
+                            ) : (
+                              <span>{item.name}</span>
+                            )}
                             {item.revision > 0 && <span className="text-[10px] text-muted-foreground">Rev.{item.revision}</span>}
                           </div>
                         </div>
@@ -172,7 +186,7 @@ export function BudgetTable({ items, onSave, onRevise, onApprove, onDelete, onSu
                           <span>₺ {formatMoney(total)}</span>
                           {isEditing ? (
                             <>
-                              <Button size="icon" variant="ghost" className="h-6 w-6 text-emerald-600 hover:text-emerald-700 hover:bg-emerald-50" onClick={() => saveEditing(item.id)}>
+                              <Button size="icon" variant="ghost" className="h-6 w-6 text-emerald-600 hover:text-emerald-700 hover:bg-emerald-50" onClick={() => saveEditing(item.id, item.name)}>
                                 <Save className="h-3 w-3" />
                               </Button>
                               <Button size="icon" variant="ghost" className="h-6 w-6 text-destructive hover:text-destructive hover:bg-destructive/10" onClick={cancelEditing}>

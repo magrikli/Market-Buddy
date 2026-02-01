@@ -289,7 +289,7 @@ export function useCreateBudgetItem() {
 export function useUpdateBudgetItem() {
   const queryClient = useQueryClient();
   return useMutation({
-    mutationFn: ({ id, updates }: { id: string; updates: { monthlyValues?: any; status?: string; sortOrder?: number } }) =>
+    mutationFn: ({ id, updates }: { id: string; updates: { monthlyValues?: any; status?: string; sortOrder?: number; name?: string } }) =>
       api.updateBudgetItem(id, updates),
     onSuccess: () => {
       queryClient.invalidateQueries({ predicate: (query) => query.queryKey[0] === 'departments' });

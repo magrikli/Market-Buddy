@@ -162,9 +162,9 @@ export default function DepartmentBudget() {
     }
   };
 
-  const handleUpdateItem = async (itemId: string, values: BudgetMonthValues) => {
+  const handleUpdateItem = async (itemId: string, values: BudgetMonthValues, name?: string) => {
     try {
-      await updateBudgetItemMutation.mutateAsync({ id: itemId, updates: { monthlyValues: values } });
+      await updateBudgetItemMutation.mutateAsync({ id: itemId, updates: { monthlyValues: values, name } });
       toast.success("Güncellendi");
     } catch (error: any) {
       toast.error("Hata", { description: error.message });
