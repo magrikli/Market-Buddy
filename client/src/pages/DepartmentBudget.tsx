@@ -9,14 +9,14 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger, DropdownMenuSeparator } from "@/components/ui/dropdown-menu";
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
-import { PlusCircle, Download, Filter, Loader2, Plus, MoreHorizontal, Pencil, Trash2, FolderOpen, Building2, Upload, ArrowUp, ArrowDown, ChevronDown } from "lucide-react";
+import { PlusCircle, Download, Filter, Loader2, Plus, MoreHorizontal, Pencil, Trash2, FolderOpen, Building2, Upload, ArrowUp, ArrowDown, ChevronDown, ClipboardPaste } from "lucide-react";
 import { useState, useRef } from "react";
 import { AddEntityDialog, AddBudgetItemDialog } from "@/components/budget/AddEntityDialogs";
 import { toast } from "sonner";
 import type { BudgetMonthValues } from "@/lib/store";
 
 export default function DepartmentBudget() {
-  const { currentYear, setYear, currentUser, selectedCompanyId } = useStore();
+  const { currentYear, setYear, currentUser, selectedCompanyId, copiedBudgetItem, setCopiedBudgetItem } = useStore();
   const { data: departments = [], isLoading } = useDepartments(currentYear, selectedCompanyId);
   const { data: departmentGroups = [] } = useDepartmentGroups();
   const createDepartmentMutation = useCreateDepartment();
@@ -140,6 +140,23 @@ export default function DepartmentBudget() {
       toast.success("Bütçe kalemi eklendi", { description: name });
       setIsNewItemOpen(false);
       setActiveGroupForItem(null);
+    } catch (error: any) {
+      toast.error("Hata", { description: error.message });
+    }
+  };
+
+  const handlePasteItem = async (costGroupId: string) => {
+    if (!copiedBudgetItem) return;
+    try {
+      await createBudgetItemMutation.mutateAsync({ 
+        name: copiedBudgetItem.name + " (kopya)", 
+        type: 'cost', 
+        costGroupId: costGroupId,
+        year: currentYear,
+        monthlyValues: copiedBudgetItem.values
+      });
+      toast.success("Kalem yapıştırıldı", { description: copiedBudgetItem.name });
+      setCopiedBudgetItem(null);
     } catch (error: any) {
       toast.error("Hata", { description: error.message });
     }
@@ -1082,6 +1099,12 @@ export default function DepartmentBudget() {
                                                             <Plus className="mr-2 h-4 w-4" />
                                                             Yeni Kalem Ekle
                                                           </DropdownMenuItem>
+                                                          {copiedBudgetItem && copiedBudgetItem.type === 'cost' && (
+                                                            <DropdownMenuItem onClick={() => handlePasteItem(costGroup.id)}>
+                                                              <ClipboardPaste className="mr-2 h-4 w-4 text-blue-600" />
+                                                              Yapıştır ({copiedBudgetItem.name})
+                                                            </DropdownMenuItem>
+                                                          )}
                                                           {currentUser?.role === 'admin' && (
                                                             <DropdownMenuItem onClick={() => { setEditingGroup({ id: costGroup.id, name: costGroup.name }); setEditGroupOpen(true); }}>
                                                               <Pencil className="mr-2 h-4 w-4" />

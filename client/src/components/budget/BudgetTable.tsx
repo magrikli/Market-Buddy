@@ -6,10 +6,11 @@ import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, D
 import { Textarea } from "@/components/ui/textarea";
 import { Label } from "@/components/ui/label";
 import { cn } from "@/lib/utils";
-import { Save, X, History, Lock, CheckCircle, Trash2, MoreHorizontal, Edit2, Clock, FileEdit, Send, Undo2, RotateCcw, ArrowUp, ArrowDown } from "lucide-react";
+import { Save, X, History, Lock, CheckCircle, Trash2, MoreHorizontal, Edit2, Clock, FileEdit, Send, Undo2, RotateCcw, ArrowUp, ArrowDown, Copy } from "lucide-react";
 import { useState, Fragment } from "react";
-import { CostItem, RevenueItem, BudgetMonthValues } from "@/lib/store";
+import { CostItem, RevenueItem, BudgetMonthValues, useStore } from "@/lib/store";
 import { RevisionHistoryDialog } from "./RevisionHistoryDialog";
+import { useToast } from "@/hooks/use-toast";
 
 interface BudgetTableProps {
   items: (CostItem | RevenueItem)[];
@@ -46,6 +47,8 @@ export function BudgetTable({ items, onSave, onRevise, onApprove, onDelete, onSu
   const isFutureYear = selectedYear ? selectedYear > currentYear : false;
   const [editingId, setEditingId] = useState<string | null>(null);
   const [editValues, setEditValues] = useState<BudgetMonthValues>({});
+  const setCopiedBudgetItem = useStore((state) => state.setCopiedBudgetItem);
+  const { toast } = useToast();
   
   // Dialog state
   const [historyItem, setHistoryItem] = useState<CostItem | RevenueItem | null>(null);
@@ -244,6 +247,21 @@ export function BudgetTable({ items, onSave, onRevise, onApprove, onDelete, onSu
                                 <DropdownMenuItem onClick={() => openHistory(item)}>
                                   <History className="mr-2 h-4 w-4" />
                                   Geçmiş
+                                </DropdownMenuItem>
+                                
+                                <DropdownMenuItem onClick={() => {
+                                  setCopiedBudgetItem({
+                                    name: item.name,
+                                    values: { ...item.values },
+                                    type: type
+                                  });
+                                  toast({
+                                    title: "Kopyalandı",
+                                    description: `"${item.name}" kalemi kopyalandı. Bir harcama grubuna yapıştırabilirsiniz.`,
+                                  });
+                                }}>
+                                  <Copy className="mr-2 h-4 w-4" />
+                                  Kopyala
                                 </DropdownMenuItem>
                                 
                                 {hasEditPermission && onDelete && (

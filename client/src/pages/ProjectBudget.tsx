@@ -13,7 +13,7 @@ import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/com
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from "@/components/ui/dropdown-menu";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { PlusCircle, Download, Filter, Loader2, Plus, MoreHorizontal, Pencil, Trash2, FolderGit2, Layers, Clock, Upload } from "lucide-react";
+import { PlusCircle, Download, Filter, Loader2, Plus, MoreHorizontal, Pencil, Trash2, FolderGit2, Layers, Clock, Upload, ClipboardPaste } from "lucide-react";
 import { useState, useRef } from "react";
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
@@ -25,7 +25,7 @@ import type { BudgetMonthValues } from "@/lib/store";
 import ProjectProcessesTab from "@/components/ProjectProcessesTab";
 
 export default function ProjectBudget() {
-  const { currentYear, setYear, currentUser, selectedCompanyId } = useStore();
+  const { currentYear, setYear, currentUser, selectedCompanyId, copiedBudgetItem, setCopiedBudgetItem } = useStore();
   const { data: projects = [], isLoading } = useProjects(currentYear, selectedCompanyId);
   const { data: projectTypes = [], isLoading: projectTypesLoading } = useProjectTypes();
   
@@ -212,6 +212,40 @@ export default function ProjectBudget() {
       toast.success("Gelir kalemi eklendi", { description: name });
       setIsNewRevenueItemOpen(false);
       setActivePhaseForItem(null);
+    } catch (error: any) {
+      toast.error("Hata", { description: error.message });
+    }
+  };
+
+  const handlePasteCostItem = async (phaseId: string) => {
+    if (!copiedBudgetItem || copiedBudgetItem.type !== 'cost') return;
+    try {
+      await createBudgetItemMutation.mutateAsync({ 
+        name: copiedBudgetItem.name + " (kopya)", 
+        type: 'cost', 
+        projectPhaseId: phaseId,
+        year: currentYear,
+        monthlyValues: copiedBudgetItem.values
+      });
+      toast.success("Gider kalemi yapıştırıldı", { description: copiedBudgetItem.name });
+      setCopiedBudgetItem(null);
+    } catch (error: any) {
+      toast.error("Hata", { description: error.message });
+    }
+  };
+
+  const handlePasteRevenueItem = async (phaseId: string) => {
+    if (!copiedBudgetItem || copiedBudgetItem.type !== 'revenue') return;
+    try {
+      await createBudgetItemMutation.mutateAsync({ 
+        name: copiedBudgetItem.name + " (kopya)", 
+        type: 'revenue', 
+        projectPhaseId: phaseId,
+        year: currentYear,
+        monthlyValues: copiedBudgetItem.values
+      });
+      toast.success("Gelir kalemi yapıştırıldı", { description: copiedBudgetItem.name });
+      setCopiedBudgetItem(null);
     } catch (error: any) {
       toast.error("Hata", { description: error.message });
     }
@@ -797,6 +831,12 @@ export default function ProjectBudget() {
                                                         <Plus className="mr-2 h-4 w-4" />
                                                         Yeni Gider Kalemi
                                                       </DropdownMenuItem>
+                                                      {copiedBudgetItem && copiedBudgetItem.type === 'cost' && (
+                                                        <DropdownMenuItem onClick={() => handlePasteCostItem(phase.id)}>
+                                                          <ClipboardPaste className="mr-2 h-4 w-4 text-blue-600" />
+                                                          Yapıştır ({copiedBudgetItem.name})
+                                                        </DropdownMenuItem>
+                                                      )}
                                                       <DropdownMenuItem onClick={() => { setEditingPhase({ id: phase.id, name: phase.name }); setEditPhaseOpen(true); }}>
                                                         <Pencil className="mr-2 h-4 w-4" />
                                                         Düzenle
@@ -883,6 +923,12 @@ export default function ProjectBudget() {
                                                         <Plus className="mr-2 h-4 w-4" />
                                                         Yeni Gelir Kalemi
                                                       </DropdownMenuItem>
+                                                      {copiedBudgetItem && copiedBudgetItem.type === 'revenue' && (
+                                                        <DropdownMenuItem onClick={() => handlePasteRevenueItem(phase.id)}>
+                                                          <ClipboardPaste className="mr-2 h-4 w-4 text-blue-600" />
+                                                          Yapıştır ({copiedBudgetItem.name})
+                                                        </DropdownMenuItem>
+                                                      )}
                                                       <DropdownMenuItem onClick={() => { setEditingPhase({ id: phase.id, name: phase.name }); setEditPhaseOpen(true); }}>
                                                         <Pencil className="mr-2 h-4 w-4" />
                                                         Düzenle

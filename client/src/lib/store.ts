@@ -279,22 +279,31 @@ export const getAvailableYears = (): number[] => {
   return years;
 };
 
+export interface CopiedBudgetItem {
+  name: string;
+  values: BudgetMonthValues;
+  type: 'cost' | 'revenue';
+}
+
 interface AppState {
   currentUser: User | null;
   currentYear: number;
   selectedCompanyId: string | null; // null = "Tümü" (All Companies)
+  copiedBudgetItem: CopiedBudgetItem | null;
   
   // Actions
   setUser: (user: User | null) => void;
   logout: () => void;
   setYear: (year: number) => void;
   setSelectedCompanyId: (companyId: string | null) => void;
+  setCopiedBudgetItem: (item: CopiedBudgetItem | null) => void;
 }
 
 export const useStore = create<AppState>((set) => ({
   currentUser: loadUserFromStorage(),
   currentYear: loadYearFromStorage(),
   selectedCompanyId: loadSelectedCompanyFromStorage(),
+  copiedBudgetItem: null,
 
   setUser: (user) => {
     if (user) {
@@ -323,5 +332,9 @@ export const useStore = create<AppState>((set) => ({
       localStorage.removeItem('finflow_selected_company');
     }
     set({ selectedCompanyId: companyId });
+  },
+  
+  setCopiedBudgetItem: (item) => {
+    set({ copiedBudgetItem: item });
   },
 }));
