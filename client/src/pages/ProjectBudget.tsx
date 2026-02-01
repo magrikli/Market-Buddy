@@ -682,29 +682,28 @@ export default function ProjectBudget() {
                                 Süreçler
                               </TabsTrigger>
                             </TabsList>
-                            {currentUser?.role === 'admin' && (
-                              <>
-                                {(activeTabByProject[project.id] === "costs" || !activeTabByProject[project.id]) && (
-                                  <Button 
-                                    size="sm"
-                                    variant="outline"
-                                    onClick={() => { setActiveProjectForPhase(project.id); setNewPhaseType('cost'); setIsNewPhaseOpen(true); }}
-                                  >
-                                    <Plus className="mr-1 h-3 w-3" />
-                                    Gider Fazı Ekle
-                                  </Button>
-                                )}
-                                {activeTabByProject[project.id] === "revenue" && (
-                                  <Button 
-                                    size="sm"
-                                    variant="outline"
-                                    onClick={() => { setActiveProjectForPhase(project.id); setNewPhaseType('revenue'); setIsNewPhaseOpen(true); }}
-                                  >
-                                    <Plus className="mr-1 h-3 w-3" />
-                                    Gelir Fazı Ekle
-                                  </Button>
-                                )}
-                                {activeTabByProject[project.id] === "processes" && (
+                            <>
+                              {(activeTabByProject[project.id] === "costs" || !activeTabByProject[project.id]) && (
+                                <Button 
+                                  size="sm"
+                                  variant="outline"
+                                  onClick={() => { setActiveProjectForPhase(project.id); setNewPhaseType('cost'); setIsNewPhaseOpen(true); }}
+                                >
+                                  <Plus className="mr-1 h-3 w-3" />
+                                  Gider Fazı Ekle
+                                </Button>
+                              )}
+                              {activeTabByProject[project.id] === "revenue" && (
+                                <Button 
+                                  size="sm"
+                                  variant="outline"
+                                  onClick={() => { setActiveProjectForPhase(project.id); setNewPhaseType('revenue'); setIsNewPhaseOpen(true); }}
+                                >
+                                  <Plus className="mr-1 h-3 w-3" />
+                                  Gelir Fazı Ekle
+                                </Button>
+                              )}
+                              {activeTabByProject[project.id] === "processes" && currentUser?.role === 'admin' && (
                                   <div className="flex items-center gap-1">
                                     <Button 
                                       size="icon"
@@ -746,7 +745,6 @@ export default function ProjectBudget() {
                                   </div>
                                 )}
                               </>
-                            )}
                           </div>
 
                           <TabsContent value="costs" className="space-y-4">
@@ -788,29 +786,27 @@ export default function ProjectBudget() {
                                                     <span className="text-[10px] text-muted-foreground font-medium">Toplam</span>
                                                     <span className="font-mono font-bold text-foreground">₺ {formatMoney(phaseTotal)}</span>
                                                   </div>
-                                                  {currentUser?.role === 'admin' && (
-                                                    <DropdownMenu>
-                                                      <DropdownMenuTrigger asChild>
-                                                        <Button variant="ghost" size="icon" className="h-6 w-6">
-                                                          <MoreHorizontal className="h-3 w-3" />
-                                                        </Button>
-                                                      </DropdownMenuTrigger>
-                                                      <DropdownMenuContent align="end">
-                                                        <DropdownMenuItem onClick={() => { setActivePhaseForItem(phase.id); setIsNewCostItemOpen(true); }}>
-                                                          <Plus className="mr-2 h-4 w-4" />
-                                                          Yeni Gider Kalemi
-                                                        </DropdownMenuItem>
-                                                        <DropdownMenuItem onClick={() => { setEditingPhase({ id: phase.id, name: phase.name }); setEditPhaseOpen(true); }}>
-                                                          <Pencil className="mr-2 h-4 w-4" />
-                                                          Düzenle
-                                                        </DropdownMenuItem>
-                                                        <DropdownMenuItem onClick={() => handleDeletePhase(phase.id, phase.name)} className="text-destructive">
-                                                          <Trash2 className="mr-2 h-4 w-4" />
-                                                          Sil
-                                                        </DropdownMenuItem>
-                                                      </DropdownMenuContent>
-                                                    </DropdownMenu>
-                                                  )}
+                                                  <DropdownMenu>
+                                                    <DropdownMenuTrigger asChild>
+                                                      <Button variant="ghost" size="icon" className="h-6 w-6">
+                                                        <MoreHorizontal className="h-3 w-3" />
+                                                      </Button>
+                                                    </DropdownMenuTrigger>
+                                                    <DropdownMenuContent align="end">
+                                                      <DropdownMenuItem onClick={() => { setActivePhaseForItem(phase.id); setIsNewCostItemOpen(true); }}>
+                                                        <Plus className="mr-2 h-4 w-4" />
+                                                        Yeni Gider Kalemi
+                                                      </DropdownMenuItem>
+                                                      <DropdownMenuItem onClick={() => { setEditingPhase({ id: phase.id, name: phase.name }); setEditPhaseOpen(true); }}>
+                                                        <Pencil className="mr-2 h-4 w-4" />
+                                                        Düzenle
+                                                      </DropdownMenuItem>
+                                                      <DropdownMenuItem onClick={() => handleDeletePhase(phase.id, phase.name)} className="text-destructive">
+                                                        <Trash2 className="mr-2 h-4 w-4" />
+                                                        Sil
+                                                      </DropdownMenuItem>
+                                                    </DropdownMenuContent>
+                                                  </DropdownMenu>
                                                 </div>
                                               </th>
                                             </tr>
@@ -820,7 +816,7 @@ export default function ProjectBudget() {
                                     </div>
                                     <BudgetTable 
                                       items={phase.costItems || []}
-                                      isAdmin={currentUser?.role === 'admin'}
+                                      isAdmin={true}
                                       selectedYear={currentYear}
                                       onSave={handleUpdateItem}
                                       onRevise={handleReviseItem}
@@ -876,29 +872,27 @@ export default function ProjectBudget() {
                                                     <span className="text-[10px] text-muted-foreground font-medium">Toplam</span>
                                                     <span className="font-mono font-bold text-foreground">₺ {formatMoney(phaseTotal)}</span>
                                                   </div>
-                                                  {currentUser?.role === 'admin' && (
-                                                    <DropdownMenu>
-                                                      <DropdownMenuTrigger asChild>
-                                                        <Button variant="ghost" size="icon" className="h-6 w-6">
-                                                          <MoreHorizontal className="h-3 w-3" />
-                                                        </Button>
-                                                      </DropdownMenuTrigger>
-                                                      <DropdownMenuContent align="end">
-                                                        <DropdownMenuItem onClick={() => { setActivePhaseForItem(phase.id); setIsNewRevenueItemOpen(true); }}>
-                                                          <Plus className="mr-2 h-4 w-4" />
-                                                          Yeni Gelir Kalemi
-                                                        </DropdownMenuItem>
-                                                        <DropdownMenuItem onClick={() => { setEditingPhase({ id: phase.id, name: phase.name }); setEditPhaseOpen(true); }}>
-                                                          <Pencil className="mr-2 h-4 w-4" />
-                                                          Düzenle
-                                                        </DropdownMenuItem>
-                                                        <DropdownMenuItem onClick={() => handleDeletePhase(phase.id, phase.name)} className="text-destructive">
-                                                          <Trash2 className="mr-2 h-4 w-4" />
-                                                          Sil
-                                                        </DropdownMenuItem>
-                                                      </DropdownMenuContent>
-                                                    </DropdownMenu>
-                                                  )}
+                                                  <DropdownMenu>
+                                                    <DropdownMenuTrigger asChild>
+                                                      <Button variant="ghost" size="icon" className="h-6 w-6">
+                                                        <MoreHorizontal className="h-3 w-3" />
+                                                      </Button>
+                                                    </DropdownMenuTrigger>
+                                                    <DropdownMenuContent align="end">
+                                                      <DropdownMenuItem onClick={() => { setActivePhaseForItem(phase.id); setIsNewRevenueItemOpen(true); }}>
+                                                        <Plus className="mr-2 h-4 w-4" />
+                                                        Yeni Gelir Kalemi
+                                                      </DropdownMenuItem>
+                                                      <DropdownMenuItem onClick={() => { setEditingPhase({ id: phase.id, name: phase.name }); setEditPhaseOpen(true); }}>
+                                                        <Pencil className="mr-2 h-4 w-4" />
+                                                        Düzenle
+                                                      </DropdownMenuItem>
+                                                      <DropdownMenuItem onClick={() => handleDeletePhase(phase.id, phase.name)} className="text-destructive">
+                                                        <Trash2 className="mr-2 h-4 w-4" />
+                                                        Sil
+                                                      </DropdownMenuItem>
+                                                    </DropdownMenuContent>
+                                                  </DropdownMenu>
                                                 </div>
                                               </th>
                                             </tr>
@@ -908,7 +902,7 @@ export default function ProjectBudget() {
                                     </div>
                                     <BudgetTable 
                                       items={phase.revenueItems || []}
-                                      isAdmin={currentUser?.role === 'admin'}
+                                      isAdmin={true}
                                       selectedYear={currentYear}
                                       onSave={handleUpdateItem}
                                       onRevise={handleReviseItem}
