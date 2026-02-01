@@ -1,8 +1,6 @@
 services:
   finflow:
-    # Use 'image' for Docker Hub, or 'build: .' for local build
     image: ${DOCKER_IMAGE:-your-dockerhub-username/finflow:latest}
-    # build: .  # Uncomment this and comment 'image' line for local build
     container_name: finflow
     ports:
       - "7013:5000"
@@ -19,10 +17,3 @@ services:
       timeout: 10s
       retries: 3
       start_period: 10s
-
-# Usage with Docker Hub image:
-#   DOCKER_IMAGE=your-username/finflow:latest docker-compose up -d
-#
-# Usage with local build:
-#   Comment 'image' line, uncomment 'build: .' line, then:
-#   docker-compose up -d --build
