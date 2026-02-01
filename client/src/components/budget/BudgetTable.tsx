@@ -103,7 +103,7 @@ export function BudgetTable({ items, onSave, onRevise, onApprove, onDelete, onSu
       const originalValue = originalValues[monthIndex] || 0;
       
       // Only show dialog if the value actually changed
-      if (changedValue !== originalValue && changedValue > 0) {
+      if (changedValue !== originalValue) {
         setPendingDistributeValue(changedValue);
         setPendingDistributeMonth(monthIndex);
         setDistributeDialogOpen(true);
@@ -417,17 +417,17 @@ export function BudgetTable({ items, onSave, onRevise, onApprove, onDelete, onSu
       <Dialog open={distributeDialogOpen} onOpenChange={setDistributeDialogOpen}>
         <DialogContent className="sm:max-w-[400px]">
           <DialogHeader>
-            <DialogTitle>Tüm Aylara Dağıt</DialogTitle>
+            <DialogTitle>Sonraki Aylara Dağıt</DialogTitle>
             <DialogDescription>
-              Ocak ayına girdiğiniz <span className="font-semibold text-foreground">₺ {formatMoney(pendingDistributeValue)}</span> değerini tüm aylara dağıtmak ister misiniz?
+              {months[pendingDistributeMonth]} ayına girdiğiniz <span className="font-semibold text-foreground">₺ {formatMoney(pendingDistributeValue)}</span> değerini sonraki aylara da dağıtmak ister misiniz?
             </DialogDescription>
           </DialogHeader>
           <DialogFooter className="gap-2 sm:gap-0">
             <Button variant="outline" onClick={cancelDistribute} data-testid="button-cancel-distribute">
-              Hayır, Sadece Ocak
+              Hayır, Sadece {months[pendingDistributeMonth]}
             </Button>
             <Button onClick={confirmDistribute} data-testid="button-confirm-distribute">
-              Evet, Tüm Aylara Dağıt
+              Evet, Sonraki Aylara Dağıt
             </Button>
           </DialogFooter>
         </DialogContent>
