@@ -38,3 +38,9 @@ coverage
 replit.nix
 .upm
 .cache
+
+# Git
+.git
+
+# Attached assets
+attached_assets

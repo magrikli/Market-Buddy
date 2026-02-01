@@ -1,0 +1,69 @@
+C:\Users\parkolay\Downloads>docker-compose up
+time="2026-02-01T07:58:32+03:00" level=warning msg="C:\\Users\\parkolay\\Downloads\\docker-compose.yml: the attribute `version` is obsolete, it will be ignored, please remove it to avoid potential confusion"
+[+] Building 45.5s (10/15)
+ => [internal] load local bake definitions                                                                         0.0s
+ => => reading from stdin 522B                                                                                     0.0s
+ => [internal] load build definition from Dockerfile                                                               0.0s
+ => => transferring dockerfile: 1.34kB                                                                             0.0s
+ => [internal] load metadata for docker.io/library/node:20-alpine                                                  2.2s
+ => [auth] library/node:pull token for registry-1.docker.io                                                        0.0s
+ => [internal] load .dockerignore                                                                                  0.0s
+ => => transferring context: 2B                                                                                    0.0s
+ => [builder 1/7] FROM docker.io/library/node:20-alpine@sha256:09e2b3d9726018aecf269bd35325f46bf75046a643a66d2836  7.5s
+ => => resolve docker.io/library/node:20-alpine@sha256:09e2b3d9726018aecf269bd35325f46bf75046a643a66d28360ec71132  0.0s
+ => => sha256:e31b2016552274339ed88ed4a438d78bf37e0f6bdf328d02207b2a598c1ef86d 445B / 445B                         0.2s
+ => => sha256:eb87f4721c91769ed5206f34a9ab6ec98fc1d5235c12c2fc956665b1155e9ecb 1.26MB / 1.26MB                     0.5s
+ => => sha256:ad6d96c196e3198e14ea37df8bba4f54bf92fb525eb65e49fa4027c7dee13f80 42.78MB / 42.78MB                   4.7s
+ => => sha256:589002ba0eaed121a1dbf42f6648f29e5be55d5c8a6ee0f8eaa0285cc21ac153 3.86MB / 3.86MB                     1.2s
+ => => extracting sha256:589002ba0eaed121a1dbf42f6648f29e5be55d5c8a6ee0f8eaa0285cc21ac153                          0.3s
+ => => extracting sha256:ad6d96c196e3198e14ea37df8bba4f54bf92fb525eb65e49fa4027c7dee13f80                          2.5s
+ => => extracting sha256:eb87f4721c91769ed5206f34a9ab6ec98fc1d5235c12c2fc956665b1155e9ecb                          0.1s
+ => => extracting sha256:e31b2016552274339ed88ed4a438d78bf37e0f6bdf328d02207b2a598c1ef86d                          0.0s
+ => [internal] load build context                                                                                 43.0s
+ => => transferring context: 867.92MB                                                                             43.0s
+ => [builder 2/7] WORKDIR /app                                                                                     1.9s
+ => [builder 3/7] RUN apk add --no-cache python3 make g++                                                         15.8s
+ => ERROR [builder 4/7] COPY package.json package-lock.json ./                                                     0.0s
+------
+ > [builder 4/7] COPY package.json package-lock.json ./:
+------
+Dockerfile:10
+
+--------------------
+
+   8 |
+
+   9 |     # Copy package files first for better caching
+
+  10 | >>> COPY package.json package-lock.json ./
+
+  11 |
+
+  12 |     # Install all dependencies (including dev dependencies for build)
+
+--------------------
+
+Dockerfile:30
+
+--------------------
+
+  28 |
+
+  29 |     # Copy package files
+
+  30 | >>> COPY package.json package-lock.json ./
+
+  31 |
+
+  32 |     # Install only production dependencies (rebuilds native modules for this stage)
+
+--------------------
+
+failed to solve: failed to compute cache key: failed to calculate checksum of ref bjyx2yw4ltj8a94iejc5n3gzs::8cd4v5q8ul7njqnqvnuj8fagn: "/package.json": not found
+
+
+
+View build details: docker-desktop://dashboard/build/default/default/kdnaj5wq0vr02lnhxyxkkh4xx
+
+
+C:\Users\parkolay\Downloads>
