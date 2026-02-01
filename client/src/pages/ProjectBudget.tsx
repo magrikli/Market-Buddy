@@ -703,7 +703,7 @@ export default function ProjectBudget() {
                                   Gelir Fazı Ekle
                                 </Button>
                               )}
-                              {activeTabByProject[project.id] === "processes" && currentUser?.role === 'admin' && (
+                              {activeTabByProject[project.id] === "processes" && (
                                   <div className="flex items-center gap-1">
                                     <Button 
                                       size="icon"
