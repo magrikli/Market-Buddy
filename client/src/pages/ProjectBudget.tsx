@@ -4,7 +4,7 @@ import {
   useCreateProjectPhase, useUpdateProjectPhase, useDeleteProjectPhase,
   useCreateBudgetItem, useUpdateBudgetItem, useReviseBudgetItem, 
   useApproveBudgetItem, useRevertBudgetItem, useDeleteBudgetItem,
-  useProjectTypes
+  useProjectTypes, useSettings
 } from "@/lib/queries";
 import { BudgetTable } from "@/components/budget/BudgetTable";
 import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from "@/components/ui/accordion";
@@ -28,6 +28,7 @@ export default function ProjectBudget() {
   const { currentYear, setYear, currentUser, selectedCompanyId, copiedBudgetItem, setCopiedBudgetItem } = useStore();
   const { data: projects = [], isLoading } = useProjects(currentYear, selectedCompanyId);
   const { data: projectTypes = [], isLoading: projectTypesLoading } = useProjectTypes();
+  const { data: settings } = useSettings();
   
   const createProjectMutation = useCreateProject();
   const updateProjectMutation = useUpdateProject();
@@ -858,6 +859,7 @@ export default function ProjectBudget() {
                                       items={phase.costItems || []}
                                       isAdmin={true}
                                       selectedYear={currentYear}
+                                      allowEditPastMonths={settings?.AllowEditPastMonths || false}
                                       onSave={handleUpdateItem}
                                       onRevise={handleReviseItem}
                                       onApprove={handleApproveItem}
@@ -950,6 +952,7 @@ export default function ProjectBudget() {
                                       items={phase.revenueItems || []}
                                       isAdmin={true}
                                       selectedYear={currentYear}
+                                      allowEditPastMonths={settings?.AllowEditPastMonths || false}
                                       onSave={handleUpdateItem}
                                       onRevise={handleReviseItem}
                                       onApprove={handleApproveItem}

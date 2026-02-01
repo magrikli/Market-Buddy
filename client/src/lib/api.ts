@@ -666,3 +666,16 @@ export async function reorderProjectTypePhases(id1: string, id2: string): Promis
     body: JSON.stringify({ id1, id2 }),
   });
 }
+
+// === SETTINGS ===
+
+export async function getSettings(): Promise<{ Version: string; BuildNo: string; AllowEditPastMonths: boolean }> {
+  return fetchAPI('/settings');
+}
+
+export async function updateSetting(key: string, value: string): Promise<{ key: string; value: string }> {
+  return fetchAPI(`/settings/${key}`, {
+    method: 'PUT',
+    body: JSON.stringify({ value }),
+  });
+}

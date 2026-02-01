@@ -34,7 +34,8 @@ export async function registerRoutes(server: Server, app: Express): Promise<Serv
     try {
       const version = await storage.getSetting('Version');
       const buildNo = await storage.getSetting('BuildNo');
-      res.json({ Version: version, BuildNo: buildNo });
+      const allowEditPastMonths = await storage.getSetting('AllowEditPastMonths');
+      res.json({ Version: version, BuildNo: buildNo, AllowEditPastMonths: allowEditPastMonths === 'true' });
     } catch (error) {
       console.error("Settings API error:", error);
       res.status(500).json({ error: "Failed to get settings" });

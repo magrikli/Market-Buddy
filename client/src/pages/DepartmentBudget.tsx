@@ -1,5 +1,5 @@
 import { useStore, getAvailableYears } from "@/lib/store";
-import { useDepartments, useCreateDepartment, useCreateCostGroup, useCreateBudgetItem, useUpdateBudgetItem, useReviseBudgetItem, useApproveBudgetItem, useRevertBudgetItem, useUpdateDepartment, useDeleteDepartment, useUpdateCostGroup, useDeleteCostGroup, useDeleteBudgetItem, useDepartmentGroups, useCreateDepartmentGroup, useUpdateDepartmentGroup, useDeleteDepartmentGroup } from "@/lib/queries";
+import { useDepartments, useCreateDepartment, useCreateCostGroup, useCreateBudgetItem, useUpdateBudgetItem, useReviseBudgetItem, useApproveBudgetItem, useRevertBudgetItem, useUpdateDepartment, useDeleteDepartment, useUpdateCostGroup, useDeleteCostGroup, useDeleteBudgetItem, useDepartmentGroups, useCreateDepartmentGroup, useUpdateDepartmentGroup, useDeleteDepartmentGroup, useSettings } from "@/lib/queries";
 import type { DepartmentGroup } from "@/lib/store";
 import { BudgetTable } from "@/components/budget/BudgetTable";
 import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from "@/components/ui/accordion";
@@ -19,6 +19,7 @@ export default function DepartmentBudget() {
   const { currentYear, setYear, currentUser, selectedCompanyId, copiedBudgetItem, setCopiedBudgetItem } = useStore();
   const { data: departments = [], isLoading } = useDepartments(currentYear, selectedCompanyId);
   const { data: departmentGroups = [] } = useDepartmentGroups();
+  const { data: settings } = useSettings();
   const createDepartmentMutation = useCreateDepartment();
   const createCostGroupMutation = useCreateCostGroup();
   const createBudgetItemMutation = useCreateBudgetItem();
@@ -1137,6 +1138,7 @@ export default function DepartmentBudget() {
                                         isAdmin={currentUser?.role === 'admin'}
                                         canEdit={canManageDepartment(dept.id)}
                                         selectedYear={currentYear}
+                                        allowEditPastMonths={settings?.AllowEditPastMonths || false}
                                         onSave={handleUpdateItem}
                                         onRevise={handleReviseItem}
                                         onApprove={handleApproveItem}
@@ -1336,6 +1338,7 @@ export default function DepartmentBudget() {
                                       isAdmin={currentUser?.role === 'admin'}
                                       canEdit={canManageDepartment(dept.id)}
                                       selectedYear={currentYear}
+                                      allowEditPastMonths={settings?.AllowEditPastMonths || false}
                                       onSave={handleUpdateItem}
                                       onRevise={handleReviseItem}
                                       onApprove={handleApproveItem}

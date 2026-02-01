@@ -7,7 +7,8 @@ import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, D
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Checkbox } from "@/components/ui/checkbox";
 import { useStore } from "@/lib/store";
-import { useDepartments, useDepartmentGroups, useProjects, useUsers, useCreateUser, useUpdateUser, useDeleteUser, useUpdateUserAssignments, useCompanies, useCreateCompany, useUpdateCompany, useDeleteCompany, useUpdateUserCompanyAssignments, usePendingProcesses, useApproveProcess, useRejectProcess, useBulkApproveProcesses, usePendingBudgetItems, useApproveBudgetItem, useRejectBudgetItem, useBulkApproveBudgetItems, useProjectTypes, useCreateProjectType, useUpdateProjectType, useDeleteProjectType, useReorderProjectTypes, useProjectTypePhases, useCreateProjectTypePhase, useDeleteProjectTypePhase, useReorderProjectTypePhases } from "@/lib/queries";
+import { useDepartments, useDepartmentGroups, useProjects, useUsers, useCreateUser, useUpdateUser, useDeleteUser, useUpdateUserAssignments, useCompanies, useCreateCompany, useUpdateCompany, useDeleteCompany, useUpdateUserCompanyAssignments, usePendingProcesses, useApproveProcess, useRejectProcess, useBulkApproveProcesses, usePendingBudgetItems, useApproveBudgetItem, useRejectBudgetItem, useBulkApproveBudgetItems, useProjectTypes, useCreateProjectType, useUpdateProjectType, useDeleteProjectType, useReorderProjectTypes, useProjectTypePhases, useCreateProjectTypePhase, useDeleteProjectTypePhase, useReorderProjectTypePhases, useSettings, useUpdateSetting } from "@/lib/queries";
+import { Switch } from "@/components/ui/switch";
 import { Search, UserPlus, CheckCheck, Pencil, Trash2, Loader2, Users, Building2, Plus, X, Settings, ArrowUp, ArrowDown } from "lucide-react";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { toast } from "sonner";
@@ -52,6 +53,10 @@ export default function Admin() {
   const createProjectTypePhaseMutation = useCreateProjectTypePhase();
   const deleteProjectTypePhaseMutation = useDeleteProjectTypePhase();
   const reorderProjectTypePhasesMutation = useReorderProjectTypePhases();
+  
+  // Settings
+  const { data: settings } = useSettings();
+  const updateSettingMutation = useUpdateSetting();
 
   const [isNewUserOpen, setIsNewUserOpen] = useState(false);
   const [isEditUserOpen, setIsEditUserOpen] = useState(false);
@@ -1000,6 +1005,40 @@ export default function Admin() {
 
         <TabsContent value="settings">
           <div className="space-y-6">
+            {/* General Settings Section */}
+            <Card className="shadow-md">
+              <CardHeader>
+                <CardTitle className="flex items-center gap-2">
+                  <Settings className="h-5 w-5" />
+                  Genel Ayarlar
+                </CardTitle>
+                <CardDescription>
+                  Sistemin genel çalışma ayarlarını buradan yönetebilirsiniz.
+                </CardDescription>
+              </CardHeader>
+              <CardContent className="space-y-4">
+                <div className="flex items-center justify-between p-4 border rounded-lg">
+                  <div>
+                    <h4 className="font-medium">Geçmiş Ayları Düzenleme</h4>
+                    <p className="text-sm text-muted-foreground">
+                      Bu ayar açıkken geçmiş ayların bütçe değerleri düzenlenebilir. Kapatıldığında sadece mevcut ve gelecek aylar düzenlenebilir.
+                    </p>
+                  </div>
+                  <Switch
+                    checked={settings?.AllowEditPastMonths || false}
+                    onCheckedChange={(checked) => {
+                      updateSettingMutation.mutate(
+                        { key: 'AllowEditPastMonths', value: checked.toString() },
+                        { onSuccess: () => toast.success(checked ? "Geçmiş aylar düzenlenebilir" : "Geçmiş aylar kilitlendi") }
+                      );
+                    }}
+                    disabled={updateSettingMutation.isPending}
+                    data-testid="switch-allow-edit-past-months"
+                  />
+                </div>
+              </CardContent>
+            </Card>
+
             {/* Project Types Section */}
             <Card className="shadow-md">
               <CardHeader>

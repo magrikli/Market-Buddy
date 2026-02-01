@@ -19,6 +19,7 @@ interface BudgetTableProps {
   onApprove?: (itemId: string) => void;
   onDelete?: (itemId: string, name: string) => void;
   onSubmitForApproval?: (itemId: string) => void;
+  allowEditPastMonths?: boolean;
   onWithdraw?: (itemId: string) => void;
   onRevert?: (itemId: string) => void;
   onReorder?: (itemId: string, direction: 'up' | 'down') => void;
@@ -40,11 +41,13 @@ const formatMoney = (amount: number) => {
 const currentYear = new Date().getFullYear();
 const currentMonth = new Date().getMonth(); // 0-indexed (0 = January, 11 = December)
 
-export function BudgetTable({ items, onSave, onRevise, onApprove, onDelete, onSubmitForApproval, onWithdraw, onRevert, onReorder, isAdmin = false, canEdit, type = 'cost', selectedYear }: BudgetTableProps) {
+export function BudgetTable({ items, onSave, onRevise, onApprove, onDelete, onSubmitForApproval, allowEditPastMonths = false, onWithdraw, onRevert, onReorder, isAdmin = false, canEdit, type = 'cost', selectedYear }: BudgetTableProps) {
   // canEdit defaults to isAdmin if not specified
   const hasEditPermission = canEdit ?? isAdmin;
   // If selected year is in the future, all months are editable
   const isFutureYear = selectedYear ? selectedYear > currentYear : false;
+  // If allowEditPastMonths is true, all months are editable regardless of the date
+  const canEditPastMonths = allowEditPastMonths;
   const [editingId, setEditingId] = useState<string | null>(null);
   const [editValues, setEditValues] = useState<BudgetMonthValues>({});
   const [editName, setEditName] = useState<string>("");
@@ -182,7 +185,7 @@ export function BudgetTable({ items, onSave, onRevise, onApprove, onDelete, onSu
                         </div>
                       </TableCell>
                       {months.map((_, index) => {
-                        const isPastMonth = !isFutureYear && index < currentMonth;
+                        const isPastMonth = !isFutureYear && !canEditPastMonths && index < currentMonth;
                         return (
                           <TableCell key={index} className={cn("min-w-[80px] text-right p-2", isPastMonth && "bg-muted/30")}>
                             {isEditing ? (

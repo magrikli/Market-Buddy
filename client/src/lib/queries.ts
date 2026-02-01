@@ -18,6 +18,7 @@ export const queryKeys = {
   budgetRatio: (year: number, companyId?: string | null) => ['budgetRatio', year, companyId] as const,
   budgetDepartmentGroupsBreakdown: (year: number, companyId?: string | null, departmentId?: string | null) => ['budgetDepartmentGroupsBreakdown', year, companyId, departmentId] as const,
   budgetProjectPhasesBreakdown: (year: number, companyId?: string | null, projectId?: string | null) => ['budgetProjectPhasesBreakdown', year, companyId, projectId] as const,
+  settings: ['settings'] as const,
 };
 
 // === AUTH ===
@@ -746,6 +747,25 @@ export function useReorderProjectTypePhases() {
       api.reorderProjectTypePhases(id1, id2),
     onSuccess: (_, variables) => {
       queryClient.invalidateQueries({ queryKey: ['projectTypePhases', variables.projectTypeId] });
+    },
+  });
+}
+
+// === SETTINGS ===
+
+export function useSettings() {
+  return useQuery({
+    queryKey: queryKeys.settings,
+    queryFn: api.getSettings,
+  });
+}
+
+export function useUpdateSetting() {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: ({ key, value }: { key: string; value: string }) => api.updateSetting(key, value),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: queryKeys.settings });
     },
   });
 }
